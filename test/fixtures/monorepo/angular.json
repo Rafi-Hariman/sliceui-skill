@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "app-one": {
+      "prefix": "one",
+      "architect": { "build": { "options": { "main": "src/main.ts", "styles": ["src/styles.scss"] } } }
+    },
+    "app-two": {
+      "prefix": "two",
+      "architect": { "build": { "options": { "main": "src/main.ts" } } }
+    }
+  }
+}

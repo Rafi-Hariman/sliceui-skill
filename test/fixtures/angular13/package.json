@@ -1,0 +1,12 @@
+{
+  "name": "angular13-fixture",
+  "version": "0.0.0",
+  "dependencies": {
+    "@angular/core": "13.4.0",
+    "@angular/common": "13.4.0",
+    "@angular/material": "13.4.0"
+  },
+  "devDependencies": {
+    "@angular/cli": "13.4.0"
+  }
+}
