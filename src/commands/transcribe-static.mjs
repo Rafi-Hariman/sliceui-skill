@@ -6,9 +6,9 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join, basename } from "node:path";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { decodeBmp } from "../lib/bmp-decode.mjs";
 import { extractColorsAndBands, bandColumns } from "../lib/static-extract.mjs";
+import { runOcr } from "../lib/ocr.mjs";
 import { validateTranscript, emptyTranscript } from "../lib/transcript-schema.mjs";
 
 const ANALYSIS_MAX_EDGE = 512; // downscale for extraction speed; geometry scaled back up
@@ -27,20 +27,16 @@ export function transcribeStatic(imagePath) {
     const { colors, bands } = extractColorsAndBands(img);
     const bgHex = colors.find((c) => c.role === "background")?.hex ?? null;
 
-    // 3. optional OCR on a PNG copy (Vision reads png/jpg best)
-    let ocr = { boxes: [], quality: "unreadable" };
-    const pngPath = join(tmpdir(), `sliceui-static-${process.pid}-${Date.now()}.png`);
-    try {
-      execFileSync("sips", ["-s", "format", "png", imagePath, "--out", pngPath], { stdio: "pipe" });
-      tmpFiles.push(pngPath);
-      ocr = runOcr(pngPath);
-    } catch {
-      // no sips for png (unlikely if bmp worked) — leave unreadable
-    }
+    // 3. OCR via the shared helper (Vision reads png; converts internally when needed)
+    const ocr = runOcr(imagePath);
 
     // 4. build layout: bands → typed nodes with column children + OCR text
-    const scale = originalEdge(imagePath) / Math.max(img.width, img.height);
-    const layout = buildLayout(bands, img, bgHex, ocr.boxes, scale, imagePath);
+    const origEdge = originalEdge(imagePath);
+    const scale = origEdge / Math.max(img.width, img.height);
+    // OCR boxes live in original pixel space — pass original dims for relative matching
+    const origW = Math.round(img.width * scale);
+    const origH = Math.round(img.height * scale);
+    const layout = buildLayout(bands, img, bgHex, ocr.boxes, scale, origW, origH);
 
     const transcript = emptyTranscript({
       source: "static",
@@ -71,7 +67,7 @@ export function transcribeStatic(imagePath) {
 
 // ---------- layout building ----------
 
-function buildLayout(bands, img, bgHex, ocrBoxes, scale, imagePath) {
+function buildLayout(bands, img, bgHex, ocrBoxes, scale, origW, origH) {
   const layout = [];
   bands.sort((a, b) => a.y - b.y);
   for (const [bi, band] of bands.entries()) {
@@ -80,7 +76,9 @@ function buildLayout(bands, img, bgHex, ocrBoxes, scale, imagePath) {
     const h = Math.round(band.h * scale);
     const type = guessType(bi, bands.length, band, img.height);
     const children = cols.map((c, ci) => {
-      const box = ocrBoxes.find((b) => boxWithinRegion(b, c.x, band.y, c.w, band.h, img.width, img.height));
+      const box = ocrBoxes.find(
+        (b) => boxWithinRegion(b, c.x, band.y, c.w, band.h, img.width, img.height, origW, origH),
+      );
       return {
         id: `b${bi}c${ci}`,
         type: box ? "text" : "group",
@@ -114,10 +112,14 @@ function guessType(bi, total, band, imgHeight) {
   return "group";
 }
 
-function boxWithinRegion(box, rx, ry, rw, rh, imgW, imgH) {
-  // OCR boxes are in ORIGINAL pixel space; regions are in analysis space — compare relatively
-  const bx = box.x / imgW, by = box.y / imgH;
-  return bx >= rx / imgW - 0.05 && bx <= (rx + rw) / imgW + 0.05 && by >= ry / imgH - 0.05 && by <= (ry + rh) / imgH + 0.05;
+function boxWithinRegion(box, rx, ry, rw, rh, imgW, imgH, origW, origH) {
+  // OCR boxes are in ORIGINAL pixel space (origW x origH); regions are in ANALYSIS space (imgW x imgH).
+  // Compare relatively: normalize both to 0..1, with tolerance for OCR ascenders/descenders.
+  const bx = box.x / origW;
+  const by = box.y / origH;
+  const rl = rx / imgW, rr = (rx + rw) / imgW, rt = ry / imgH, rb = (ry + rh) / imgH;
+  const tol = 0.01;
+  return bx >= rl - tol && bx <= rr + tol && by >= rt - tol && by <= rb + tol;
 }
 
 function inferGap(bands) {
@@ -141,24 +143,6 @@ function originalEdge(imagePath) {
     return ANALYSIS_MAX_EDGE;
   }
 }
-
-// ---------- Swift Vision OCR ----------
-
-function runOcr(pngPath) {
-  const ocrSwiftSrc = join(fileURLToPath(new URL("../ocr/ocr.swift", import.meta.url)));
-  const tmpBin = join(tmpdir(), `sliceui-ocr-${process.pid}`);
-  try {
-    execFileSync("swiftc", ["-o", tmpBin, ocrSwiftSrc], { stdio: "pipe" });
-    tmpFilesSafe.push(tmpBin);
-    const out = execFileSync(tmpBin, [pngPath], { stdio: "pipe" }).toString();
-    const boxes = JSON.parse(out || "[]");
-    return { boxes, quality: "ocr" };
-  } catch {
-    return { boxes: [], quality: "unreadable" };
-  }
-}
-
-const tmpFilesSafe = [];
 
 // ---------- CLI entry ----------
 

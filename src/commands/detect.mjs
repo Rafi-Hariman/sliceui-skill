@@ -92,7 +92,8 @@ function detectFramework(deps, warnings) {
 }
 
 function parseMajor(v) {
-  const m = /^(\d+)/.exec(String(v));
+  // handles semver ranges: "^13.3.11", "~13.3.4", ">=13", "13.4.0"
+  const m = /(\d+)/.exec(String(v));
   return m ? Number(m[1]) : null;
 }
 

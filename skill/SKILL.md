@@ -22,7 +22,25 @@ Turn a screenshot into component code that **drops into THIS project** — match
 
 ## Workflow
 
-> **Important:** Never assume you can see the image. Always run the transcriber. This is the model-agnostic design: transcription converts pixels → text, so the generation step is always text→code.
+> **THE INVARIANT — never skip this:** Your job is NOT to look at the image. Your job is to run `sliceui transcribe <image>` and generate code from the transcript it writes. Even if you think you can see the image — even if reading the image works — **run the transcriber anyway**. Transcription is the product: it converts pixels → exact structured text (layout + colors + OCR-pinned strings), which is always better than your own guesswork on pixels.
+>
+> **NEVER ask the user "how should I transcribe this?"** There is nothing to decide. The flow below is deterministic:
+> 1. Resolve the image path (absolute, or relative to cwd). If it doesn't exist, say so and stop.
+> 2. Run `sliceui transcribe <path>`. It uses the project's Gemini key (tier 1) and falls back to static+OCR (tier 2) automatically. Never ask which.
+> 3. Read `.sliceui/transcript.md` fresh (check `.sliceui/transcript-meta.json` — it must list YOUR image; if it's from a different image, re-run step 2).
+> 4. Generate code from project-context + transcript. Write files. Build. Done.
+>
+> **If you are in plan mode** (read-only): running `sliceui transcribe` is still the correct move — it writes only to gitignored `.sliceui/` scratch files, which is plan-compatible research. If your harness truly blocks it, ask the user to run `! sliceui transcribe <path>` and continue from the transcript. Do NOT plan "from patterns only" — the transcript IS the spec.
+>
+> **Stale transcripts:** `.sliceui/transcript.md` may exist from a previous image. ALWAYS check `.sliceui/transcript-meta.json` (or the transcript's `meta.image`) matches the current image before trusting it. Mismatch → re-run transcribe.
+
+### Step 0 — Init (first time in a project)
+
+```bash
+sliceui init
+```
+
+Creates `.sliceui/` (+ `images/` dir for screenshots), `.sliceui/config.json`, `.env.local` (key template), gitignore entries, and runs detect. If `.sliceui/` already exists, skip to Step 1. Optional: `sliceui init --key-from <path-to-other-.env.local>` copies an existing Gemini key.
 
 ### Step 1 — Detect the project
 
@@ -86,7 +104,10 @@ Write real files into the project at the detected `componentDir`, then register 
 
 ## Anti-Pattern
 
-- **Never** assume you can "see" the image — always run `sliceui transcribe` first.
+- **Never** assume you can "see" the image — always run `sliceui transcribe` first, even when image-reading appears to work.
+- **Never** ask the user how to transcribe / which tier to use — the CLI decides (Gemini if key, else static). Asking is a bug in your flow.
+- **Never** plan or generate "from patterns only" without a fresh transcript for the target image.
+- **Never** trust an existing transcript without checking `transcript-meta.json` names the same image.
 - **Never** emit framework-foreign syntax (`@if` in Angular 13, `inject()`, standalone, JSX in a Vue SFC…).
 - **Never** put API keys in generated files or in the project.
 - **Never** dump a single `index.html` when the project expects a split component.

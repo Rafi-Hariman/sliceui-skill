@@ -8,11 +8,13 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolveGeminiKey } from "./env.mjs";
 
-const GEMINI_MODEL = "gemini-flash-latest";
+// gemini-flash-latest resolves to a slow *thinking* model; gemini-2.5-flash is retired.
+// Use the currently-recommended non-thinking flash; override via GEMINI_MODEL env.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const MAX_EDGE_PX = 1536;
 const MAX_BYTES = 1500000;
-const TIMEOUT_MS = 90000;
+const TIMEOUT_MS = 150000;
 const RETRIES = 3;
 const BACKOFF_MS = [2000, 4000, 8000];
 
@@ -36,7 +38,11 @@ export async function callGemini(prompt, imagePath, cwdDir) {
         { inline_data: { mime_type: prepared.mimeType, data: prepared.data } },
       ],
     }],
-    generationConfig: { maxOutputTokens: 8192, temperature: 0.2, responseMimeType: "application/json" },
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.2,
+      responseMimeType: "application/json",
+    },
   };
 
   let lastErr = null;
@@ -64,7 +70,7 @@ export async function callGemini(prompt, imagePath, cwdDir) {
       const parts = json?.candidates?.[0]?.content?.parts ?? [];
       const text = parts.map((p) => p.text).filter(Boolean).join("");
       if (!text) return { ok: false, reason: "empty", message: "Gemini returned no candidate text." };
-      return { ok: true, text, keySource: source };
+      return { ok: true, text, keySource: source, model: json?.modelVersion || GEMINI_MODEL };
     } catch (err) {
       clearTimeout(timer);
       if (err?.name === "AbortError") {

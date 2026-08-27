@@ -95,6 +95,10 @@ export function renderTranscript(t) {
     lines.push(`> ℹ Text via OCR — verify exact wording with the user if the copy matters.`);
     lines.push("");
   }
+  if (meta.textQuality === "vision+ocr") {
+    lines.push(`> ✅ Strings are OCR-pinned (exact) — trust the "quoted" text over your own reading of any image.`);
+    lines.push("");
+  }
 
   return lines.join("\n");
 }

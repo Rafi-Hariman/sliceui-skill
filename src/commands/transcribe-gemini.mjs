@@ -1,14 +1,17 @@
-// sliceui transcribe — Tier 1 command: Gemini vision → transcript.json.
-// Composes gemini-client + transcribe-prompt + schema validation.
+// sliceui transcribe — Tier 1 command: Gemini vision + OCR overlay → transcript.json.
+// Gemini supplies the layout tree; Swift Vision OCR pins EXACT strings (vision models
+// often garble visible text — OCR is the source of truth for copy).
+// Composes gemini-client + transcribe-prompt + ocr + schema validation.
 
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, basename } from "node:path";
 import { callGemini } from "../lib/gemini-client.mjs";
 import { TRANSCRIBE_PROMPT } from "../lib/transcribe-prompt.mjs";
 import { parseJsonLoose } from "../lib/parse-json.mjs";
+import { runOcr } from "../lib/ocr.mjs";
 import { validateTranscript, emptyTranscript } from "../lib/transcript-schema.mjs";
 
-/** Transcribe an image with Gemini; returns { ok, transcript } | { ok:false, reason, message }. */
+/** Transcribe an image with Gemini + OCR overlay; returns { ok, transcript } | { ok:false, reason, message }. */
 export async function transcribeWithGemini(imagePath, cwdDir) {
   const result = await callGemini(TRANSCRIBE_PROMPT, imagePath, cwdDir);
   if (!result.ok) return result;
@@ -22,7 +25,7 @@ export async function transcribeWithGemini(imagePath, cwdDir) {
     image: basename(imagePath),
     width: Number.isFinite(parsed?.meta?.width) ? parsed.meta.width : null,
     height: Number.isFinite(parsed?.meta?.height) ? parsed.meta.height : null,
-    model: "gemini-flash-latest",
+    model: result.model || "gemini-3.6-flash",
     textQuality: "vision",
   });
   transcript.tokens = parsed.tokens ?? { colors: [], fonts: [] };
@@ -30,11 +33,74 @@ export async function transcribeWithGemini(imagePath, cwdDir) {
   transcript.images = parsed.images ?? [];
   transcript.icons = parsed.icons ?? [];
 
+  // OCR overlay: pin exact strings onto matching text nodes (OCR > vision for copy fidelity).
+  // Geometry match by center-point proximity, tolerant to Gemini's rough boxes.
+  const ocr = runOcr(imagePath);
+  if (ocr.ok && ocr.boxes.length) {
+    const W = transcript.meta.width || 1;
+    const H = transcript.meta.height || 1;
+    let patched = 0;
+    const walk = (nodes) => {
+      for (const n of nodes) {
+        if ((n.type === "text" || n.type === "button" || n.type === "input") && n.text) {
+          const cx = ((n.x ?? 0) + (n.w ?? 0) / 2) / W;
+          const cy = ((n.y ?? 0) + (n.h ?? 0) / 2) / H;
+          const hit = nearestBox(ocr.boxes, cx, cy);
+          if (hit && similarity(hit.text, n.text) > 0.3) {
+            n.text = hit.text; // OCR string wins — exact copy beats vision's guess
+            patched++;
+          }
+        }
+        if (n.children?.length) walk(n.children);
+      }
+    };
+    walk(transcript.layout);
+    if (patched > 0) transcript.meta.textQuality = "vision+ocr";
+    transcript.meta.ocrBoxes = ocr.boxes.length;
+  }
+
   const v = validateTranscript(transcript);
   if (!v.ok) {
     return { ok: false, reason: "invalid-schema", message: `Transcript failed schema validation: ${v.errors.join("; ").slice(0, 300)}` };
   }
   return { ok: true, transcript, keySource: result.keySource };
+}
+
+// ---------- OCR overlay helpers ----------
+
+/** Find the OCR box whose center is nearest a node's normalized center (within ~5%). */
+function nearestBox(boxes, cx, cy) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const b of boxes) {
+    const bx = (b.x + b.w / 2) / (b.nx || 1);
+    const by = (b.y + b.h / 2) / (b.ny || 1);
+    const d = (bx - cx) * (bx - cx) + (by - cy) * (by - cy);
+    if (d < bestDist) {
+      bestDist = d;
+      best = b;
+    }
+  }
+  return bestDist <= 0.05 ? best : null;
+}
+
+/** Cheap similarity 0..1 (bigram Jaccard) — is this OCR string close enough to overlay? */
+function similarity(a, b) {
+  const norm = (s) => String(s).toLowerCase().replace(/\s+/g, " ").trim();
+  const A = norm(a);
+  const B = norm(b);
+  if (!A || !B) return 0;
+  if (A === B) return 1;
+  const grams = (s) => {
+    const out = new Set();
+    for (let i = 0; i < s.length - 1; i++) out.add(s.slice(i, i + 2));
+    return out;
+  };
+  const ga = grams(A);
+  const gb = grams(B);
+  let inter = 0;
+  for (const g of ga) if (gb.has(g)) inter++;
+  return inter / Math.max(ga.size, gb.size);
 }
 
 // ---------- CLI entry ----------

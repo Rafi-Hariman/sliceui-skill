@@ -13,6 +13,7 @@ const HELP = `sliceui ${pkg.version} — screenshot → component code that matc
 
 Usage:
   sliceui install [--dir DIR]   Install the agent skill (default ~/.claude/skills/sliceui)
+  sliceui init [--key-from F]   Set up this project: .sliceui/ dirs, config, .env.local, gitignore, detect
   sliceui detect                Detect the current project's framework/conventions
   sliceui transcribe <img>      Screenshot → .sliceui/transcript.md (Gemini → static fallback)
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
@@ -21,6 +22,7 @@ Usage:
 
 Examples:
   npm i -g sliceui && sliceui install
+  sliceui init --key-from ~/other-project/.env.local
   sliceui detect
   sliceui transcribe ~/Desktop/hero.png
 `;
@@ -41,6 +43,10 @@ async function run(argv) {
   switch (cmd) {
     case "install": {
       const { main } = await import("./commands/install.mjs");
+      return main(rest);
+    }
+    case "init": {
+      const { main } = await import("./commands/init.mjs");
       return main(rest);
     }
     case "detect": {
