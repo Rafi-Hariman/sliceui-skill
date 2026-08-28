@@ -138,6 +138,7 @@ export function main(argv) {
   }
   console.log("\nDrop screenshots into .sliceui/images/, then ask your agent:");
   console.log('  "slice this screenshot into my app: .sliceui/images/<name>.png"');
+  console.log("ℹ privacy: tier-1 transcription sends the screenshot to Gemini (your key). Use `sliceui transcribe --static` for 100% local.");
   return 0;
 }
 

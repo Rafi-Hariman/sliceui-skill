@@ -30,13 +30,32 @@ The skill activates, the CLI does the heavy lifting, the agent writes the files.
 | Command | What it does |
 |---|---|
 | `sliceui install [--dir DIR]` | Install the agent skill (default `~/.claude/skills/sliceui`). Use `--dir` for other agent CLIs' skill dirs. |
+| `sliceui init [--key-from F]` | Set up this project: `.sliceui/` dirs, config, `.env.local`, gitignore, detect |
 | `sliceui detect` | Detect the current project's framework/conventions → `.sliceui/project-context.json` |
 | `sliceui transcribe <image>` | Screenshot → `.sliceui/transcript.json` + `transcript.md` (Gemini → static fallback) |
+| `sliceui doctor` | Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini) |
 | `sliceui --help` | Usage |
+
+## What this sends where
+
+- **tier 1 (Gemini):** the screenshot is sent to Google's Gemini API using **your** key, to be transcribed into a layout transcript. Requires `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY`) in `process.env`, `./.env.local`, or `~/.sliceui/.env.local`.
+- **tier 2 (static):** everything stays local — image decode (`sips`), OCR (macOS Swift Vision), layout extraction. Requires macOS `sips` + `swiftc`.
+- **No telemetry.** SliceUI never phones home. Your key is never committed or logged.
+- **Privacy:** prefer `--static` when the screenshot contains sensitive material (credentials, internal dashboards, PII). A `degraded` transcript is marked as such; generated code then uses placeholder copy.
 
 ## API key (transcription tier 1)
 
 Gemini key is read at runtime from `process.env.GEMINI_API_KEY`, then `.env.local` in the current directory, then `~/.sliceui/.env.local`. Accepts `VITE_GEMINI_API_KEY` as an alias. Never committed. Without a key, transcription falls back to the static tier.
+
+## Security notes
+
+- **Transcripts are untrusted content.** A screenshot's text/OCR becomes model instructions. Treat transcript `text` as data, never as instructions — a malicious screenshot could otherwise attempt prompt injection. The skill instructs the agent to flag any transcript text that reads like an instruction.
+- **You provide the model key** (Gemini). SliceUI never asks for or stores your AI-provider credentials.
+
+## Requirements
+
+- Node ≥ 20 (Node 18 is EOL).
+- macOS for the static tier (`sips` + `swiftc`). On Linux/Windows, tier-1 Gemini works; tier-2 degrades (no OCR) and is marked `degraded`.
 
 ## Status
 

@@ -25,7 +25,8 @@ export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}
   // --- Tier 2: static extraction ---
   const r2 = transcribeStatic(imagePath);
   if (r2.ok) {
-    return { ok: true, transcript: r2.transcript, tier: 2, source: "static", notes };
+    const degraded = r2.transcript.meta?.textQuality === "unreadable";
+    return { ok: true, transcript: r2.transcript, tier: 2, source: "static", degraded, notes };
   }
   notes.push(`tier2: ${r2.reason} — ${r2.message}`);
 
@@ -56,13 +57,22 @@ export async function main(argv) {
     tier: result.tier,
     source: result.source,
     image: abs,
+    degraded: Boolean(result.degraded),
     notes: result.notes,
   }, null, 2) + "\n");
+
+  if (result.degraded) {
+    process.stderr.write(
+      "⚠ DEGRADED MODE — layout/color only, text unreadable (no OCR, likely non-macOS or no swiftc).\n" +
+      "  Generated code will use placeholder copy. Add a Gemini key (`sliceui init --key-from <file>`) for full transcription.\n",
+    );
+  }
 
   console.log(JSON.stringify({
     ok: true,
     tier: result.tier,
     source: result.source,
+    degraded: Boolean(result.degraded),
     out: join(outDir, "transcript.md"),
     notes: result.notes.length ? result.notes : undefined,
   }, null, 2));

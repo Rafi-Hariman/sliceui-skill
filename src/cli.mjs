@@ -17,11 +17,12 @@ Usage:
   sliceui detect                Detect the current project's framework/conventions
   sliceui transcribe <img>      Screenshot → .sliceui/transcript.md (Gemini → static fallback)
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
+  sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui --help                This help
   sliceui --version             Print version
 
 Examples:
-  npm i -g sliceui && sliceui install
+  npm i -g sliceui && sliceui install && sliceui doctor
   sliceui init --key-from ~/other-project/.env.local
   sliceui detect
   sliceui transcribe ~/Desktop/hero.png
@@ -55,6 +56,10 @@ async function run(argv) {
     }
     case "transcribe": {
       const { main } = await import("./commands/transcribe.mjs");
+      return main(rest);
+    }
+    case "doctor": {
+      const { main } = await import("./commands/doctor.mjs");
       return main(rest);
     }
     default:
