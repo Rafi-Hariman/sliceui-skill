@@ -18,6 +18,8 @@ Usage:
   sliceui transcribe <img>      Screenshot → .sliceui/transcript.md (Gemini → static fallback)
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
+  sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
+  sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
   sliceui --help                This help
   sliceui --version             Print version
 
@@ -60,6 +62,10 @@ async function run(argv) {
     }
     case "doctor": {
       const { main } = await import("./commands/doctor.mjs");
+      return main(rest);
+    }
+    case "uninstall": {
+      const { main } = await import("./commands/uninstall.mjs");
       return main(rest);
     }
     default:
