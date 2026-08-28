@@ -14,7 +14,10 @@ import { resolveGeminiKey } from "../lib/env.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "..", "package.json"), "utf8"));
-const DEFAULT_SKILL_DIR = join(homedir(), ".claude", "skills", "sliceui");
+// Skill dir is resolved per-call (not at module load, so tests can isolate): env → default.
+function skillDirFor() {
+  return process.env.SLICEUI_SKILL_DIR || join(homedir(), ".claude", "skills", "sliceui");
+}
 
 function checkNode() {
   const major = Number(process.versions.node.split(".")[0]);
@@ -70,17 +73,18 @@ function checkKey(cwd) {
 }
 
 function checkSkillDir() {
-  const skill = join(DEFAULT_SKILL_DIR, "SKILL.md");
+  const skillDir = skillDirFor();
+  const skill = join(skillDir, "SKILL.md");
   const ok = existsSync(skill);
   return {
     ok,
     label: `Skill installed: ${ok ? "yes" : "no"}`,
-    detail: ok ? skill : `not found at ${DEFAULT_SKILL_DIR} — run \`sliceui install\``,
+    detail: ok ? skill : `not found at ${skillDir} — run \`sliceui install\``,
   };
 }
 
 function checkSkillVersion() {
-  const manifestPath = join(DEFAULT_SKILL_DIR, ".sliceui-cli-version");
+  const manifestPath = join(skillDirFor(), ".sliceui-cli-version");
   let installed;
   try {
     installed = readFileSync(manifestPath, "utf8").trim();

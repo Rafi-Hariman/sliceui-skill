@@ -1,18 +1,40 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import { runDoctor } from "../src/commands/doctor.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const PKG = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
 
 function makeProject(extra = {}) {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-doctor-"));
-  // optional .env.local
   if (extra.envKey) {
     writeFileSync(join(dir, ".env.local"), `GEMINI_API_KEY=${extra.envKey}\n`);
   }
-  // optional fake skill dir under a temp home
   return dir;
+}
+
+/** Isolated skill dir: point doctor at a temp dir via SLICEUI_SKILL_DIR. */
+function withSkillDir(fn, { withManifest = false } = {}) {
+  const skillDir = mkdtempSync(join(tmpdir(), "sliceui-skilldir-"));
+  if (withManifest) {
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), "# sliceui\n");
+    writeFileSync(join(skillDir, ".sliceui-cli-version"), PKG.version + "\n");
+  }
+  const prev = process.env.SLICEUI_SKILL_DIR;
+  process.env.SLICEUI_SKILL_DIR = skillDir;
+  try {
+    return fn();
+  } finally {
+    if (prev === undefined) delete process.env.SLICEUI_SKILL_DIR;
+    else process.env.SLICEUI_SKILL_DIR = prev;
+    rmSync(skillDir, { recursive: true, force: true });
+  }
 }
 
 test("doctor reports missing key as a soft warning (falls back to static), not hard fail", async () => {
@@ -21,7 +43,7 @@ test("doctor reports missing key as a soft warning (falls back to static), not h
   const keyCheck = r.checks.find((c) => c.label.includes("Gemini API key"));
   assert.ok(keyCheck, "key check present");
   assert.equal(keyCheck.ok, false);
-  // missing key alone must not fail doctor (static tier is valid) — only live-call+env checks are informational
+  // missing key alone must not fail doctor (static tier is valid)
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -45,12 +67,23 @@ test("doctor exposes the platform + sips/swiftc checks", async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("doctor detects installed skill version manifest", async () => {
+test("doctor reports skill version as unmatched when no manifest is installed", async () => {
   const dir = makeProject({});
-  // Simulate a fresh install (no manifest) → version check not ok (soft)
-  const r = await runDoctor(dir);
-  const versionCheck = r.checks.find((c) => c.label.includes("Skill↔CLI version"));
-  assert.ok(versionCheck, "version check present");
-  assert.equal(versionCheck.ok, false); // no manifest yet
+  await withSkillDir(async () => {
+    const r = await runDoctor(dir);
+    const versionCheck = r.checks.find((c) => c.label.includes("Skill↔CLI version"));
+    assert.ok(versionCheck, "version check present");
+    assert.equal(versionCheck.ok, false);
+  });
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("doctor reports skill version as matched when manifest equals CLI version", async () => {
+  const dir = makeProject({});
+  await withSkillDir(async () => {
+    const r = await runDoctor(dir);
+    const versionCheck = r.checks.find((c) => c.label.includes("Skill↔CLI version"));
+    assert.equal(versionCheck.ok, true, versionCheck.detail);
+  }, { withManifest: true });
   rmSync(dir, { recursive: true, force: true });
 });
