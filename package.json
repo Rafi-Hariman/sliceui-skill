@@ -1,5 +1,5 @@
 {
-  "name": "sliceui",
+  "name": "sliceui-skill",
   "version": "0.1.0",
   "description": "Agent skill + CLI: convert UI screenshots into idiomatic component code that matches your project's framework (Angular 13, React, Vue, Svelte, Next.js, Tailwind, Bootstrap, HTML).",
   "type": "module",
