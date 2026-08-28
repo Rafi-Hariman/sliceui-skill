@@ -1,7 +1,7 @@
 {
   "name": "sliceui-skill",
-  "version": "0.1.2",
-  "description": "Agent skill + CLI: convert UI screenshots into idiomatic component code that matches your project's framework (Angular 13, React, Vue, Svelte, Next.js, Tailwind, Bootstrap, HTML).",
+  "version": "0.2.0",
+  "description": "Agent skill + CLI: convert UI designs (Figma XML or screenshots) into idiomatic component code that matches your project's framework and UI libraries (Angular 13, React, Vue, Svelte, Next.js, Tailwind, Bootstrap, HTML).",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -33,5 +33,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Rafi-Hariman/sliceui-skill.git"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "fast-xml-parser": "^5.11.1",
+    "typescript": "^5.9.2"
   }
 }

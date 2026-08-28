@@ -1,14 +1,35 @@
-// sliceui transcribe — orchestrator: Gemini (tier 1) → static (tier 2) fallback.
-// Always transcribes (design decision: never assume the agent's model can see images).
-// Writes .sliceui/transcript.json + transcript.md + transcript-meta.json.
+// sliceui transcribe — orchestrator. Auto-detects input type:
+//   .xml/.figml → FIGML parse (deterministic, exact, no key, instant)
+//   image       → Gemini (tier 1) → static (tier 2) fallback
+// Writes .sliceui/transcript/<name>.transcript.{md,json,meta.json}.
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { join, basename, extname } from "node:path";
 import { transcribeWithGemini } from "./transcribe-gemini.mjs";
 import { transcribeStatic } from "./transcribe-static.mjs";
+import { parseFigml } from "../lib/figml-parse.mjs";
 import { renderTranscript } from "../lib/render-transcript.mjs";
 
+const XML_EXTS = new Set([".xml", ".figml"]);
+
+function isXml(path) {
+  return XML_EXTS.has(extname(path).toLowerCase());
+}
+
 export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}) {
+  // --- FIGML path (deterministic, primary) ---
+  if (isXml(imagePath)) {
+    let xml;
+    try {
+      xml = readFileSync(imagePath, "utf8");
+    } catch {
+      return { ok: false, reason: "read-error", message: `Cannot read ${imagePath}` };
+    }
+    const r = parseFigml(xml, imagePath);
+    if (!r.ok) return r;
+    return { ok: true, transcript: r.transcript, tier: 0, source: "figml", notes: [] };
+  }
+
   const notes = [];
 
   // --- Tier 1: Gemini vision ---
@@ -49,11 +70,15 @@ export async function main(argv) {
     return 3;
   }
 
-  const outDir = join(process.cwd(), ".sliceui");
+  const outDir = join(process.cwd(), ".sliceui", "transcript");
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, "transcript.json"), JSON.stringify(result.transcript, null, 2) + "\n");
-  writeFileSync(join(outDir, "transcript.md"), renderTranscript(result.transcript));
-  writeFileSync(join(outDir, "transcript-meta.json"), JSON.stringify({
+  const stem = basename(abs).replace(/\.(xml|figml|png|jpe?g|webp)$/i, "");
+  const mdPath = join(outDir, `${stem}.transcript.md`);
+  const jsonPath = join(outDir, `${stem}.transcript.json`);
+  const metaPath = join(outDir, `${stem}.transcript.meta.json`);
+  writeFileSync(jsonPath, JSON.stringify(result.transcript, null, 2) + "\n");
+  writeFileSync(mdPath, renderTranscript(result.transcript));
+  writeFileSync(metaPath, JSON.stringify({
     tier: result.tier,
     source: result.source,
     image: abs,
@@ -73,7 +98,7 @@ export async function main(argv) {
     tier: result.tier,
     source: result.source,
     degraded: Boolean(result.degraded),
-    out: join(outDir, "transcript.md"),
+    out: mdPath,
     notes: result.notes.length ? result.notes : undefined,
   }, null, 2));
   return 0;

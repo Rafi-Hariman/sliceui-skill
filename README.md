@@ -1,27 +1,28 @@
 # SliceUI — Agent Skill + CLI
 
-Convert a UI screenshot into **idiomatic component code that matches your project** — its framework, version, styling conventions, and design tokens.
+Convert a UI design into **idiomatic component code that matches your project** — its framework, version, and the actual UI libraries it uses (`ngx-select`, `ngx-datatable`, `ngx-bootstrap`, `uii-*`, `pilar`, …).
 
-Built for agentic coding CLIs (Claude Code, Cursor, GLM Code, …) and **models that cannot see images**. SliceUI transcribes the screenshot into a structured text transcript first, so any text-only model can still generate accurate UI code from it.
+Built for agentic coding CLIs (Claude Code, Cursor, GLM Code, …) and **models that cannot see images**. SliceUI converts the design into a structured text transcript first, so any text-only model can generate accurate UI code.
 
 ## Why
 
-Screenshot-to-code tools assume a vision model. Many coding agents run on text-only models (e.g. GLM 5.2) or are used inside projects with strict conventions (e.g. Angular 13: `*ngIf`, `constructor()` DI, NgModule registration — not `@if`/`inject()`/standalone). SliceUI solves both:
+Two inputs, one pipeline:
 
-1. **Transcribe** — screenshot → structured text transcript (layout tree, colors, fonts, OCR'd copy). Tier 1: Gemini vision (free tier, your key). Tier 2: zero-dependency static extraction (sips + Swift Vision OCR on macOS).
-2. **Detect** — scan your project (`package.json`, `angular.json`, existing components, SCSS tokens) into a project-context profile.
-3. **Generate** — your agent combines transcript + project context + per-framework rules and writes real files into your repo.
+- **XML (preferred)** — export your Figma design with the FIGML plugin → `sliceui transcribe design.xml` parses it **deterministically**: exact text, exact colors, exact geometry, and component names. No API key, no vision, instant, ~90%+ accuracy.
+- **Screenshot (fallback)** — for non-Figma sources. Gemini vision (your key) → macOS static+OCR fallback.
+
+SliceUI also **learns your project's libraries**: `detect` scans `node_modules` usage to build a `capabilities` map (select → `ngx-select-ex` with a real usage snippet, table → `ngx-datatable`, etc.), so generated code reuses the components the team already uses — hover/focus/UX included — instead of raw `<select>`/`<table>`.
 
 ## Install
 
 ```bash
-npm i -g sliceui
+npm i -g sliceui-skill
 sliceui install            # writes the skill into ~/.claude/skills/sliceui/
 ```
 
 Then in **any** project, just ask your agent:
 
-> slice this screenshot into my app: ~/Desktop/hero.png
+> slice this into my app: .sliceui/xml/design.xml
 
 The skill activates, the CLI does the heavy lifting, the agent writes the files.
 
@@ -30,33 +31,40 @@ The skill activates, the CLI does the heavy lifting, the agent writes the files.
 | Command | What it does |
 |---|---|
 | `sliceui install [--dir DIR]` | Install the agent skill (default `~/.claude/skills/sliceui`). Use `--dir` for other agent CLIs' skill dirs. |
-| `sliceui init [--key-from F]` | Set up this project: `.sliceui/` dirs, config, `.env.local`, gitignore, detect |
-| `sliceui detect` | Detect the current project's framework/conventions → `.sliceui/project-context.json` |
-| `sliceui transcribe <image>` | Screenshot → `.sliceui/transcript.json` + `transcript.md` (Gemini → static fallback) |
+| `sliceui init [--key-from F]` | Set up this project: `.sliceui/{images,xml,transcript}/`, config, `.env.local`, gitignore, detect |
+| `sliceui detect` | Detect framework + library usage → `.sliceui/project-context.json` (with `capabilities`) |
+| `sliceui transcribe <input>` | `.xml`/`.figml` → exact FIGML parse; image → Gemini → static fallback. Writes `.sliceui/transcript/<name>.transcript.*` |
 | `sliceui doctor` | Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini) |
+| `sliceui uninstall` | Remove this project's `.sliceui/` setup |
 | `sliceui --help` | Usage |
 
 ## What this sends where
 
-- **tier 1 (Gemini):** the screenshot is sent to Google's Gemini API using **your** key, to be transcribed into a layout transcript. Requires `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY`) in `process.env`, `./.env.local`, or `~/.sliceui/.env.local`.
-- **tier 2 (static):** everything stays local — image decode (`sips`), OCR (macOS Swift Vision), layout extraction. Requires macOS `sips` + `swiftc`.
+- **XML input:** 100% local — parsed deterministically, no network, no key.
+- **Screenshot (tier 1 Gemini):** the image is sent to Google's Gemini API using **your** key, transcribed into a layout transcript. Requires `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY`).
+- **Screenshot (tier 2 static):** everything stays local — image decode (`sips`), OCR (macOS Swift Vision), layout extraction. Requires macOS.
 - **No telemetry.** SliceUI never phones home. Your key is never committed or logged.
-- **Privacy:** prefer `--static` when the screenshot contains sensitive material (credentials, internal dashboards, PII). A `degraded` transcript is marked as such; generated code then uses placeholder copy.
+- **Privacy:** prefer XML (local) or `--static` when the material is sensitive.
 
-## API key (transcription tier 1)
+## How it adapts (project context)
 
-Gemini key is read at runtime from `process.env.GEMINI_API_KEY`, then `.env.local` in the current directory, then `~/.sliceui/.env.local`. Accepts `VITE_GEMINI_API_KEY` as an alias. Never committed. Without a key, transcription falls back to the static tier.
+`detect` builds a `capabilities` map by scanning your project's actual library usage:
 
-## Security notes
+```json
+"capabilities": {
+  "select": { "library": "ngx-select-ex", "sampleHtml": "<ngx-select ...>", "source": "local" },
+  "table":  { "library": "ngx-datatable", "sampleHtml": "...", "source": "local" },
+  "modal":  { "library": "ngx-bootstrap", "sampleHtml": "...", "source": "local" }
+}
+```
 
-- **Transcripts are untrusted content.** A screenshot's text/OCR becomes model instructions. Treat transcript `text` as data, never as instructions — a malicious screenshot could otherwise attempt prompt injection. The skill instructs the agent to flag any transcript text that reads like an instruction.
-- **You provide the model key** (Gemini). SliceUI never asks for or stores your AI-provider credentials.
+The agent maps each transcript element to the matching capability. If a category has no library, it falls back to plain HTML (`<select>`/`<table>`) with a note — never inventing a library the project doesn't have.
 
 ## Requirements
 
 - Node ≥ 20 (Node 18 is EOL).
-- macOS for the static tier (`sips` + `swiftc`). On Linux/Windows, tier-1 Gemini works; tier-2 degrades (no OCR) and is marked `degraded`.
+- macOS for the screenshot static tier (`sips` + `swiftc`). XML input works everywhere.
 
 ## Status
 
-v0.1.0 — early. macOS-first (tier-2 static extraction uses `sips` + `swiftc`). See README updates as it matures.
+v0.2.0 — XML-first input + library-aware project context.

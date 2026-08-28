@@ -99,6 +99,10 @@ export function renderTranscript(t) {
     lines.push(`> ✅ Strings are OCR-pinned (exact) — trust the "quoted" text over your own reading of any image.`);
     lines.push("");
   }
+  if (meta.source === "figml") {
+    lines.push(`> ✅ Source: FIGML (Figma XML) — text, colors, and geometry are EXACT. Trust them verbatim. No placeholders.`);
+    lines.push("");
+  }
 
   return lines.join("\n");
 }

@@ -18,9 +18,9 @@ test("detects Angular 13 module project", () => {
   assert.equal(ctx.uiLibrary, "angular-material");
   assert.equal(ctx.routing, true);
   assert.equal(ctx.componentDir, "src/app");
-  // tokens detected
-  assert.ok(ctx.tokens.scssVars.includes("$primary") || ctx.tokens.scssVars.includes("primary"));
-  assert.ok(ctx.tokens.cssVars.includes("--color-bg") || ctx.tokens.cssVars.includes("color-bg"));
+  // capabilities map present (no library usage in fixture → select null)
+  assert.ok(ctx.capabilities, "capabilities present");
+  assert.equal(ctx.capabilities.select.library, null);
   // sample components found with selector parsed
   assert.ok(ctx.sampleComponents.length >= 2);
   assert.ok(ctx.sampleComponents.some((s) => s.selector === "app-hero"));

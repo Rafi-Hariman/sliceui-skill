@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { cwd } from "node:process";
-import { scanStyleBehavior } from "../lib/style-scan.mjs";
+import { scanLibraryUsage } from "../lib/library-scan.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
 
@@ -52,15 +52,14 @@ export function detectProject(rootDir) {
     styleExt = detectStyleExt(root, fw.id);
   }
 
-  const tokens = detectTokens(root);
   const sampleComponents = findSampleComponents(root, fw.id, componentDir, warnings);
 
-  // Styling *behavior* (recurring ::ng-deep blocks, literal hex, libraries actually used)
-  const behavior = scanStyleBehavior(root);
-  const uiLibrary = detectUiLibrary(deps, behavior.libraries.inUse);
+  // Library-aware: capabilities map (category → library + real usage sample).
+  const { capabilities, libraries } = scanLibraryUsage(root);
+  const uiLibrary = detectUiLibrary(deps, libraries.inUse);
 
   return {
-    version: 1,
+    version: 2,
     cwd: root,
     detected: true,
     framework: fw,
@@ -70,9 +69,8 @@ export function detectProject(rootDir) {
     componentDir,
     uiLibrary,
     pathAliases,
-    tokens,
-    styling: behavior.styling,
-    libraries: behavior.libraries,
+    capabilities,
+    libraries,
     routing,
     sampleComponents,
     detectionWarnings: warnings,
@@ -153,42 +151,17 @@ function detectAngularDetails(root, angularJson, warnings) {
 // ---------- generic detection ----------
 
 function detectUiLibrary(deps, inUse = []) {
-  // Prefer "actually used" libraries (from templates/imports) over "installed".
-  // @angular/cdk alone is NOT a UI library — don't report it.
+  // Prefer "actually used" libraries. @angular/cdk alone is NOT a UI library.
   const uiLibs = [
-    "angular-material",
-    "ngx-bootstrap",
-    "ngx-select-ex",
-    "ngx-datatable",
-    "ngx-toastr",
-    "primeng",
-    "ng-zorro",
-    "antd",
-    "mui",
-    "vuetify",
+    "angular-material", "ngx-bootstrap", "ngx-select-ex", "ngx-datatable",
+    "ngx-toastr", "ngx-quill", "tinymce", "primeng", "ng-zorro", "antd", "mui", "vuetify",
   ];
   for (const lib of uiLibs) {
     if (inUse.includes(lib)) return lib;
   }
-  // fallback to deps for libraries we didn't signature-scan
   if (deps["@angular/material"]) return "angular-material";
   if (deps["bootstrap"]) return "bootstrap";
   return inUse.length ? inUse.join(" + ") : "";
-}
-
-function detectTokens(root) {
-  const scssVars = new Set();
-  const cssVars = new Set();
-
-  // bounded walk of src/ for style files (max ~150 files, depth 6) — enough to find token files
-  const found = walkStyleFiles(join(root, "src"));
-  for (const f of found) {
-    const content = readFileSyncSafe(f);
-    if (!content) continue;
-    for (const m of content.matchAll(/^\s*\$([\w-]+)\s*:/gm)) scssVars.add(m[1]);
-    for (const m of content.matchAll(/--([\w-]+)\s*:/g)) cssVars.add(m[1]);
-  }
-  return { scssVars: [...scssVars].slice(0, 40), cssVars: [...cssVars].slice(0, 40) };
 }
 
 function findSampleComponents(root, fwId, componentDir, warnings) {
@@ -274,26 +247,6 @@ function extractTsconfigPaths(tsconfig) {
 }
 
 // ---------- walkers + fs helpers ----------
-
-function walkStyleFiles(dir, out = [], budget = { count: 150 }, depth = 0) {
-  if (depth > 6 || budget.count <= 0) return out;
-  let entries;
-  try { entries = readdirSync(dir); } catch { return out; }
-  for (const e of entries) {
-    if (budget.count <= 0) return out;
-    if (SKIP_DIRS.has(e)) continue;
-    const full = join(dir, e);
-    let st;
-    try { st = statSync(full); } catch { continue; }
-    if (st.isDirectory()) {
-      walkStyleFiles(full, out, budget, depth + 1);
-    } else if (/\.(scss|css|sass|less)$/i.test(e)) {
-      out.push(full);
-      budget.count -= 1;
-    }
-  }
-  return out;
-}
 
 function walkFiles(dir, out, rx, budget, depth) {
   if (depth > 8 || budget.count <= 0) return;

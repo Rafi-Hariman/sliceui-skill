@@ -27,12 +27,18 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   const created = [];
   const warnings = [];
 
-  // --- 1. .sliceui/ + images/ ---
+  // --- 1. .sliceui/ + images/ + xml/ + transcript/ ---
   const sliceuiDir = join(root, ".sliceui");
   const imagesDir = join(sliceuiDir, "images");
+  const xmlDir = join(sliceuiDir, "xml");
+  const transcriptDir = join(sliceuiDir, "transcript");
   if (!existsSync(sliceuiDir)) created.push(".sliceui/");
   if (!existsSync(imagesDir)) created.push(".sliceui/images/");
+  if (!existsSync(xmlDir)) created.push(".sliceui/xml/");
+  if (!existsSync(transcriptDir)) created.push(".sliceui/transcript/");
   mkdirSync(imagesDir, { recursive: true });
+  mkdirSync(xmlDir, { recursive: true });
+  mkdirSync(transcriptDir, { recursive: true });
 
   // --- 2. per-project config ---
   const configPath = join(sliceuiDir, "config.json");
@@ -136,9 +142,10 @@ export function main(argv) {
   if (result.keyStatus === "template" || result.keyStatus === "hint-appended") {
     console.log("\nNext: paste your Gemini key into .env.local (free at https://aistudio.google.com).");
   }
-  console.log("\nDrop screenshots into .sliceui/images/, then ask your agent:");
-  console.log('  "slice this screenshot into my app: .sliceui/images/<name>.png"');
-  console.log("ℹ privacy: tier-1 transcription sends the screenshot to Gemini (your key). Use `sliceui transcribe --static` for 100% local.");
+  console.log("\nDrop your inputs, then ask your agent:");
+  console.log('  Figma XML   → .sliceui/xml/<name>.xml   ("slice this into my app: .sliceui/xml/<name>.xml")');
+  console.log('  Screenshot  → .sliceui/images/<name>.png ("slice this into my app: .sliceui/images/<name>.png")');
+  console.log("ℹ XML is instant + exact (no key). Screenshots use Gemini (your key); `--static` for 100% local.");
   return 0;
 }
 

@@ -17,25 +17,24 @@ Turn a screenshot into component code that **drops into THIS project** — match
 
 ## Prerequisites
 
-- Node ≥ 20 (Node 18 is EOL) and the `sliceui` CLI installed (`npm i -g sliceui`). **Requires `sliceui >= 0.1.0`** — check version with `sliceui --version`; if this skill was installed by an older CLI, re-run `sliceui install`.
-- **Optional:** a Gemini API key in `process.env.GEMINI_API_KEY` / `.env.local` / `~/.sliceui/.env.local` for high-fidelity transcription (tier 1). Without it, transcription falls back to the static tier (tier 2) — no key required.
-- macOS `sips` + `swiftc` (present by default) for the static tier's image decode + OCR. On non-macOS, the static tier degrades (no OCR) — the transcript will be marked `degraded` and code must use placeholder copy.
+- Node ≥ 20 (Node 18 is EOL) and the `sliceui` CLI installed (`npm i -g sliceui`). **Requires `sliceui >= 0.2.0`** — check with `sliceui --version`; if older, re-run `sliceui install`.
+- **XML is the preferred input** (from Figma via the FIGML plugin) — instant, exact, no key. Screenshots still work but need a Gemini key (tier 1) or macOS static tier (tier 2).
+- **Optional:** Gemini API key in `process.env.GEMINI_API_KEY` / `.env.local` / `~/.sliceui/.env.local` for the screenshot path only.
+- macOS `sips` + `swiftc` (default) for the screenshot static tier. On non-macOS, screenshot transcription degrades (no OCR).
 
-> Run `sliceui doctor` once to verify everything is in place before the first generate.
+> Run `sliceui doctor` once to verify everything before the first generate.
 
 ## Workflow
 
-> **THE INVARIANT — never skip this:** Your job is NOT to look at the image. Your job is to run `sliceui transcribe <image>` and generate code from the transcript it writes. Even if you think you can see the image — even if reading the image works — **run the transcriber anyway**. Transcription is the product: it converts pixels → exact structured text (layout + colors + OCR-pinned strings), which is always better than your own guesswork on pixels.
+> **THE INVARIANT — never skip this:** Your job is NOT to look at the input. Your job is to run `sliceui transcribe <path>` and generate from the transcript it writes. Transcription is the product: it converts the input → exact structured text (layout + colors + text), which is always better than your own guesswork.
 >
-> **NEVER ask the user "how should I transcribe this?"** There is nothing to decide. The flow below is deterministic:
-> 1. Resolve the image path (absolute, or relative to cwd). If it doesn't exist, say so and stop.
-> 2. Run `sliceui transcribe <path>`. It uses the project's Gemini key (tier 1) and falls back to static+OCR (tier 2) automatically. Never ask which.
-> 3. Read `.sliceui/transcript.md` fresh (check `.sliceui/transcript-meta.json` — it must list YOUR image; if it's from a different image, re-run step 2).
+> **NEVER ask the user "how should I transcribe this?"** The flow is deterministic:
+> 1. Resolve the input path. If it doesn't exist, say so and stop.
+> 2. Run `sliceui transcribe <path>`. It auto-detects: `.xml`/`.figml` → FIGML parse (exact, no key); image → Gemini → static fallback. Never ask which.
+> 3. Read `.sliceui/transcript/<name>.transcript.md` fresh (check `.transcript.meta.json` — it must name YOUR input; mismatch → re-run).
 > 4. Generate code from project-context + transcript. Write files. Build. Done.
 >
-> **If you are in plan mode** (read-only): running `sliceui transcribe` is still the correct move — it writes only to gitignored `.sliceui/` scratch files, which is plan-compatible research. If your harness truly blocks it, ask the user to run `! sliceui transcribe <path>` and continue from the transcript. Do NOT plan "from patterns only" — the transcript IS the spec.
->
-> **Stale transcripts:** `.sliceui/transcript.md` may exist from a previous image. ALWAYS check `.sliceui/transcript-meta.json` (or the transcript's `meta.image`) matches the current image before trusting it. Mismatch → re-run transcribe.
+> **Stale transcripts:** always check `.sliceui/transcript/<name>.transcript.meta.json` lists the current input before trusting it.
 
 ### Step 0 — Init (first time in a project)
 
@@ -43,7 +42,7 @@ Turn a screenshot into component code that **drops into THIS project** — match
 sliceui init
 ```
 
-Creates `.sliceui/` (+ `images/` dir for screenshots), `.sliceui/config.json`, `.env.local` (key template), gitignore entries, and runs detect. If `.sliceui/` already exists, skip to Step 1. Optional: `sliceui init --key-from <path-to-other-.env.local>` copies an existing Gemini key.
+Creates `.sliceui/` with `images/` (screenshots), `xml/` (Figma XML), `transcript/` (outputs), `.sliceui/config.json`, `.env.local`, gitignore, and runs detect. Optional: `sliceui init --key-from <path>` copies an existing Gemini key.
 
 ### Step 1 — Detect the project
 
@@ -51,38 +50,39 @@ Creates `.sliceui/` (+ `images/` dir for screenshots), `.sliceui/config.json`, `
 sliceui detect
 ```
 
-Reads `.sliceui/project-context.json`. This tells you the framework, version, selector prefix, component dir, UI library, SCSS/CSS tokens, and 2–3 sample components.
+Reads `.sliceui/project-context.json` — framework, version, selector prefix, component dir, **capabilities** (which library serves each UI element category + a real usage sample), and sample components.
 
 ### Step 2 — Absorb local idioms
 
-Read the `sampleComponents[*].path` files listed in the project context. Mirror their structure: how `@Component` is declared, template/style URLs, selector prefix, DI style, import style.
+Read the `sampleComponents[*].path` files AND the `capabilities.<category>.sampleHtml/sampleTs` snippets. Mirror the project's structure and library usage exactly.
 
-### Step 3 — Transcribe the image
+### Step 3 — Transcribe the input
 
 ```bash
-sliceui transcribe <image-path>
+sliceui transcribe <path>       # .xml/.figml → exact; .png/.jpg → vision
 ```
 
-Writes `.sliceui/transcript.json`, `.sliceui/transcript.md`, and `.sliceui/transcript-meta.json`. Use `--static` to force the no-key tier. Read `transcript.md` (or `transcript.json`) into context.
+Writes `.sliceui/transcript/<name>.transcript.{md,json,meta.json}`. Read the `.md` (or `.json`) into context.
 
 ### Step 4 — Generate the component
 
 Compose the generation prompt from:
 1. The project context (`.sliceui/project-context.json`) — **highest priority**.
-2. The transcript (`.sliceui/transcript.md`) — the UI spec.
-3. Framework rules (below, and in the CLI's prompt-rules module if you can read it).
+2. The transcript (`.sliceui/transcript/<name>.transcript.md`) — the UI spec.
+3. Framework rules (below).
 4. Any user instructions.
 
-Write real files into the project at the detected `componentDir`, then register the component (e.g. edit `app.module.ts` for Angular). After writing, run the project's build/type-check and fix errors you introduced.
+Write real files into `componentDir`, register the component (e.g. `app.module.ts`), then run the build/type-check and fix what you broke.
 
-#### Use the project's styling behavior — don't re-invent it
+#### Use the project's components — don't re-invent them
 
-`project-context.json` carries `styling` (recurring override blocks + literal hex) and `libraries` (what's actually used). Read them and obey:
+`project-context.json` carries `capabilities` (category → library + sample) and `libraries.inUse`. Map each transcript element to the project's component:
 
-- **Dropdowns/selects** → use the library in `libraries.inUse` (e.g. `ngx-select-ex`), not a raw `<select>`. The project already overrides its look globally via `::ng-deep` — **do not** redeclare that override, **do not** inline your own colors. The override is in `styling.patterns`.
-- **Colors** → prefer `styling.recurringColors` (the project's *actual* hex, e.g. `#428bca`, `#093697`) or its SCSS tokens, over inventing a "close enough" palette.
-- **Components** → reuse the same UI library the project already uses (`libraries.inUse` + `uiLibrary`). If the project uses `ngx-bootstrap` modals, use that — not a hand-rolled overlay.
-- If `styling.patterns` shows a global style already exists for a widget, **do not** duplicate it in your new component's SCSS. Your component should fit *into* the existing system.
+- **`select`/`dropdown`** → `capabilities.select.library` (e.g. `ngx-select-ex`) with its `sampleHtml`. **Do NOT emit a raw `<select>`** unless `capabilities.select.library` is `null` — then fall back to plain HTML and note it.
+- **`table`** → `capabilities.table.library` (`ngx-datatable`/`uii-table`/`mat-table`); if `null`, plain `<table>` + note.
+- **`modal`** → `capabilities.modal.library`; **`toast`/`editor`/`date`/`slider`/`switch`** → the matching capability.
+- **Colors & UX** come from the component library (hover/focus/animation are already built in). Do not hand-roll hover effects; do not inline a "close enough" hex when the component already has a theme.
+- Use the exact text/colors/geometry from a FIGML transcript (it's `exact`), adapting only to the component's API.
 
 ## Framework Rules (key constraints)
 

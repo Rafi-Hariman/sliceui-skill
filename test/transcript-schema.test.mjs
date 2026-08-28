@@ -50,13 +50,12 @@ test("rejects an unknown layout type", () => {
   assert.ok(v.errors.some((e) => e.includes("waffle")));
 });
 
-test("rejects duplicate node ids", () => {
+test("allows duplicate node ids (Figma reuses instance ids legitimately)", () => {
   const t = emptyTranscript({ image: "x.png" });
   t.layout = [
     { id: "a", type: "text" },
     { id: "a", type: "text" },
   ];
   const v = validateTranscript(t);
-  assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => e.includes("duplicated")));
+  assert.equal(v.ok, true, "duplicate ids are allowed");
 });

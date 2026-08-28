@@ -2,7 +2,7 @@
 // Tier 1 (gemini-vision) and Tier 2 (static) both emit this shape; the renderer turns it into
 // the compact markdown block embedded in the generation prompt.
 
-export const TRANSCRIPT_VERSION = 1;
+export const TRANSCRIPT_VERSION = 2;
 
 export const LAYOUT_TYPES = [
   "nav", "hero", "section", "card", "footer", "text", "group",
@@ -25,15 +25,15 @@ export function validateTranscript(t) {
   if (!meta || typeof meta !== "object") {
     errors.push("meta is missing or not an object");
   } else {
-    if (!["gemini-vision", "static"].includes(meta.source)) {
-      errors.push(`meta.source must be "gemini-vision" or "static" (got ${JSON.stringify(meta.source)})`);
+    if (!["gemini-vision", "static", "figml"].includes(meta.source)) {
+      errors.push(`meta.source must be "gemini-vision", "static", or "figml" (got ${JSON.stringify(meta.source)})`);
     }
-    if (![1, 2].includes(meta.tier)) {
-      errors.push(`meta.tier must be 1 or 2 (got ${JSON.stringify(meta.tier)})`);
+    if (![0, 1, 2].includes(meta.tier)) {
+      errors.push(`meta.tier must be 0, 1, or 2 (got ${JSON.stringify(meta.tier)})`);
     }
     if (typeof meta.image !== "string" || !meta.image) errors.push("meta.image must be a non-empty string");
-    if (meta.textQuality && !["vision", "ocr", "unreadable"].includes(meta.textQuality)) {
-      errors.push(`meta.textQuality must be vision|ocr|unreadable (got ${JSON.stringify(meta.textQuality)})`);
+    if (meta.textQuality && !["vision", "ocr", "unreadable", "exact"].includes(meta.textQuality)) {
+      errors.push(`meta.textQuality must be vision|ocr|unreadable|exact (got ${JSON.stringify(meta.textQuality)})`);
     }
   }
 
@@ -57,14 +57,11 @@ export function validateTranscript(t) {
   if (!Array.isArray(t.layout)) {
     errors.push("layout must be an array");
   } else {
-    const ids = new Set();
     const walk = (nodes, path) => {
       for (const [i, n] of nodes.entries()) {
         const where = `${path}[${i}]`;
         if (!n || typeof n !== "object") { errors.push(`layout node ${where} is not an object`); continue; }
-        if (typeof n.id !== "string" || !n.id) { errors.push(`layout node ${where}.id must be a non-empty string`); }
-        else if (ids.has(n.id)) errors.push(`layout node ${where}.id "${n.id}" is duplicated`);
-        else ids.add(n.id);
+        if (typeof n.id !== "string" || !n.id) errors.push(`layout node ${where}.id must be a non-empty string`);
         if (!LAYOUT_TYPES.includes(n.type)) {
           errors.push(`layout node ${where}.type "${n.type}" is not one of ${LAYOUT_TYPES.join("|")}`);
         }
