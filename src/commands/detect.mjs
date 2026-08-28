@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { cwd } from "node:process";
+import { scanStyleBehavior } from "../lib/style-scan.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
 
@@ -51,9 +52,12 @@ export function detectProject(rootDir) {
     styleExt = detectStyleExt(root, fw.id);
   }
 
-  const uiLibrary = detectUiLibrary(deps);
   const tokens = detectTokens(root);
   const sampleComponents = findSampleComponents(root, fw.id, componentDir, warnings);
+
+  // Styling *behavior* (recurring ::ng-deep blocks, literal hex, libraries actually used)
+  const behavior = scanStyleBehavior(root);
+  const uiLibrary = detectUiLibrary(deps, behavior.libraries.inUse);
 
   return {
     version: 1,
@@ -67,6 +71,8 @@ export function detectProject(rootDir) {
     uiLibrary,
     pathAliases,
     tokens,
+    styling: behavior.styling,
+    libraries: behavior.libraries,
     routing,
     sampleComponents,
     detectionWarnings: warnings,
@@ -146,15 +152,28 @@ function detectAngularDetails(root, angularJson, warnings) {
 
 // ---------- generic detection ----------
 
-function detectUiLibrary(deps) {
+function detectUiLibrary(deps, inUse = []) {
+  // Prefer "actually used" libraries (from templates/imports) over "installed".
+  // @angular/cdk alone is NOT a UI library — don't report it.
+  const uiLibs = [
+    "angular-material",
+    "ngx-bootstrap",
+    "ngx-select-ex",
+    "ngx-datatable",
+    "ngx-toastr",
+    "primeng",
+    "ng-zorro",
+    "antd",
+    "mui",
+    "vuetify",
+  ];
+  for (const lib of uiLibs) {
+    if (inUse.includes(lib)) return lib;
+  }
+  // fallback to deps for libraries we didn't signature-scan
   if (deps["@angular/material"]) return "angular-material";
-  if (deps["@angular/cdk"]) return "angular-cdk";
-  if (deps["primeng"] || deps["primeicons"]) return "primeng";
-  if (deps["antd"]) return "antd";
-  if (deps["@mui/material"]) return "mui";
   if (deps["bootstrap"]) return "bootstrap";
-  if (deps["vuetify"]) return "vuetify";
-  return "";
+  return inUse.length ? inUse.join(" + ") : "";
 }
 
 function detectTokens(root) {

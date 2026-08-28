@@ -75,6 +75,15 @@ Compose the generation prompt from:
 
 Write real files into the project at the detected `componentDir`, then register the component (e.g. edit `app.module.ts` for Angular). After writing, run the project's build/type-check and fix errors you introduced.
 
+#### Use the project's styling behavior — don't re-invent it
+
+`project-context.json` carries `styling` (recurring override blocks + literal hex) and `libraries` (what's actually used). Read them and obey:
+
+- **Dropdowns/selects** → use the library in `libraries.inUse` (e.g. `ngx-select-ex`), not a raw `<select>`. The project already overrides its look globally via `::ng-deep` — **do not** redeclare that override, **do not** inline your own colors. The override is in `styling.patterns`.
+- **Colors** → prefer `styling.recurringColors` (the project's *actual* hex, e.g. `#428bca`, `#093697`) or its SCSS tokens, over inventing a "close enough" palette.
+- **Components** → reuse the same UI library the project already uses (`libraries.inUse` + `uiLibrary`). If the project uses `ngx-bootstrap` modals, use that — not a hand-rolled overlay.
+- If `styling.patterns` shows a global style already exists for a widget, **do not** duplicate it in your new component's SCSS. Your component should fit *into* the existing system.
+
 ## Framework Rules (key constraints)
 
 **Angular ≤ 13** (module-based — the version matters):
