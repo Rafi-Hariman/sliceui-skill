@@ -35,6 +35,7 @@ The skill activates, the CLI does the heavy lifting, the agent writes the files.
 | `sliceui detect` | Detect framework + library usage → `.sliceui/project-context.json` (with `capabilities`) |
 | `sliceui transcribe <input>` | `.xml`/`.figml` → exact FIGML parse; image → Gemini → static fallback. Writes `.sliceui/transcript/<name>.transcript.*` |
 | `sliceui doctor` | Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini) |
+| `sliceui fidelity <xml>` | Score visual-attribute preservation (FIGML → transcript) as a single % + per-attribute breakdown |
 | `sliceui uninstall` | Remove this project's `.sliceui/` setup |
 | `sliceui --help` | Usage |
 
@@ -80,6 +81,7 @@ Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slid
 
 ## Status
 
+v0.5.2 — `sliceui fidelity <xml>`: deterministic visual-attribute coverage score (parser → transcript), closing the "70% vs 95%" gap from a gut feeling to a number you can CI-enforce. Also carries `axis` on INSTANCE nodes.
 v0.5.1 — fidelity fix: transcript now carries `cornerRadius`/`padding`/`itemSpacing`(gap)/`lineHeight` (previously dropped), so generated spacing/radius matches the design instead of being guessed from geometry.
 v0.5.0 — project-context v3: source>config prefix/provenance, `uii-*`/`@uiigateway`/bootstrap catalog, package.json-driven capabilities, design-token mining, inlined samples, non-silent nulls, module structure + staleness.
 v0.4.0 — kill generation-time search: capabilities are authoritative (local samples for re-exported components), mock data + literal text by default, no i18n/test wiring during a slice.

@@ -183,9 +183,11 @@ function mapNode(tag, attrs, kids, ox, oy) {
 
     case "INSTANCE": {
       const cls = classifyInstance(name);
+      const axis = attrs.layoutMode === "HORIZONTAL" ? "row" : attrs.layoutMode === "VERTICAL" ? "column" : undefined;
       const node = {
         ...base,
         type: cls.type,
+        axis,
         radius: num(attrs.cornerRadius) || undefined,
         ...(paddingOf(attrs) ? { padding: paddingOf(attrs) } : {}),
         ...(num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
