@@ -142,3 +142,11 @@ test("v3: hidden layer (visible=false) is dropped from the transcript", () => {
   assert.ok(!desc.some((d) => /edit|f:8/i.test(d)), "hidden edit icon should not be transcribed");
   assert.equal(detail.children.filter((c) => c.type === "icon").length, 0, "no icon node under detail header");
 });
+
+test("v3: fills/fill metadata wrappers are NOT emitted as nodes", () => {
+  const r = parseFigml(FILLS_FIXTURE, "f.xml");
+  const ids = [];
+  const walk = (ns) => { for (const n of ns) { ids.push(n.id || n.name || n.type); if (n.children) walk(n.children); } };
+  walk(r.transcript.layout);
+  assert.ok(!ids.some((x) => /^(fills|fill)_/.test(x)), "no fills_/fill_ noise nodes");
+});

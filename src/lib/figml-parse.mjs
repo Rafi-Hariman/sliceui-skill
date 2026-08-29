@@ -81,7 +81,7 @@ function rootDim(xml, attr) {
 
 // Metadata wrappers to skip entirely (no visual contribution).
 const SKIP_TAGS = new Set([
-  "strokes", "constraints", "fontName", "letterSpacing",
+  "strokes", "constraints", "fontName", "letterSpacing", "fill",
   "lineHeight", "overrides", "override", "overriddenFields", "overriddenField",
   "mainComponent", "componentProperties", "variantProperties", "textStyles",
 ]);
@@ -103,10 +103,11 @@ function walkNodes(nodes, ox, oy) {
     const attrs = node[":@"] || {};
     const kids = Array.isArray(node[tag]) ? node[tag] : [];
     // A node's own fills (a child <fills> element) describe the node's box, not a child
-    // node — consume it for colorOf() and don't emit it as its own node.
+    // node — consume it for colorOf() and don't recurse into it (or the nested <fill>).
     const childFills = kids.find((k) => k && k.fills);
     const effectiveAttrs = childFills ? { ...attrs, fills: childFills.fills } : attrs;
-    const mapped = mapNode(tag, effectiveAttrs, kids, ox, oy);
+    const visualKids = childFills ? kids.filter((k) => k !== childFills) : kids;
+    const mapped = mapNode(tag, effectiveAttrs, visualKids, ox, oy);
     if (mapped) out.push(mapped);
   }
   return out;
