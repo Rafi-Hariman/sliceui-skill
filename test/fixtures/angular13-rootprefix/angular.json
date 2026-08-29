@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "projects": {
+    "fixture": {
+      "projectType": "application",
+      "prefix": "app",
+      "architect": { "build": { "options": { "main": "src/main.ts", "styles": ["src/styles.scss"] } } }
+    }
+  }
+}

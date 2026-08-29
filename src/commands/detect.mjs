@@ -211,24 +211,32 @@ function detectAngularDetails(root, angularJson, warnings) {
 
 // ---------- prefix + module structure (source > config) ----------
 
-/** Collect every `selector:` prefix from source, plus the root component's prefix. */
+/** Collect every `selector:` prefix from source. The root component (app.component.ts)
+ *  is the app shell — often a different prefix (e.g. `ugw-root`) than the feature
+ *  components sliceui actually generates (`app-*`) — so it is excluded from the vote
+ *  and only used as a fallback. */
 function collectSelectors(root, componentDir) {
   const found = [];
-  const searchRoots = componentDir ? [join(root, componentDir), join(root, "src")] : [join(root, "src")];
-  for (const sr of searchRoots) {
-    walkFiles(sr, found, /\.component\.ts$/, { count: 200 }, 0);
-  }
-  const counts = new Map();
+  const searchRoot = componentDir ? join(root, componentDir) : join(root, "src");
+  walkFiles(searchRoot, found, /\.component\.ts$/, { count: 200 }, 0);
+
+  const seen = new Set();
+  const featureCounts = new Map();
   let rootPrefix = null;
   for (const path of found) {
+    if (seen.has(path)) continue;
+    seen.add(path);
     const content = readFileSyncSafe(path) ?? "";
     const sel = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1];
     const prefix = selectorPrefix(sel);
     if (!prefix) continue;
-    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
-    if (/[\\/]app\.component\.ts$/.test(path)) rootPrefix = prefix;
+    if (/[\\/]app\.component\.ts$/.test(path)) {
+      rootPrefix = prefix;
+      continue;
+    }
+    featureCounts.set(prefix, (featureCounts.get(prefix) ?? 0) + 1);
   }
-  return { rootPrefix, counts };
+  return { rootPrefix, featureCounts };
 }
 
 /** "ugw-root" → "ugw"; "[sidebarMenuItem]" / attribute selectors → null. */
@@ -239,27 +247,29 @@ function selectorPrefix(sel) {
 
 /**
  * Resolve the selector prefix from the project's actual condition:
- *   root selector > majority source > angular.json `prefix` fallback.
+ *   majority among feature components > root selector > angular.json `prefix` fallback.
  */
 function resolvePrefix(root, componentDir, configPrefix) {
-  const { rootPrefix, counts } = collectSelectors(root, componentDir);
-  const prefixAlternates = [...counts.entries()]
+  const { rootPrefix, featureCounts } = collectSelectors(root, componentDir);
+  const prefixAlternates = [...featureCounts.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([prefix, count]) => ({ prefix, count }));
 
   let prefix, prefixSource, prefixNote = null;
-  if (rootPrefix) {
-    prefix = rootPrefix;
-    prefixSource = "sourceCode";
-  } else if (prefixAlternates.length) {
+  if (prefixAlternates.length) {
     prefix = prefixAlternates[0].prefix;
+    prefixSource = "sourceCode";
+  } else if (rootPrefix) {
+    prefix = rootPrefix;
     prefixSource = "sourceCode";
   } else {
     prefix = configPrefix || "app";
     prefixSource = "configFile";
   }
 
-  if (prefixSource === "sourceCode" && configPrefix && prefix !== configPrefix) {
+  if (prefixSource === "sourceCode" && rootPrefix && rootPrefix !== prefix) {
+    prefixNote = `root selector "${rootPrefix}-*" differs from feature components "${prefix}-*" — using feature prefix`;
+  } else if (prefixSource === "sourceCode" && configPrefix && prefix !== configPrefix) {
     prefixNote = `angular.json prefix "${configPrefix}" differs from source "${prefix}" — using source`;
   }
 

@@ -180,6 +180,56 @@ test("table: repeated flush full-width rows mark the container as table", () => 
   assert.equal(table.table, true, "container flagged as table");
 });
 
+// --- visual fidelity: radius/padding/gap/lineHeight survive the parse ---
+
+const FIDELITY_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="fid:1" name="Page" x="0" y="0" width="1157" height="600" type="FRAME">
+  <children>
+    <Frame id="fid:2" name="Card" cornerRadius="8" x="20" y="20" width="400" height="200" layoutMode="VERTICAL" paddingLeft="20" paddingRight="20" paddingTop="16" paddingBottom="16" itemSpacing="10" type="FRAME">
+      <children>
+        <Text id="fid:3" name="label" x="0" y="0" width="100" height="24" fontSize="14" fontWeight="500" characters="Judul" type="TEXT">
+          <lineHeight unit="PIXELS" value="20" />
+          <letterSpacing unit="PERCENT" value="0" />
+          <fills><fill color="#000000" /></fills>
+        </Text>
+        <Rectangle id="fid:4" name="btn" cornerRadius="6" x="0" y="40" width="120" height="40" type="RECTANGLE">
+          <fills><fill color="#03337b" /></fills>
+        </Rectangle>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("fidelity: radius/padding/gap captured on frames", () => {
+  const r = parseFigml(FIDELITY_FIXTURE, "fid.xml");
+  assert.equal(r.ok, true, r.message);
+  const card = r.transcript.layout[0];
+  assert.equal(card.radius, 8, "cornerRadius 8 → radius 8");
+  assert.deepEqual(card.padding, { top: 16, right: 20, bottom: 16, left: 20 }, "padding 16/20/16/20");
+  assert.equal(card.gap, 10, "itemSpacing 10 → gap 10");
+});
+
+test("fidelity: rectangle keeps its cornerRadius", () => {
+  const r = parseFigml(FIDELITY_FIXTURE, "fid.xml");
+  const rect = r.transcript.layout[0].children[1];
+  assert.equal(rect.radius, 6, "rectangle cornerRadius 6 captured");
+});
+
+test("fidelity: lineHeight captured; zero letterSpacing + AUTO lineHeight dropped", () => {
+  const r = parseFigml(FIDELITY_FIXTURE, "fid.xml");
+  const text = r.transcript.layout[0].children[0];
+  assert.equal(text.style.lineHeight, 20, "pixel lineHeight 20 captured");
+  assert.equal(text.style.letterSpacing, undefined, "zero letterSpacing not surfaced");
+});
+
+test("fidelity: spacing census from padding + itemSpacing", () => {
+  const r = parseFigml(FIDELITY_FIXTURE, "fid.xml");
+  const sp = r.transcript.tokens.spacing;
+  assert.equal(sp.base, 16, "mode padding = 16 (from 16/16/20/20)");
+  assert.equal(sp.gap, 10, "mode itemSpacing = 10");
+});
+
 test("table: layout-grid metadata is NOT flagged as a table", () => {
   // A FIGML export names its grid-guide layers "layoutGrids" — the word-boundary table
   // classifier must not treat that as a table, and zero-size nodes are never flagged.

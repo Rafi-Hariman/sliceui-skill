@@ -48,7 +48,7 @@ export function parseFigml(xml, filename) {
     height,
     textQuality: "exact",
   });
-  transcript.tokens = { colors: censusColors(xml), fonts: [] };
+  transcript.tokens = { colors: censusColors(xml), fonts: [], spacing: censusSpacing(xml) };
   transcript.layout = layout;
 
   const v = validateTranscript(transcript);
@@ -137,21 +137,27 @@ function mapNode(tag, attrs, kids, ox, oy) {
   };
 
   switch (type) {
-    case "TEXT":
-      return {
-        ...base,
-        type: "text",
-        text: attrs.characters ?? "",
-        style: {
-          size: num(attrs.fontSize) || undefined,
-          weight: attrs.fontWeight ? Number(attrs.fontWeight) : undefined,
-          color: color ?? undefined,
-          family: fontFamily(attrs),
-        },
+    case "TEXT": {
+      const style = {
+        size: num(attrs.fontSize) || undefined,
+        weight: attrs.fontWeight ? Number(attrs.fontWeight) : undefined,
+        color: color ?? undefined,
+        family: fontFamily(attrs),
       };
+      const lineHeight = childNumAttr(kids, "lineHeight");
+      const letterSpacing = childNumAttr(kids, "letterSpacing");
+      if (lineHeight) style.lineHeight = lineHeight;
+      if (letterSpacing) style.letterSpacing = letterSpacing;
+      return { ...base, type: "text", text: attrs.characters ?? "", style };
+    }
 
     case "RECTANGLE":
-      return { ...base, type: w > 1 && h > 1 ? "image" : "divider", bg: colorOf(attrs) ?? undefined };
+      return {
+        ...base,
+        type: w > 1 && h > 1 ? "image" : "divider",
+        radius: num(attrs.cornerRadius) || undefined,
+        bg: colorOf(attrs) ?? undefined,
+      };
 
     case "LINE":
       return { ...base, type: "divider", bg: color ?? undefined };
@@ -161,7 +167,15 @@ function mapNode(tag, attrs, kids, ox, oy) {
 
     case "FRAME": {
       const axis = attrs.layoutMode === "HORIZONTAL" ? "row" : attrs.layoutMode === "VERTICAL" ? "column" : undefined;
-      const node = { ...base, type: "group", axis, radius: num(attrs.cornerRadius) || undefined, bg: colorOf(attrs) ?? undefined };
+      const node = {
+        ...base,
+        type: "group",
+        axis,
+        radius: num(attrs.cornerRadius) || undefined,
+        ...(paddingOf(attrs) ? { padding: paddingOf(attrs) } : {}),
+        ...(num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
+        bg: colorOf(attrs) ?? undefined,
+      };
       const childNodes = walkNodes(kids, x, y);
       if (childNodes.length) node.children = childNodes;
       return node;
@@ -169,7 +183,14 @@ function mapNode(tag, attrs, kids, ox, oy) {
 
     case "INSTANCE": {
       const cls = classifyInstance(name);
-      const node = { ...base, type: cls.type, radius: num(attrs.cornerRadius) || undefined, bg: colorOf(attrs) ?? undefined };
+      const node = {
+        ...base,
+        type: cls.type,
+        radius: num(attrs.cornerRadius) || undefined,
+        ...(paddingOf(attrs) ? { padding: paddingOf(attrs) } : {}),
+        ...(num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
+        bg: colorOf(attrs) ?? undefined,
+      };
       const childNodes = walkNodes(kids, x, y);
       const label = childNodes.length ? firstText(childNodes) : "";
       if (cls.type === "button" && label) node.text = label;
@@ -271,6 +292,54 @@ function fontFamily(attrs) {
   if (fn && typeof fn === "object") return (fn[":@"] && fn[":@"].family) || fn.family;
   if (typeof fn === "string") return fn;
   return undefined;
+}
+
+/** Frame/instance box padding (top/right/bottom/left); null when no padding is set. */
+function paddingOf(attrs) {
+  const top = num(attrs.paddingTop) || num(attrs.verticalPadding);
+  const right = num(attrs.paddingRight) || num(attrs.horizontalPadding);
+  const bottom = num(attrs.paddingBottom) || num(attrs.verticalPadding);
+  const left = num(attrs.paddingLeft) || num(attrs.horizontalPadding);
+  if (!top && !right && !bottom && !left) return null;
+  return { top, right, bottom, left };
+}
+
+/** Read a numeric child-element attribute (e.g. <lineHeight unit="PIXELS" value="24"/>).
+ *  Returns undefined for AUTO lineHeight or a zero letterSpacing — those are defaults
+ *  with no visual meaning, so we don't surface them. */
+function childNumAttr(kids, tag) {
+  for (const k of kids ?? []) {
+    if (!k || !k[tag]) continue;
+    const a = k[":@"] || {};
+    const val = num(a.value);
+    if (tag === "letterSpacing") return val !== 0 ? val : undefined;
+    if (tag === "lineHeight") return a.unit === "AUTO" ? undefined : val || undefined;
+  }
+  return undefined;
+}
+
+/** Most-common positive value of a numeric series (for the spacing census).
+ *  Ties break toward the smaller value — a smaller "base" is the more useful design-system unit. */
+function mode(arr) {
+  if (!arr.length) return undefined;
+  const counts = new Map();
+  for (const v of arr) counts.set(v, (counts.get(v) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+}
+
+/** Census padding + itemSpacing values from the raw XML → a spacing scale the agent can reuse. */
+function censusSpacing(xml) {
+  const pads = [];
+  for (const m of xml.matchAll(/(?:paddingLeft|paddingRight|paddingTop|paddingBottom)="([0-9.]+)"/g)) {
+    const v = Number(m[1]);
+    if (v > 0) pads.push(v);
+  }
+  const gaps = [];
+  for (const m of xml.matchAll(/itemSpacing="([0-9.]+)"/g)) {
+    const v = Number(m[1]);
+    if (v > 0) gaps.push(v);
+  }
+  return { base: mode(pads), gap: mode(gaps) };
 }
 
 /** Count fill colors across the raw XML. */

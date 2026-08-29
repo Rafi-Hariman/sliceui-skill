@@ -9,7 +9,7 @@ import fg from "fast-glob";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames } from "./library-registry.mjs";
-import { importSources, componentMeta } from "./ts-ast.mjs";
+import { importSources } from "./ts-ast.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
 
@@ -79,29 +79,56 @@ function buildCapability(category, combined, allTs, allHtml, deps) {
   return { library: null, sampleHtml: null, sampleTs: null };
 }
 
-/** Find a real local usage sample for a matched registry entry. */
+/** Find a real local usage sample for a matched registry entry.
+ *  HTML and TS samples are gathered independently — a package's import often lives in a
+ *  `.module.ts` (no template) while the actual usage lives in a component template, so
+ *  neither should block the other. `templateUrl` is read via regex (componentMeta's
+ *  decorator detection is unreliable across TS versions); importSources is still used
+ *  to confirm the package is genuinely imported (not just commented/re-exported).
+ */
 function findLocalSample(entry, allTs, allHtml) {
-  const libName = entry.name;
-  // (1) match a TS file whose imports reference the library package directly
+  const pkgName = entry.package || entry.name;
+  const tagTest = entry.tagTest || tagTestFor(entry.name);
+
+  // (1) HTML sample — a real component template that uses the library's tag.
+  let sampleHtml = null;
   for (const f of allTs) {
-    if (importSources(f.src).some((s) => s.includes(libName))) {
-      const meta = componentMeta(f.src);
-      const html = meta && meta.templateUrl ? readTemplate(f.path, meta.templateUrl, allHtml) : null;
-      const tsSample = extractSnippet(f.src, libName);
-      return { sampleHtml: html, sampleTs: tsSample };
+    if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
+    const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
+    if (templateUrl) {
+      const html = readTemplate(f.path, templateUrl, allHtml);
+      if (html) { sampleHtml = html; break; }
     }
   }
-  // (2) re-exported components (no direct import): match the template tag itself,
-  //     and return the first real usage as sampleHtml so the agent mirrors it.
-  if (entry.tagTest) {
+  if (!sampleHtml && tagTest) {
     for (const h of allHtml) {
-      if (entry.tagTest.test(h.src)) {
-        const snippet = extractTagBlock(h.src, entry.tagTest);
-        if (snippet) return { sampleHtml: snippet, sampleTs: null };
+      if (tagTest.test(h.src)) {
+        sampleHtml = extractTagBlock(h.src, tagTest) || null;
+        if (sampleHtml) break;
       }
     }
   }
-  return {};
+
+  // (2) TS sample — the import block referencing the package (component preferred).
+  let sampleTs = null;
+  for (const f of allTs) {
+    if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
+    const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
+    if (templateUrl) {
+      sampleTs = extractSnippet(f.src, pkgName);
+      if (sampleTs) break;
+    }
+  }
+
+  return { sampleHtml, sampleTs };
+}
+
+/** Build a tag regex from the entry's display name ("pilar (uii-table)" → /<uii-table\b/). */
+function tagTestFor(displayName) {
+  const m = /\(([^)]*uii[^)]*)\)/.exec(displayName);
+  if (!m) return null;
+  const tag = m[1].trim().split(/\s+/)[0].replace(/^uii-/i, "");
+  return new RegExp(`<uii-${tag}\\b`, "i");
 }
 
 /** Extract the first template block containing the tag, trimmed to a useful span. */

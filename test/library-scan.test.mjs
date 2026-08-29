@@ -136,3 +136,21 @@ export class TComponent {}`);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.library, "ngx-datatable", "real ngx-datatable usage beats installed pilar");
 });
+
+test("package-name matching captures a local sample even when the entry has a display label", () => {
+  // entry.name is "pilar (uii-table)" but the import says "pilar" — the local scan must
+  // match on entry.package, not entry.name, and must read the template via regex.
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  writeFileSync(join(app, "p.component.ts"), `import { Component } from "@angular/core";
+import { TableModule } from "pilar";
+@Component({ selector: "ugw-p", templateUrl: "./p.component.html" })
+export class PComponent {}`);
+  writeFileSync(join(app, "p.component.html"), `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true"></uii-table>`);
+  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18" });
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.table.library, "pilar (uii-table)", "pilar resolves to uii-table");
+  assert.equal(capabilities.table.source, "local", "local template sample captured");
+  assert.ok(capabilities.table.sampleHtml.includes("<uii-table"), "real <uii-table> usage is the sample");
+});

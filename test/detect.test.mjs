@@ -67,3 +67,13 @@ test("non-silent null: capability with no library carries a note + warning", () 
   }
   assert.ok(ctx.detectionWarnings.some((w) => w.includes("native HTML")), "warning emitted for null capability");
 });
+
+test("prefix: feature components beat the root selector (ugw-root vs app-*)", () => {
+  // The root component is the app shell (ugw-root); sliceui generates feature components,
+  // which use app-*. Majority among features must win, not the root selector.
+  const ctx = detectProject(join(FIX, "angular13-rootprefix"));
+  assert.equal(ctx.prefix, "app", "feature prefix wins over root selector");
+  assert.equal(ctx.provenance.prefix, "sourceCode");
+  assert.ok(ctx.prefixNote.includes("ugw"), "note explains the root/feature split");
+  assert.ok(ctx.prefixAlternates.some((a) => a.prefix === "app"), "app in alternates");
+});

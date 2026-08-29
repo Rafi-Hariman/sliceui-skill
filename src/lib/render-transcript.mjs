@@ -53,13 +53,16 @@ export function renderTranscript(t) {
       const bg = n.bg ? ` bg:${n.bg}` : "";
       const axis = n.axis ? ` (${n.axis})` : "";
       const table = n.table ? ` [TABLE]` : "";
+      const radius = n.radius ? ` r:${n.radius}` : "";
+      const gap = n.gap ? ` gap:${n.gap}` : "";
+      const padStr = n.padding ? ` pad:${n.padding.top}/${n.padding.right}/${n.padding.bottom}/${n.padding.left}` : "";
       const align = n.align ? ` align:${n.align}` : "";
       let text = "";
       if (n.type === "text" || n.type === "button") {
         text = n.text ? ` "${n.text}"` : "";
       }
       const style = n.style ? styleSummary(n.style) : "";
-      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${align}${text}${style}`);
+      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${radius}${gap}${padStr}${align}${text}${style}`);
       if (n.children?.length) walk(n.children, depth + 1);
     }
   };
@@ -115,6 +118,8 @@ function styleSummary(style) {
   if (style.color) parts.push(style.color);
   if (style.bg) parts.push(`bg:${style.bg}`);
   if (style.radius) parts.push(`r${style.radius}`);
+  if (style.lineHeight) parts.push(`lh${style.lineHeight}`);
+  if (style.letterSpacing) parts.push(`ls${style.letterSpacing}`);
   if (style.variant) parts.push(style.variant);
   return parts.length ? ` {${parts.join(" ")}}` : "";
 }
