@@ -81,7 +81,7 @@ function rootDim(xml, attr) {
 
 // Metadata wrappers to skip entirely (no visual contribution).
 const SKIP_TAGS = new Set([
-  "fills", "strokes", "constraints", "fontName", "letterSpacing",
+  "strokes", "constraints", "fontName", "letterSpacing",
   "lineHeight", "overrides", "override", "overriddenFields", "overriddenField",
   "mainComponent", "componentProperties", "variantProperties", "textStyles",
 ]);
@@ -102,7 +102,11 @@ function walkNodes(nodes, ox, oy) {
     }
     const attrs = node[":@"] || {};
     const kids = Array.isArray(node[tag]) ? node[tag] : [];
-    const mapped = mapNode(tag, attrs, kids, ox, oy);
+    // A node's own fills (a child <fills> element) describe the node's box, not a child
+    // node — consume it for colorOf() and don't emit it as its own node.
+    const childFills = kids.find((k) => k && k.fills);
+    const effectiveAttrs = childFills ? { ...attrs, fills: childFills.fills } : attrs;
+    const mapped = mapNode(tag, effectiveAttrs, kids, ox, oy);
     if (mapped) out.push(mapped);
   }
   return out;
@@ -111,6 +115,9 @@ function walkNodes(nodes, ox, oy) {
 function mapNode(tag, attrs, kids, ox, oy) {
   const type = attrs.type || classifyByTag(tag);
   if (["BOOLEAN", "VARIANT", "INSTANCE_SWAP"].includes(type)) return null;
+  // A layer marked not-visible in Figma contributes nothing to the render —
+  // drop it before transcription so generators don't emit hidden nodes.
+  if (attrs.visible === "false") return null;
 
   const x = ox + num(attrs.x);
   const y = oy + num(attrs.y);
@@ -142,7 +149,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
       };
 
     case "RECTANGLE":
-      return { ...base, type: w > 1 && h > 1 ? "image" : "divider", bg: color ?? undefined };
+      return { ...base, type: w > 1 && h > 1 ? "image" : "divider", bg: colorOf(attrs) ?? undefined };
 
     case "LINE":
       return { ...base, type: "divider", bg: color ?? undefined };
@@ -152,7 +159,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
 
     case "FRAME": {
       const axis = attrs.layoutMode === "HORIZONTAL" ? "row" : attrs.layoutMode === "VERTICAL" ? "column" : undefined;
-      const node = { ...base, type: "group", axis, radius: num(attrs.cornerRadius) || undefined };
+      const node = { ...base, type: "group", axis, radius: num(attrs.cornerRadius) || undefined, bg: colorOf(attrs) ?? undefined };
       const childNodes = walkNodes(kids, x, y);
       if (childNodes.length) node.children = childNodes;
       return node;
@@ -160,7 +167,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
 
     case "INSTANCE": {
       const cls = classifyInstance(name);
-      const node = { ...base, type: cls.type, radius: num(attrs.cornerRadius) || undefined };
+      const node = { ...base, type: cls.type, radius: num(attrs.cornerRadius) || undefined, bg: colorOf(attrs) ?? undefined };
       const childNodes = walkNodes(kids, x, y);
       const label = childNodes.length ? firstText(childNodes) : "";
       if (cls.type === "button" && label) node.text = label;
@@ -196,11 +203,22 @@ function classifyByTag(tag) {
   return "INSTANCE";
 }
 
-/** This node's fill color (first visible fill), lowercased. */
-function colorOf(attrs) {
-  const fills = attrs.fills;
-  if (!fills) return null;
-  const arr = Array.isArray(fills) ? fills : [fills];
+// A node's fill color (first visible fill), lowercased.
+// FIGML nests fills as a child element: { fills: [ { fill: [...], ":@" : { color } } ] }.
+// Some exports also put a flat fills array on the node attrs — accept both shapes.
+function colorOf(attrsOrNode) {
+  const src = attrsOrNode || {};
+  const fills = src.fills;
+  let arr;
+  if (Array.isArray(fills)) {
+    arr = fills;
+  } else if (fills && Array.isArray(fills.fills)) {
+    arr = fills.fills;
+  } else if (fills && typeof fills === "object") {
+    arr = [fills];
+  } else {
+    arr = [];
+  }
   for (const f of arr) {
     const fat = f && (f[":@"] || f);
     if (fat && fat.color && fat.visible !== "false") return String(fat.color).toLowerCase();

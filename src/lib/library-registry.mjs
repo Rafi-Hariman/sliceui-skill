@@ -11,9 +11,19 @@ export const REGISTRY = {
   select: [
     {
       name: "ngx-select-ex",
-      test: /ngx-select|ngxSelectModule/i,
+      test: /ngx-select-ex|NgxSelectModule/i,
+      testImport: /from ["']ngx-select-ex["']/i,
       sampleHtml: `<ngx-select [items]="items" [(ngModel)]="selected" placeholder="Pilih..."></ngx-select>`,
       sampleTs: `import { NgxSelectModule } from "ngx-select-ex";\n// add NgxSelectModule to imports[]`,
+    },
+    {
+      // A generic <ngx-select> tag that isn't backed by a detected import — the component
+      // is often re-exported by a custom/core package (e.g. @uiigateway/core, pilar). Don't
+      // claim ngx-select-ex; teach the agent to mirror local usage instead.
+      name: "ngx-select (local)",
+      test: /<ngx-select\b/i,
+      sampleHtml: `<ngx-select [items]="items" [optionTextField]="'name'" [optionValueField]="'value'" [(ngModel)]="selected" placeholder="Pilih..."></ngx-select>`,
+      sampleTs: `// <ngx-select> is provided by a local/core package (e.g. @uiigateway/core) — mirror an existing local usage.`,
     },
     {
       name: "ng-multiselect-dropdown",
@@ -82,8 +92,16 @@ export const REGISTRY = {
     {
       name: "ng-pick-datetime",
       test: /ng-pick-datetime|DateTimePickerModule/i,
+      testImport: /from ["']ng-pick-datetime["']/i,
       sampleHtml: `<input [owlDateTime]="dt" />`,
       sampleTs: `import { DateTimePickerModule } from "ng-pick-datetime";`,
+    },
+    {
+      name: "@danielmoncada/angular-datetime-picker",
+      test: /owl-date-time|OwlDateTimeModule|OwlNativeDateTimeModule/i,
+      testImport: /from ["']@danielmoncada\/angular-datetime-picker["']/i,
+      sampleHtml: `<input [owlDateTime]="dt" /><owl-date-time #dt [pickerType]="'calendar'"></owl-date-time>`,
+      sampleTs: `import { OwlDateTimeModule, OwlNativeDateTimeModule } from "@danielmoncada/angular-datetime-picker";`,
     },
   ],
   slider: [

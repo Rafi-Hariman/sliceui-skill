@@ -51,3 +51,49 @@ test("returns library:null when a category has no matching library", () => {
   assert.equal(capabilities.select.library, null, "no select library → null");
   assert.equal(capabilities.table.library, null, "no table library → null");
 });
+
+test("bare <ngx-select> tag with no import → ngx-select (local), not ngx-select-ex", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  // Component uses <ngx-select> but imports nothing select-ish (custom/core re-export).
+  writeFileSync(join(app, "c.component.ts"), `import { Component } from "@angular/core";
+@Component({ selector: "ugw-c", templateUrl: "./c.component.html" })
+export class CComponent {}`);
+  writeFileSync(join(app, "c.component.html"), `<ngx-select [items]="items" [(ngModel)]="selected"></ngx-select>`);
+  const { capabilities, libraries } = scanLibraryUsage(dir);
+  rmSync(dir, { recursive: true, force: true });
+  assert.ok(capabilities.select.library.includes("ngx-select"), "select resolves to ngx-select local");
+  assert.ok(!capabilities.select.library.includes("ngx-select-ex"), "NOT attributed to ngx-select-ex");
+  assert.ok(!libraries.inUse.includes("ngx-select-ex"), "ngx-select-ex NOT marked in use");
+});
+
+test("@danielmoncada/angular-datetime-picker detected for date category", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  writeFileSync(join(app, "d.component.ts"), `import { Component } from "@angular/core";
+import { OwlDateTimeModule, OwlNativeDateTimeModule } from "@danielmoncada/angular-datetime-picker";
+@Component({ selector: "ugw-d", templateUrl: "./d.component.html" })
+export class DComponent {}`);
+  writeFileSync(join(app, "d.component.html"), `<input [owlDateTime]="dt" /><owl-date-time #dt [pickerType]="'calendar'"></owl-date-time>`);
+  const { capabilities } = scanLibraryUsage(dir);
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.date.library, "@danielmoncada/angular-datetime-picker");
+  assert.ok(!capabilities.date.sampleHtml.includes("ng-pick-datetime"), "sample is local, not ng-pick-datetime");
+});
+
+test("commented-out import does not trigger a library", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  writeFileSync(join(app, "c.component.ts"), `import { Component } from "@angular/core";
+// import { OwlDateTimeModule } from 'ng-pick-datetime';
+@Component({ selector: "ugw-c" })
+export class CComponent {}`);
+  writeFileSync(join(app, "c.component.html"), `<input type="text">`);
+  const { capabilities, libraries } = scanLibraryUsage(dir);
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.date.library, null, "commented ng-pick-datetime ignored");
+  assert.ok(!libraries.inUse.includes("ng-pick-datetime"), "ng-pick-datetime not in use");
+});

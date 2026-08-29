@@ -76,3 +76,69 @@ test("fails gracefully on non-FIGML XML", () => {
   assert.equal(r.ok, false);
   assert.equal(r.reason, "no-root");
 });
+
+// --- v3 regressions: frame fills, colored dividers, hidden layers ---
+
+const FILLS_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="f:1" name="Modal" x="0" y="0" width="950" height="802" layoutMode="VERTICAL" type="FRAME">
+  <children>
+    <Frame id="f:2" name="Header" x="0" y="0" width="950" height="59" layoutMode="HORIZONTAL" type="FRAME">
+      <children>
+        <Text id="f:3" name="Title" x="20" y="20" width="910" height="19" fontSize="16" fontWeight="700" characters="Ubah massal" type="TEXT">
+          <fills><fill blendMode="NORMAL" color="#555555" /></fills>
+        </Text>
+      </children>
+      <fills><fill blendMode="NORMAL" color="#ffffff" /></fills>
+    </Frame>
+    <Frame id="f:4" name="DividerWrap" x="0" y="59" width="950" height="1" layoutMode="VERTICAL" type="FRAME">
+      <children>
+        <Rectangle id="f:5" name="Rect" x="20" y="0" width="910" height="1" type="RECTANGLE">
+          <fills><fill blendMode="NORMAL" color="#fbc02d" /></fills>
+        </Rectangle>
+      </children>
+      <fills><fill blendMode="NORMAL" color="#ffffff" /></fills>
+    </Frame>
+    <Frame id="f:6" name="Detail" x="0" y="60" width="950" height="40" layoutMode="HORIZONTAL" type="FRAME">
+      <children>
+        <Text id="f:7" name="Label" x="30" y="0" width="107" height="16" fontSize="14" fontWeight="700" characters="Detail perubahan" type="TEXT">
+          <fills><fill blendMode="NORMAL" color="#03337b" /></fills>
+        </Text>
+        <Frame id="f:8" name="edit" visible="false" x="172" y="0" width="26" height="26" layoutMode="VERTICAL" type="FRAME">
+          <fills><fill blendMode="NORMAL" color="#0299b7" /></fills>
+        </Frame>
+      </children>
+      <fills><fill blendMode="NORMAL" color="#ffffff" /></fills>
+    </Frame>
+  </children>
+  <fills><fill blendMode="NORMAL" color="#ffffff" /></fills>
+</frame>`;
+
+test("v3: captures frame fill colors (header/body containers)", () => {
+  const r = parseFigml(FILLS_FIXTURE, "f.xml");
+  assert.equal(r.ok, true, r.message);
+  const t = r.transcript;
+  assert.equal(t.version, 3);
+  const header = t.layout[0];
+  assert.equal(header.bg, "#ffffff", "header frame fill captured");
+  const body = t.layout[2];
+  assert.equal(body.bg, "#ffffff", "detail row frame fill captured");
+});
+
+test("v3: colored divider rectangle keeps its fill (bg:#fbc02d)", () => {
+  const r = parseFigml(FILLS_FIXTURE, "f.xml");
+  const divWrap = r.transcript.layout[1];
+  const rect = divWrap.children[0];
+  assert.equal(rect.type, "divider");
+  assert.equal(rect.bg, "#fbc02d", "yellow divider fill captured");
+});
+
+test("v3: hidden layer (visible=false) is dropped from the transcript", () => {
+  const r = parseFigml(FILLS_FIXTURE, "f.xml");
+  const detail = r.transcript.layout[2];
+  const desc = [];
+  const walk = (ns) => { for (const n of ns) { desc.push(n.name || n.id || n.type); if (n.children) walk(n.children); } };
+  walk(detail.children);
+  assert.ok(!desc.some((d) => /edit|f:8/i.test(d)), "hidden edit icon should not be transcribed");
+  assert.equal(detail.children.filter((c) => c.type === "icon").length, 0, "no icon node under detail header");
+});

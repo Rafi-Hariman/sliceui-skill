@@ -52,9 +52,11 @@ sliceui detect
 
 Reads `.sliceui/project-context.json` — framework, version, selector prefix, component dir, **capabilities** (which library serves each UI element category + a real usage sample), and sample components.
 
-### Step 2 — Absorb local idioms
+### Step 2 — Absorb local idioms (bounded)
 
-Read the `sampleComponents[*].path` files AND the `capabilities.<category>.sampleHtml/sampleTs` snippets. Mirror the project's structure and library usage exactly.
+Read ONLY the `capabilities.<category>.sampleHtml/sampleTs` snippets and the `sampleComponents[*].path` files **listed in project-context.json** — and read them to learn *idiom*, not to reuse the target component's old contents. Skim for: selector prefix, module wiring, `*ngFor`/`*ngIf` style, DI pattern, library API. Then stop.
+
+**Do NOT** open the component you're about to overwrite and try to "understand its history", grep the repo for the previous SliceUI output, read `output_repomix.txt`-style dumps, or diff against what the file used to be. The transcript + project-context are self-contained and authoritative for THIS slice. Over-reading old code is wasted time and biases the generation.
 
 ### Step 3 — Transcribe the input
 
@@ -82,6 +84,7 @@ Write real files into `componentDir`, register the component (e.g. `app.module.t
 - **`table`** → `capabilities.table.library` (`ngx-datatable`/`uii-table`/`mat-table`); if `null`, plain `<table>` + note.
 - **`modal`** → `capabilities.modal.library`; **`toast`/`editor`/`date`/`slider`/`switch`** → the matching capability.
 - **Colors & UX** come from the component library (hover/focus/animation are already built in). Do not hand-roll hover effects; do not inline a "close enough" hex when the component already has a theme.
+- **Container/divider fills are exact too.** The transcript now records `bg:#rrggbb` on `group`/`divider` nodes (frame fills + rectangle fills from FIGML). Honor them: a `divider ... bg:#fbc02d` means a yellow 1px separator; a header `group ... bg:#ffffff` means a white header — do NOT swap in `bg-primary`/`#f5f5f5` unless the project's own component library demands it. When a `bg` is present, it wins over any invented default.
 - Use the exact text/colors/geometry from a FIGML transcript (it's `exact`), adapting only to the component's API.
 
 ## Framework Rules (key constraints)
@@ -119,6 +122,7 @@ Write real files into `componentDir`, register the component (e.g. `app.module.t
 ## Anti-Pattern
 
 - **Never** assume you can "see" the image — always run `sliceui transcribe` first, even when image-reading appears to work.
+- **Never** reverse-engineer the OLD contents of the target component (or grep the repo for a previous SliceUI output) before generating. The transcript is self-contained — slice from it directly.
 - **Never** ask the user how to transcribe / which tier to use — the CLI decides (Gemini if key, else static). Asking is a bug in your flow.
 - **Never** plan or generate "from patterns only" without a fresh transcript for the target image.
 - **Never** trust an existing transcript without checking `transcript-meta.json` names the same image.

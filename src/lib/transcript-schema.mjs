@@ -2,7 +2,7 @@
 // Tier 1 (gemini-vision) and Tier 2 (static) both emit this shape; the renderer turns it into
 // the compact markdown block embedded in the generation prompt.
 
-export const TRANSCRIPT_VERSION = 2;
+export const TRANSCRIPT_VERSION = 3;
 
 export const LAYOUT_TYPES = [
   "nav", "hero", "section", "card", "footer", "text", "group",
@@ -67,6 +67,14 @@ export function validateTranscript(t) {
         }
         for (const k of ["x", "y", "w", "h"]) {
           if (n[k] !== undefined && !Number.isFinite(n[k])) errors.push(`layout node ${where}.${k} must be a number`);
+        }
+        // v3: exact fill color of the node's container/box (#rrggbb), when the design sets one.
+        if (n.bg !== undefined && (typeof n.bg !== "string" || !/^#[0-9a-f]{6}$/.test(n.bg))) {
+          errors.push(`layout node ${where}.bg must be #rrggbb (got ${JSON.stringify(n.bg)})`);
+        }
+        // v3: node is hidden/not visible in the design (e.g. Figma visible="false").
+        if (n.hidden !== undefined && typeof n.hidden !== "boolean") {
+          errors.push(`layout node ${where}.hidden must be a boolean (got ${JSON.stringify(n.hidden)})`);
         }
         if (n.children !== undefined) {
           if (!Array.isArray(n.children)) errors.push(`layout node ${where}.children must be an array`);

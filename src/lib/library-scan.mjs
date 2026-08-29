@@ -25,7 +25,7 @@ export function scanLibraryUsage(root) {
   const allTs = tsFiles.map((f) => { try { return { path: f, src: readFileSync(f, "utf8") }; } catch { return { path: f, src: "" }; } });
   const allHtml = htmlFiles.map((f) => { try { return { path: f, src: readFileSync(f, "utf8") }; } catch { return { path: f, src: "" }; } });
 
-  const combined = [...allTs, ...allHtml].map((x) => x.src).join("\n");
+  const combined = stripComments([...allTs, ...allHtml].map((x) => x.src).join("\n"));
   const inUse = registryLibraryNames().filter((name) => {
     const entry = findEntryByName(name);
     return entry ? entry.test.test(combined) : false;
@@ -42,19 +42,21 @@ export function scanLibraryUsage(root) {
 /** Resolve one category into { library, sampleHtml, sampleTs } or { library: null }. */
 function buildCapability(category, combined, allTs, allHtml) {
   const libs = REGISTRY[category] || [];
-  for (const lib of libs) {
-    if (lib.test.test(combined)) {
-      // Found usage: prefer a real local sample; fall back to the registry template.
-      const local = findLocalSample(lib.name, allTs, allHtml);
-      return {
-        library: lib.name,
-        sampleHtml: local.sampleHtml || lib.sampleHtml,
-        sampleTs: local.sampleTs || lib.sampleTs,
-        source: local.sampleHtml || local.sampleTs ? "local" : "registry",
-      };
-    }
-  }
-  return { library: null, sampleHtml: null, sampleTs: null };
+  // Prefer the library whose PACKAGE is actually imported — that's the authoritative
+  // signal for which npm package provides the component. A generic template tag like
+  // <ngx-select> can be re-exported by several packages (e.g. @uiigateway/core/pilar),
+  // so a bare tag match is a weak signal and must NOT win over a real import.
+  const imported = libs.find((lib) => lib.testImport && lib.testImport.test(combined));
+  const entry = imported || libs.find((lib) => lib.test.test(combined));
+  if (!entry) return { library: null, sampleHtml: null, sampleTs: null };
+
+  const local = findLocalSample(entry.name, allTs, allHtml);
+  return {
+    library: entry.name,
+    sampleHtml: local.sampleHtml || entry.sampleHtml,
+    sampleTs: local.sampleTs || entry.sampleTs,
+    source: local.sampleHtml || local.sampleTs ? "local" : "registry",
+  };
 }
 
 /** Find the first component in the project that imports this library. */
@@ -101,4 +103,11 @@ function findEntryByName(name) {
     }
   }
   return null;
+}
+
+/** Strip // line and /* * / block comments so imports/tags in comments never count as usage. */
+function stripComments(text) {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/.*$/gm, " ");
 }
