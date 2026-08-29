@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames } from "./library-registry.mjs";
 import { importSources } from "./ts-ast.mjs";
+import { vendoredSample } from "./vendors.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
 
@@ -48,8 +49,11 @@ export function scanLibraryUsage(root, deps = {}) {
  *  Precedence (highest first):
  *    1. local usage — a precise import (testImport) wins over a bare tag (test), which wins
  *       over a generic re-exported tag (tagTest). Always beats a bare install.
- *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
- *    3. null — fall back to plain HTML with a note.
+ *    2. vendored — real-usage snippets extracted from the library's own showcase
+ *       (scripts/extract-pilar.mjs) — verbatim, version-pinned; beats a hand-written registry
+ *       sample but loses to actual usage in THIS project.
+ *    3. installed — first entry whose npm `package` appears in deps (registry order = priority).
+ *    4. null — fall back to plain HTML with a note.
  */
 function buildCapability(category, combined, allTs, allHtml, deps) {
   const libs = REGISTRY[category] || [];
@@ -62,21 +66,34 @@ function buildCapability(category, combined, allTs, allHtml, deps) {
   const entry = imported || used;
   if (entry) {
     const local = findLocalSample(entry, allTs, allHtml);
-    return {
-      library: entry.name,
-      sampleHtml: local.sampleHtml || entry.sampleHtml,
-      sampleTs: local.sampleTs || entry.sampleTs,
-      source: local.sampleHtml || local.sampleTs ? "local" : "registry",
-    };
+    if (local.sampleHtml || local.sampleTs) {
+      return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, source: "local" };
+    }
+    // No usage in this project yet — the vendored showcase snippet is the real idiom.
+    const vendored = vendoredFor(entry);
+    if (vendored) {
+      return { library: entry.name, sampleHtml: vendored.sampleHtml, sampleTs: vendored.sampleTs, source: "vendored", vendoredFrom: `${vendored.pkg}@${vendored.versionPinned}` };
+    }
+    return { library: entry.name, sampleHtml: entry.sampleHtml, sampleTs: entry.sampleTs, source: "registry" };
   }
 
-  // Installed but not yet used: still claim it (registry sample teaches the agent the API).
+  // Installed but not yet used: vendored showcase sample beats the hand-written registry one.
   const installed = libs.find((lib) => lib.package && deps[lib.package]);
   if (installed) {
+    const vendored = vendoredFor(installed);
+    if (vendored) {
+      return { library: installed.name, sampleHtml: vendored.sampleHtml, sampleTs: vendored.sampleTs, source: "vendored", vendoredFrom: `${vendored.pkg}@${vendored.versionPinned}` };
+    }
     return { library: installed.name, sampleHtml: installed.sampleHtml, sampleTs: installed.sampleTs, source: "installed" };
   }
 
   return { library: null, sampleHtml: null, sampleTs: null };
+}
+
+/** Vendored showcase snippet for a registry entry, when one exists for its tag. */
+function vendoredFor(entry) {
+  const m = /\((uii-[a-z-]+)\)/i.exec(entry.name) || (/^ngx-select/.test(entry.name) ? ["", "ngx-select"] : null);
+  return m ? vendoredSample(m[1]) : null;
 }
 
 /** Find a real local usage sample for a matched registry entry.
@@ -90,31 +107,61 @@ function findLocalSample(entry, allTs, allHtml) {
   const pkgName = entry.package || entry.name;
   const tagTest = entry.tagTest || tagTestFor(entry.name);
 
-  // (1) HTML sample — a real component template that uses the library's tag.
+  // (1) HTML sample — a real component template that USES the library's tag. Requiring the
+  // tag (not just the package import) matters: a component can import pilar for a different
+  // widget while its template never renders <uii-table>, and that template is a bad sample.
+  // Among matching templates, prefer the RICHEST (most usages of the tag). When the entry
+  // has no tag pattern (e.g. directive-style APIs), fall back to the first importing template.
   let sampleHtml = null;
-  for (const f of allTs) {
-    if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
-    const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
-    if (templateUrl) {
+  if (tagTest) {
+    let bestCount = 0;
+    for (const f of allTs) {
+      if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
+      const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
+      if (!templateUrl) continue;
       const html = readTemplate(f.path, templateUrl, allHtml);
-      if (html) { sampleHtml = html; break; }
+      if (!html) continue;
+      const count = html.split(tagTest.source.replace("\\b", "")).length - 1;
+      if (count > bestCount) {
+        bestCount = count;
+        sampleHtml = html;
+      }
     }
-  }
-  if (!sampleHtml && tagTest) {
-    for (const h of allHtml) {
-      if (tagTest.test(h.src)) {
-        sampleHtml = extractTagBlock(h.src, tagTest) || null;
-        if (sampleHtml) break;
+    if (!sampleHtml) {
+      for (const h of allHtml) {
+        if (tagTest.test(h.src)) {
+          sampleHtml = extractTagBlock(h.src, tagTest) || null;
+          if (sampleHtml) break;
+        }
+      }
+    }
+  } else {
+    for (const f of allTs) {
+      if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
+      const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
+      if (templateUrl) {
+        const html = readTemplate(f.path, templateUrl, allHtml);
+        if (html) { sampleHtml = html; break; }
       }
     }
   }
 
-  // (2) TS sample — the import block referencing the package (component preferred).
+  // (2) TS sample — prefer a component whose template actually uses the tag (its class holds
+  // the columns/rows wiring), else the first file importing the package.
   let sampleTs = null;
   for (const f of allTs) {
     if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
     const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
-    if (templateUrl) {
+    if (!templateUrl) continue;
+    const html = readTemplate(f.path, templateUrl, allHtml);
+    if (html && tagTest && tagTest.test(html)) {
+      sampleTs = extractSnippet(f.src, pkgName);
+      if (sampleTs) break;
+    }
+  }
+  if (!sampleTs) {
+    for (const f of allTs) {
+      if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
       sampleTs = extractSnippet(f.src, pkgName);
       if (sampleTs) break;
     }

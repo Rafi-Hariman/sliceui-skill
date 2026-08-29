@@ -1,0 +1,36 @@
+<div class="table-options-container">
+  <input type="checkbox" id="striped" checked (change)="striped = $event.target.checked">
+  <label for="striped">Striped</label><br />
+  <input type="checkbox" id="searc" checked (change)="searchOptions = $event.target.checked">
+  <label for="searc">Search bar</label>
+  <input type="checkbox" id="limit" checked (change)="limitOptions = $event.target.checked">
+  <label for="limit">Limit options</label><br />
+  <input type="checkbox" id="selectable" (change)="checkboxColumn = $event.target.checked">
+  <label for="selectable">Selectable Rows</label>
+  <input type="checkbox" id="radio" (change)="radioColumn = $event.target.checked">
+  <label for="radio">Radio options</label>
+  <input type="checkbox" id="header" (change)="tableHeader = !$event.target.checked">
+  <label for="header">No Table header</label><br />
+  <input type="checkbox" id="footer" checked (change)="footerInfo = $event.target.checked">
+  <label for="footer">Footer info</label>
+  <input type="checkbox" id="pagination" checked (change)="paginationOptions = $event.target.checked">
+  <label for="pagination">Pagination</label><br />
+  <input type="checkbox" id="action" checked (change)="actionColumn = $event.target.checked">
+  <label for="action">Action column</label><br />
+  <ng-container *ngIf="actionColumn">
+    <label>Action title</label><input type="text" [(ngModel)]="actionTitle" />
+  </ng-container>
+</div>
+
+<uii-table
+  [columns]="columns"
+  [rows]="records"
+  [actionColumn]="actionColumn"
+  [searchOptions]="searchOptions"
+  [limitOptions]="limitOptions"
+  [radioColumn]="radioColumn"
+  [checkboxColumn]="checkboxColumn"
+  [footerInfo]="footerInfo"
+  [paginationOptions]="paginationOptions"
+  [actionTitle]="actionTitle"
+></uii-table>

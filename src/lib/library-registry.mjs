@@ -22,15 +22,6 @@ export const REGISTRY = {
       sampleTs: `import { NgxSelectModule } from "ngx-select-ex";\n// add NgxSelectModule to imports[]`,
     },
     {
-      // pilar's dropdown is the org's own select (uii-dropdown) — preferred when ngx-select-ex
-      // isn't installed, over a generic third-party multiselect.
-      name: "pilar (uii-dropdown)",
-      package: "pilar",
-      test: /uii-dropdown/i,
-      sampleHtml: `<uii-dropdown [items]="items" optionTextField="name" optionValueField="value" [(value)]="selected" label="Pilih..."></uii-dropdown>`,
-      sampleTs: `import { DropdownComponent } from "pilar";\n// add DropdownComponent to declarations[] / imports[]`,
-    },
-    {
       name: "ng-multiselect-dropdown",
       package: "ng-multiselect-dropdown",
       test: /ng-multiselect-dropdown|NgMultiSelectDropDownModule/i,

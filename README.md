@@ -54,7 +54,7 @@ The skill activates, the CLI does the heavy lifting, the agent writes the files.
 1. **actual usage** in source (import-first, then template tags), and
 2. **`package.json` deps** — so a freshly-scaffolded project resolves its libraries *before* any component imports them.
 
-Resolution precedence per category: **local usage (`source:"local"`) → installed package (`source:"installed"`) → `null`** (plain HTML + note). When several libraries are installed for one category, registry order wins (org design-systems like `pilar`/`@uiigateway/core` are prioritized).
+Resolution precedence per category: **local usage (`source:"local"`) → vendored showcase snippet (`source:"vendored"`) → installed package (`source:"installed"`) → `null`** (plain HTML + note). Vendored snippets are real-usage examples extracted verbatim from the library's own showcase app (`scripts/extract-pilar.mjs` → `src/lib/vendors/pilar/`, version-pinned) — the same material a repo-reading agent would use. Local usage still wins when the project has its own (richest sample preferred).
 
 ```json
 "capabilities": {
@@ -81,6 +81,7 @@ Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slid
 
 ## Status
 
+v0.6.0 — vendored showcase catalog: real-usage snippets extracted verbatim from the pilar docs app (uii-table kitchen-sink/column-definitions + the org's `<ngx-select>` idiom), injected as `source:"vendored"` samples between local usage and registry defaults; richest-local-sample selection.
 v0.5.2 — `sliceui fidelity <xml>`: deterministic visual-attribute coverage score (parser → transcript), closing the "70% vs 95%" gap from a gut feeling to a number you can CI-enforce. Also carries `axis` on INSTANCE nodes.
 v0.5.1 — fidelity fix: transcript now carries `cornerRadius`/`padding`/`itemSpacing`(gap)/`lineHeight` (previously dropped), so generated spacing/radius matches the design instead of being guessed from geometry.
 v0.5.0 — project-context v3: source>config prefix/provenance, `uii-*`/`@uiigateway`/bootstrap catalog, package.json-driven capabilities, design-token mining, inlined samples, non-silent nulls, module structure + staleness.

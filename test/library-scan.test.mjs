@@ -116,8 +116,12 @@ test("package.json deps resolve capabilities even with no usage (fresh scaffold)
   assert.equal(capabilities.table.library, "pilar (uii-table)", "table → pilar uii-table from package.json");
   assert.equal(capabilities.select.library, "ngx-select-ex", "select → ngx-select-ex from package.json");
   assert.equal(capabilities.layout.library, "@uiigateway/core (layout)", "layout → @uiigateway/core from package.json");
-  assert.equal(capabilities.table.source, "installed", "package.json-driven → source 'installed'");
-  assert.equal(capabilities.select.source, "installed", "package.json-driven → source 'installed'");
+  // vendored showcase snippets (extracted from the library's own docs app) beat the
+  // hand-written registry sample for an installed-but-unused library.
+  assert.equal(capabilities.table.source, "vendored", "table uses the vendored pilar showcase sample");
+  assert.ok(capabilities.table.sampleHtml.includes("<uii-table"), "vendored sampleHtml is a real uii-table usage");
+  assert.ok(capabilities.table.sampleTs.includes("prop"), "vendored sampleTs carries the column-definition pattern");
+  assert.equal(capabilities.select.source, "vendored", "select uses the vendored ngx-select idiom");
   assert.ok(libraries.inUse.includes("pilar (uii-table)"), "pilar table marked in use");
   assert.ok(libraries.inUse.includes("@uiigateway/core (layout)"), "core layout marked in use");
 });
