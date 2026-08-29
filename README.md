@@ -48,17 +48,30 @@ The skill activates, the CLI does the heavy lifting, the agent writes the files.
 
 ## How it adapts (project context)
 
-`detect` builds a `capabilities` map by scanning your project's actual library usage:
+`detect` builds a `capabilities` map from two signals:
+
+1. **actual usage** in source (import-first, then template tags), and
+2. **`package.json` deps** — so a freshly-scaffolded project resolves its libraries *before* any component imports them.
+
+Resolution precedence per category: **local usage (`source:"local"`) → installed package (`source:"installed"`) → `null`** (plain HTML + note). When several libraries are installed for one category, registry order wins (org design-systems like `pilar`/`@uiigateway/core` are prioritized).
 
 ```json
 "capabilities": {
-  "select": { "library": "ngx-select-ex", "sampleHtml": "<ngx-select ...>", "source": "local" },
-  "table":  { "library": "ngx-datatable", "sampleHtml": "...", "source": "local" },
+  "select": { "library": "ngx-select-ex", "sampleHtml": "<ngx-select ...>", "source": "installed" },
+  "table":  { "library": "pilar (uii-table)", "sampleHtml": "...", "source": "installed" },
   "modal":  { "library": "ngx-bootstrap", "sampleHtml": "...", "source": "local" }
 }
 ```
 
-The agent maps each transcript element to the matching capability. If a category has no library, it falls back to plain HTML (`<select>`/`<table>`) with a note — never inventing a library the project doesn't have.
+Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slider`, `switch`, `pagination`, `divider`, `well`, `checkbox`, `layout`. The agent maps each transcript element to the matching capability — never inventing a library the project doesn't have.
+
+`project-context.json` (v3) also carries, beyond capabilities:
+
+- **`provenance`** — which signal produced each claim (`prefix`/`styleExt`/`componentDir`/`uiLibrary`), tagged `sourceCode | configFile | registryDefault`. Source code is ground truth; config is only a fallback. This is why `prefix` derives from actual `selector:` usage (with `prefixAlternates` showing the full distribution), not blindly from `angular.json`.
+- **`designTokens`** — the project's own SCSS variables, CSS custom props, and mixins, mined from its stylesheets (literal values only), so generated styles reference real tokens instead of hardcoded hex.
+- **`sampleComponents`** — inlined verbatim (`sampleTs` imports + `sampleHtml` template), no "read the file" round-trip.
+- **`appModulePath` + `moduleStructure`** — where to register a new Angular component, no repo search.
+- **`generatedAt` + `inputHash`** — detect stale context.
 
 ## Requirements
 
@@ -67,6 +80,7 @@ The agent maps each transcript element to the matching capability. If a category
 
 ## Status
 
+v0.5.0 — project-context v3: source>config prefix/provenance, `uii-*`/`@uiigateway`/bootstrap catalog, package.json-driven capabilities, design-token mining, inlined samples, non-silent nulls, module structure + staleness.
 v0.4.0 — kill generation-time search: capabilities are authoritative (local samples for re-exported components), mock data + literal text by default, no i18n/test wiring during a slice.
 v0.3.0 — exact FIGML fidelity (frame/divider fills + hidden-layer dropping, transcript schema v3) + accurate library detection (import-first, comment-aware, `@danielmoncada/angular-datetime-picker`, local `<ngx-select>`).
 v0.2.0 — XML-first input + library-aware project context.

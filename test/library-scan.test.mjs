@@ -99,3 +99,40 @@ export class CComponent {}`);
   assert.equal(capabilities.date.library, null, "commented ng-pick-datetime ignored");
   assert.ok(!libraries.inUse.includes("ng-pick-datetime"), "ng-pick-datetime not in use");
 });
+
+test("package.json deps resolve capabilities even with no usage (fresh scaffold)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  mkdirSync(join(dir, "src"), { recursive: true });
+  writeFileSync(join(dir, "package.json"), JSON.stringify({
+    dependencies: {
+      "pilar": "^3.3.18",
+      "ngx-select-ex": "8.0.1",
+      "@swimlane/ngx-datatable": "^15.0.2",
+      "@uiigateway/core": "^4.1.0",
+    },
+  }));
+  const { capabilities, libraries } = scanLibraryUsage(dir, { pilar: "^3.3.18", "ngx-select-ex": "8.0.1", "@swimlane/ngx-datatable": "^15.0.2", "@uiigateway/core": "^4.1.0" });
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.table.library, "pilar (uii-table)", "table → pilar uii-table from package.json");
+  assert.equal(capabilities.select.library, "ngx-select-ex", "select → ngx-select-ex from package.json");
+  assert.equal(capabilities.layout.library, "@uiigateway/core (layout)", "layout → @uiigateway/core from package.json");
+  assert.equal(capabilities.table.source, "installed", "package.json-driven → source 'installed'");
+  assert.equal(capabilities.select.source, "installed", "package.json-driven → source 'installed'");
+  assert.ok(libraries.inUse.includes("pilar (uii-table)"), "pilar table marked in use");
+  assert.ok(libraries.inUse.includes("@uiigateway/core (layout)"), "core layout marked in use");
+});
+
+test("local usage wins over an installed package (import-first)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ dependencies: { "pilar": "^3.3.18" } }));
+  writeFileSync(join(app, "t.component.ts"), `import { Component } from "@angular/core";
+import { NgxDatatableModule } from "@swimlane/ngx-datatable";
+@Component({ selector: "ugw-t", templateUrl: "./t.component.html" })
+export class TComponent {}`);
+  writeFileSync(join(app, "t.component.html"), `<ngx-datatable [rows]="rows" [columns]="columns"></ngx-datatable>`);
+  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18", "@swimlane/ngx-datatable": "^15.0.2" });
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.table.library, "ngx-datatable", "real ngx-datatable usage beats installed pilar");
+});

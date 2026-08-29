@@ -150,3 +150,59 @@ test("v3: fills/fill metadata wrappers are NOT emitted as nodes", () => {
   walk(r.transcript.layout);
   assert.ok(!ids.some((x) => /^(fills|fill)_/.test(x)), "no fills_/fill_ noise nodes");
 });
+
+// --- table detection: a group of ≥3 flush, full-width rows is a table ---
+
+const TABLE_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="t:1" name="Page" x="0" y="0" width="1117" height="600" type="FRAME">
+  <children>
+    <Frame id="t:2" name="Table" x="20" y="100" width="1117" height="120" type="FRAME">
+      <children>
+        <Frame id="t:3" name="row" x="20" y="100" width="1117" height="40" type="FRAME">
+          <children><Text id="t:4" name="c" x="20" y="100" width="50" height="40" fontSize="14" characters="1" type="TEXT"><fills><fill color="#303030"/></fills></Text></children>
+        </Frame>
+        <Frame id="t:5" name="row" x="20" y="140" width="1117" height="40" type="FRAME">
+          <children><Text id="t:6" name="c" x="20" y="140" width="50" height="40" fontSize="14" characters="2" type="TEXT"><fills><fill color="#303030"/></fills></Text></children>
+        </Frame>
+        <Frame id="t:7" name="row" x="20" y="180" width="1117" height="40" type="FRAME">
+          <children><Text id="t:8" name="c" x="20" y="180" width="50" height="40" fontSize="14" characters="3" type="TEXT"><fills><fill color="#303030"/></fills></Text></children>
+        </Frame>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("table: repeated flush full-width rows mark the container as table", () => {
+  const r = parseFigml(TABLE_FIXTURE, "t.xml");
+  assert.equal(r.ok, true, r.message);
+  const table = r.transcript.layout[0];
+  assert.equal(table.table, true, "container flagged as table");
+});
+
+test("table: layout-grid metadata is NOT flagged as a table", () => {
+  // A FIGML export names its grid-guide layers "layoutGrids" — the word-boundary table
+  // classifier must not treat that as a table, and zero-size nodes are never flagged.
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="g:1" name="Page" x="0" y="0" width="1117" height="600" type="FRAME">
+  <children>
+    <Frame id="g:2" name="content" x="0" y="0" width="1117" height="600" type="FRAME">
+      <children>
+        <Frame id="g:3" name="layoutGrids" x="962" y="792" width="0" height="0" type="INSTANCE">
+          <children>
+            <Frame id="g:4" name="layoutGrid" x="962" y="792" width="0" height="0" type="INSTANCE" />
+            <Frame id="g:5" name="layoutGrid" x="962" y="792" width="0" height="0" type="INSTANCE" />
+            <Frame id="g:6" name="layoutGrid" x="962" y="792" width="0" height="0" type="INSTANCE" />
+          </children>
+        </Frame>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+  const r = parseFigml(xml, "g.xml");
+  const flags = [];
+  const walk = (ns) => { for (const n of ns) { if (n.table) flags.push(n.id || n.name); if (n.children) walk(n.children); } };
+  walk(r.transcript.layout);
+  assert.deepEqual(flags, [], "layoutGrids must not be flagged as a table");
+});

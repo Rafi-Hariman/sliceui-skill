@@ -5,7 +5,9 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { cwd } from "node:process";
+import { createHash } from "node:crypto";
 import { scanLibraryUsage } from "../lib/library-scan.mjs";
+import { extractStyleTokens } from "../lib/style-tokens.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
 
@@ -32,19 +34,31 @@ export function detectProject(rootDir) {
 
   // --- framework-specific deep detection ---
   let prefix = "";
+  let prefixAlternates = [];
+  let prefixSource = null;
+  let prefixNote = null;
   let styleExt = "css";
   let pathAliases = {};
   let componentDir = "";
   let routing = false;
+  let stylePaths = [];
+  let appModulePath = null;
+  let moduleStructure = null;
 
   if (fw.id === "angular") {
     const angularJson = readJsonSafe(join(root, "angular.json"));
     const ang = detectAngularDetails(root, angularJson, warnings);
     prefix = ang.prefix;
+    prefixAlternates = ang.prefixAlternates;
+    prefixSource = ang.prefixSource;
+    prefixNote = ang.prefixNote;
     styleExt = ang.styleExt;
     pathAliases = ang.pathAliases;
     componentDir = ang.componentDir;
     routing = ang.routing;
+    stylePaths = ang.styles;
+    appModulePath = ang.appModulePath;
+    moduleStructure = ang.moduleStructure;
   } else {
     const tsconfig = readJsonSafe(join(root, "tsconfig.json"));
     pathAliases = extractTsconfigPaths(tsconfig);
@@ -55,24 +69,53 @@ export function detectProject(rootDir) {
   const sampleComponents = findSampleComponents(root, fw.id, componentDir, warnings);
 
   // Library-aware: capabilities map (category → library + real usage sample).
-  const { capabilities, libraries } = scanLibraryUsage(root);
+  // deps feeds the "installed but not yet used" signal so a fresh scaffold still resolves
+  // its libraries (e.g. pilar → uii-table) before any component imports them.
+  const { capabilities, libraries } = scanLibraryUsage(root, deps);
   const uiLibrary = detectUiLibrary(deps, libraries.inUse);
 
+  // Non-silent nulls: a null capability must surface a note, never quietly fall back.
+  for (const [cat, cap] of Object.entries(capabilities)) {
+    if (!cap.library) {
+      cap.note = `no ${cat} library detected — use native HTML for this element and flag it in the output`;
+      warnings.push(`capability "${cat}": no library detected — generated code will use native HTML.`);
+    }
+  }
+
+  // Design tokens from the project's own stylesheets (SCSS vars + CSS custom props + mixins).
+  const designTokens = stylePaths.length ? extractStyleTokens(root, stylePaths) : { scss: [], cssProps: [], mixins: [] };
+
+  // Provenance: which signal produced each claim — source code beats config beats registry default.
+  const provenance = {
+    prefix: prefixSource ?? "configFile",
+    styleExt: fw.id === "angular" ? "configFile" : "registryDefault",
+    componentDir: componentDir ? (fw.id === "angular" ? "configFile" : "sourceCode") : "registryDefault",
+    uiLibrary: uiLibrary ? (libraries.inUse.includes(uiLibrary) ? "sourceCode" : "configFile") : "registryDefault",
+  };
+
   return {
-    version: 2,
+    version: 3,
     cwd: root,
     detected: true,
     framework: fw,
     moduleOrStandalone: fw.id === "angular" ? (fw.versionMajor >= 14 ? "standalone-capable" : "module") : "n/a",
     prefix,
+    prefixAlternates,
+    prefixNote,
     styleExt,
     componentDir,
+    appModulePath,
+    moduleStructure,
     uiLibrary,
     pathAliases,
+    provenance,
     capabilities,
     libraries,
+    designTokens,
     routing,
     sampleComponents,
+    generatedAt: new Date().toISOString(),
+    inputHash: hashInputs(root),
     detectionWarnings: warnings,
   };
 }
@@ -104,10 +147,11 @@ function parseMajor(v) {
 // ---------- Angular deep detection ----------
 
 function detectAngularDetails(root, angularJson, warnings) {
-  let prefix = "app";
+  let configPrefix = "app";
   let styleExt = "scss";
   let componentDir = "";
   let routing = false;
+  let styles = [];
 
   if (angularJson) {
     const projects = angularJson.projects ?? {};
@@ -117,14 +161,14 @@ function detectAngularDetails(root, angularJson, warnings) {
     }
     const p = projects[projectNames[0]];
     if (p) {
-      prefix = p.prefix || prefix;
+      configPrefix = p.prefix || configPrefix;
       const buildOpts = p.architect?.build?.options ?? {};
       if (buildOpts.main) {
         // main: "src/main.ts" → app dir is <dir-of-main>/app by CLI convention
         componentDir = join(dirname(buildOpts.main), "app");
       }
-      const styles = buildOpts.styles ?? [];
-      if (styles.length && typeof styles[0] === "string") {
+      styles = (buildOpts.styles ?? []).filter((s) => typeof s === "string");
+      if (styles.length) {
         const ext = extOf(styles[0]);
         if (ext) styleExt = ext;
       }
@@ -145,7 +189,103 @@ function detectAngularDetails(root, angularJson, warnings) {
     if (appModule && appModule.includes("RouterModule")) routing = true;
   }
 
-  return { prefix, styleExt, pathAliases, componentDir, routing };
+  // prefix: source code is ground truth — config is only a fallback.
+  const resolved = resolvePrefix(root, componentDir, configPrefix);
+
+  const { appModulePath, moduleStructure } = detectModuleStructure(root, componentDir);
+
+  return {
+    prefix: resolved.prefix,
+    prefixAlternates: resolved.prefixAlternates,
+    prefixSource: resolved.prefixSource,
+    prefixNote: resolved.prefixNote,
+    styleExt,
+    pathAliases,
+    componentDir,
+    routing,
+    styles,
+    appModulePath,
+    moduleStructure,
+  };
+}
+
+// ---------- prefix + module structure (source > config) ----------
+
+/** Collect every `selector:` prefix from source, plus the root component's prefix. */
+function collectSelectors(root, componentDir) {
+  const found = [];
+  const searchRoots = componentDir ? [join(root, componentDir), join(root, "src")] : [join(root, "src")];
+  for (const sr of searchRoots) {
+    walkFiles(sr, found, /\.component\.ts$/, { count: 200 }, 0);
+  }
+  const counts = new Map();
+  let rootPrefix = null;
+  for (const path of found) {
+    const content = readFileSyncSafe(path) ?? "";
+    const sel = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1];
+    const prefix = selectorPrefix(sel);
+    if (!prefix) continue;
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+    if (/[\\/]app\.component\.ts$/.test(path)) rootPrefix = prefix;
+  }
+  return { rootPrefix, counts };
+}
+
+/** "ugw-root" → "ugw"; "[sidebarMenuItem]" / attribute selectors → null. */
+function selectorPrefix(sel) {
+  const m = /^([a-zA-Z][a-zA-Z0-9]*)-/.exec(sel ?? "");
+  return m ? m[1] : null;
+}
+
+/**
+ * Resolve the selector prefix from the project's actual condition:
+ *   root selector > majority source > angular.json `prefix` fallback.
+ */
+function resolvePrefix(root, componentDir, configPrefix) {
+  const { rootPrefix, counts } = collectSelectors(root, componentDir);
+  const prefixAlternates = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([prefix, count]) => ({ prefix, count }));
+
+  let prefix, prefixSource, prefixNote = null;
+  if (rootPrefix) {
+    prefix = rootPrefix;
+    prefixSource = "sourceCode";
+  } else if (prefixAlternates.length) {
+    prefix = prefixAlternates[0].prefix;
+    prefixSource = "sourceCode";
+  } else {
+    prefix = configPrefix || "app";
+    prefixSource = "configFile";
+  }
+
+  if (prefixSource === "sourceCode" && configPrefix && prefix !== configPrefix) {
+    prefixNote = `angular.json prefix "${configPrefix}" differs from source "${prefix}" — using source`;
+  }
+
+  return { prefix, prefixAlternates, prefixSource, prefixNote };
+}
+
+/** Where the owning NgModule lives + how components are organized. */
+function detectModuleStructure(root, componentDir) {
+  const appDirAbs = join(root, componentDir || "src/app");
+  const appModule = join(appDirAbs, "app.module.ts");
+  const hasAppModule = existsSync(appModule);
+
+  const found = [];
+  walkFiles(appDirAbs, found, /\.module\.ts$/, { count: 50 }, 0);
+  const featureModules = found
+    .filter((p) => !/[\\/]app\.module\.ts$/.test(p) && !/[\\/]app-routing\.module\.ts$/.test(p))
+    .map((p) => toRel(root, p))
+    .slice(0, 5);
+
+  return {
+    appModulePath: hasAppModule ? toRel(root, appModule) : null,
+    moduleStructure: {
+      featureModules,
+      pattern: featureModules.length ? "feature-modules" : "single-app-module",
+    },
+  };
 }
 
 // ---------- generic detection ----------
@@ -193,7 +333,7 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
     const content = readFileSyncSafe(path) ?? "";
     const rel = toRel(root, path);
     if (fwId === "angular") {
-      samples.push(parseAngularComponent(rel, content));
+      samples.push(parseAngularComponent(rel, content, root));
     } else {
       samples.push({ path: rel, note: "read this file to absorb local idioms" });
     }
@@ -201,7 +341,7 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
   return samples;
 }
 
-function parseAngularComponent(rel, content) {
+function parseAngularComponent(rel, content, root) {
   const selector = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
   const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
   const styleUrlsMatch = /styleUrls:\s*\[([^\]]*)\]/.exec(content)?.[1] ?? "";
@@ -213,8 +353,37 @@ function parseAngularComponent(rel, content) {
     templateUrl,
     styleUrls,
     hasInlineTemplate: hasInline,
-    note: "read this file to absorb local idioms",
+    // Verbatim inline samples — the agent uses these directly (no "read the file" round-trip).
+    sampleTs: extractImports(content),
+    sampleHtml: templateUrl ? readTemplateInline(root, rel, templateUrl) : null,
   };
+}
+
+/** First ~10 import lines (the module/package wiring the agent must mirror). */
+function extractImports(content) {
+  return content
+    .split("\n")
+    .filter((l) => /^import\s/.test(l))
+    .slice(0, 10)
+    .join("\n");
+}
+
+/** Read the templateUrl file relative to the component, trimmed to ~40 lines. */
+function readTemplateInline(root, rel, templateUrl) {
+  const abs = join(dirname(join(root, rel)), templateUrl);
+  const content = readFileSyncSafe(abs);
+  if (!content) return null;
+  return content.trim().split("\n").slice(0, 40).join("\n");
+}
+
+/** Hash the config inputs so a stale project-context is detectable. */
+function hashInputs(root) {
+  const hash = createHash("sha1");
+  for (const f of ["package.json", "angular.json", "tsconfig.json"]) {
+    const c = readFileSyncSafe(join(root, f));
+    if (c) hash.update(f).update(c);
+  }
+  return hash.digest("hex").slice(0, 12);
 }
 
 function guessComponentDir(root, fwId) {

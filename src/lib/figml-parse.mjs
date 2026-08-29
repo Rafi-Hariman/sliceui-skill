@@ -38,6 +38,7 @@ export function parseFigml(xml, filename) {
   const width = rootDim(xml, "width");
   const height = rootDim(xml, "height");
   const layout = walkNodes(rootChildren, 0, 0);
+  markTables(layout);
 
   const transcript = emptyTranscript({
     source: "figml",
@@ -190,7 +191,7 @@ function classifyInstance(name) {
   if (/^Field|_field|^search|Input|Select|Dropdown|Combobox/i.test(n)) return { type: "input" };
   if (/Icon_|Icon$/i.test(n)) return { type: "icon" };
   if (/Information|Alert|Card|Box|Panel/i.test(n)) return { type: "card" };
-  if (/Table|Grid|Datatable/i.test(n)) return { type: "group", table: true };
+  if (/\b(Table|Datatable|DataGrid|Grid)\b/i.test(n)) return { type: "group", table: true };
   return { type: "group" };
 }
 
@@ -225,6 +226,33 @@ function colorOf(attrsOrNode) {
     if (fat && fat.color && fat.visible !== "false") return String(fat.color).toLowerCase();
   }
   return null;
+}
+
+/** Detect a table: a group whose children are ≥3 full-width rows, flush-stacked vertically.
+ *  Marks the container `table: true` so the generator maps it to capabilities.table
+ *  (e.g. pilar's uii-table) instead of raw divs. FIGML exports tables as generic frame
+ *  groups (not INSTANCE nodes), so the name-based classifyInstance can't catch them. */
+function markTables(nodes) {
+  for (const node of nodes) {
+    if (node.children?.length) markTables(node.children);
+    if (node.type !== "group" || !node.children?.length) continue;
+    if (!(node.w > 0 && node.h > 0)) continue; // skip zero-size layout-grid metadata
+    const rows = node.children.filter((c) => c.type === "group");
+    if (isTableRows(rows)) node.table = true;
+  }
+}
+
+function isTableRows(rows) {
+  if (rows.length < 3) return false;
+  const x = rows[0].x, w = rows[0].w;
+  let prevBottom = null;
+  for (const r of rows) {
+    if (!(r.w > 0 && r.h > 0)) return false; // zero-size rows are grid guides, not table rows
+    if (Math.abs(r.x - x) > 2 || Math.abs(r.w - w) > 2) return false;
+    if (prevBottom !== null && Math.abs(r.y - prevBottom) > 2) return false; // rows are flush (no gap)
+    prevBottom = r.y + r.h;
+  }
+  return true;
 }
 
 function firstText(nodes) {

@@ -52,13 +52,14 @@ export function renderTranscript(t) {
       const geom = n.x !== undefined ? ` [${n.x},${n.y} ${n.w}x${n.h}]` : "";
       const bg = n.bg ? ` bg:${n.bg}` : "";
       const axis = n.axis ? ` (${n.axis})` : "";
+      const table = n.table ? ` [TABLE]` : "";
       const align = n.align ? ` align:${n.align}` : "";
       let text = "";
       if (n.type === "text" || n.type === "button") {
         text = n.text ? ` "${n.text}"` : "";
       }
       const style = n.style ? styleSummary(n.style) : "";
-      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${align}${text}${style}`);
+      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${align}${text}${style}`);
       if (n.children?.length) walk(n.children, depth + 1);
     }
   };

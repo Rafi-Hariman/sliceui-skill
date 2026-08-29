@@ -56,13 +56,13 @@ Creates `.sliceui/` with `images/` (screenshots), `xml/` (Figma XML), `transcrip
 sliceui detect
 ```
 
-Reads `.sliceui/project-context.json` — framework, version, selector prefix, component dir, **capabilities** (which library serves each UI element category + a real usage sample), and sample components.
+Reads `.sliceui/project-context.json` — framework, version, selector prefix (with `prefixAlternates` + `provenance`), component dir, **capabilities** (which library serves each UI element category + a real usage sample), inlined sample components, `designTokens` (SCSS vars + CSS custom props + mixins), and `moduleStructure`/`appModulePath` for module wiring.
 
 ### Step 2 — Read the capabilities (no searching)
 
 Read the `capabilities.<category>.sampleHtml/sampleTs` snippets from `project-context.json`. They are the project's **own real usage** — that is the idiom. If a category isn't in the map, generate from the closest snippet and note it.
 
-You may read **at most one** `sampleComponents[*]` file, and only to learn module wiring (`declarations`/`imports`) if it isn't already obvious. Then stop reading.
+`sampleComponents[*]` are now **inlined** — `sampleTs` (imports) and `sampleHtml` (template) are verbatim, so you can mirror them directly without opening another file. Use them as-is; no file round-trip.
 
 ### Step 3 — Transcribe the input
 
@@ -86,9 +86,12 @@ Write real files into `componentDir`, register the component (e.g. `app.module.t
 
 `project-context.json` carries `capabilities` (category → library + sample) and `libraries.inUse`. Map each transcript element to the project's component:
 
-- **`select`/`dropdown`** → `capabilities.select.library` (e.g. `ngx-select-ex`) with its `sampleHtml`. **Do NOT emit a raw `<select>`** unless `capabilities.select.library` is `null` — then fall back to plain HTML and note it.
-- **`table`** → `capabilities.table.library` (`ngx-datatable`/`uii-table`/`mat-table`); if `null`, plain `<table>` + note.
+- **`select`/`dropdown`** → `capabilities.select.library` (e.g. `ngx-select-ex` or `pilar (uii-dropdown)`) with its `sampleHtml`. **Do NOT emit a raw `<select>`** unless `capabilities.select.library` is `null` — then fall back to plain HTML and note it.
+- **`table`** → `capabilities.table.library` (`pilar (uii-table)`/`ngx-datatable`/`mat-table`); if `null`, plain `<table>` + note. The transcript marks a repeated-row block as `[TABLE]` — map that block to the table component.
 - **`modal`** → `capabilities.modal.library`; **`toast`/`editor`/`date`/`slider`/`switch`** → the matching capability.
+- **`pagination`** → `capabilities.pagination.library` (`pilar (uii-pagination)`). **`divider`/`well`/`checkbox`** → the matching capability (`native-hr`, `bootstrap-well`, `awesome-bootstrap-checkbox`).
+- **`layout`** → `capabilities.layout.library` (`@uiigateway/core (layout)`) — use `ugw-header`/`ugw-sidebar`/`ugw-breadcrumb` for the app shell instead of hand-rolled nav.
+- **A null capability is non-silent.** When `capabilities.<category>.library` is `null`, `project-context.json` carries a `note` on that capability AND a `detectionWarnings` entry. You MUST use native HTML for that element **and flag it in your output** ("used native `<select>` — no `<category>` library detected"). Never silently guess a library.
 - **Colors & UX** come from the component library (hover/focus/animation are already built in). Do not hand-roll hover effects; do not inline a "close enough" hex when the component already has a theme.
 - **Container/divider fills are exact too.** The transcript now records `bg:#rrggbb` on `group`/`divider` nodes (frame fills + rectangle fills from FIGML). Honor them: a `divider ... bg:#fbc02d` means a yellow 1px separator; a header `group ... bg:#ffffff` means a white header — do NOT swap in `bg-primary`/`#f5f5f5` unless the project's own component library demands it. When a `bg` is present, it wins over any invented default.
 - Use the exact text/colors/geometry from a FIGML transcript (it's `exact`), adapting only to the component's API.

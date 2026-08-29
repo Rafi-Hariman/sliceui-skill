@@ -40,3 +40,30 @@ test("handles no-package gracefully", () => {
   assert.equal(ctx.framework.id, "unknown");
   assert.ok(ctx.detectionWarnings.length > 0);
 });
+
+test("project-context v3: provenance, tokens, module structure, staleness", () => {
+  const ctx = detectProject(join(FIX, "angular13"));
+  assert.equal(ctx.version, 3);
+  // provenance present for key claims
+  assert.equal(ctx.provenance.prefix, "sourceCode", "prefix derived from source, not config");
+  assert.ok(ctx.provenance.styleExt, "styleExt provenance present");
+  // design tokens mined from _tokens.scss (SCSS vars + CSS custom props)
+  assert.ok(ctx.designTokens.scss.some((t) => t.name === "$primary" && t.value === "#22c55e"), "$primary mined");
+  assert.ok(ctx.designTokens.cssProps.some((t) => t.name === "--color-bg"), "--color-bg mined");
+  // module structure + staleness
+  assert.equal(ctx.appModulePath, "src/app/app.module.ts");
+  assert.ok(ctx.moduleStructure.pattern, "moduleStructure pattern present");
+  assert.ok(ctx.generatedAt, "generatedAt present");
+  assert.ok(ctx.inputHash, "inputHash present");
+});
+
+test("non-silent null: capability with no library carries a note + warning", () => {
+  const ctx = detectProject(join(FIX, "angular13"));
+  // fixture has no modal/toast/etc → those are null and must carry a note
+  const nullCaps = Object.entries(ctx.capabilities).filter(([, c]) => c.library === null);
+  assert.ok(nullCaps.length > 0, "some capability is null");
+  for (const [, cap] of nullCaps) {
+    assert.ok(cap.note && cap.note.includes("native HTML"), `null capability has a note: ${cap.note}`);
+  }
+  assert.ok(ctx.detectionWarnings.some((w) => w.includes("native HTML")), "warning emitted for null capability");
+});

@@ -16,9 +16,10 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui
 /**
  * Build the capabilities map for a project root.
  * @param {string} root
+ * @param {Record<string,string>} [deps] — merged package.json dependencies+devDependencies
  * @returns {{ capabilities: Record<string,object>, libraries: { inUse: string[] } }}
  */
-export function scanLibraryUsage(root) {
+export function scanLibraryUsage(root, deps = {}) {
   const tsFiles = fg.sync(["**/*.ts"], { cwd: root, ignore: SKIP, absolute: true });
   const htmlFiles = fg.sync(["**/*.html"], { cwd: root, ignore: SKIP, absolute: true });
 
@@ -26,37 +27,56 @@ export function scanLibraryUsage(root) {
   const allHtml = htmlFiles.map((f) => { try { return { path: f, src: readFileSync(f, "utf8") }; } catch { return { path: f, src: "" }; } });
 
   const combined = stripComments([...allTs, ...allHtml].map((x) => x.src).join("\n"));
+  // "in use" = actually referenced in source OR installed via package.json. The latter lets a
+  // freshly-scaffolded project (deps present, no usage yet) still report its libraries.
   const inUse = registryLibraryNames().filter((name) => {
     const entry = findEntryByName(name);
-    return entry ? entry.test.test(combined) : false;
+    if (!entry) return false;
+    if (entry.test.test(combined)) return true;
+    return Boolean(entry.package && deps[entry.package]);
   });
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
-    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml);
+    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, deps);
   }
 
   return { capabilities, libraries: { inUse } };
 }
 
-/** Resolve one category into { library, sampleHtml, sampleTs } or { library: null }. */
-function buildCapability(category, combined, allTs, allHtml) {
+/** Resolve one category into { library, sampleHtml, sampleTs } or { library: null }.
+ *  Precedence (highest first):
+ *    1. local usage — a precise import (testImport) wins over a bare tag (test), which wins
+ *       over a generic re-exported tag (tagTest). Always beats a bare install.
+ *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
+ *    3. null — fall back to plain HTML with a note.
+ */
+function buildCapability(category, combined, allTs, allHtml, deps) {
   const libs = REGISTRY[category] || [];
   // Prefer the library whose PACKAGE is actually imported — that's the authoritative
   // signal for which npm package provides the component. A generic template tag like
   // <ngx-select> can be re-exported by several packages (e.g. @uiigateway/core/pilar),
   // so a bare tag match is a weak signal and must NOT win over a real import.
   const imported = libs.find((lib) => lib.testImport && lib.testImport.test(combined));
-  const entry = imported || libs.find((lib) => lib.test.test(combined));
-  if (!entry) return { library: null, sampleHtml: null, sampleTs: null };
+  const used = libs.find((lib) => lib.test.test(combined));
+  const entry = imported || used;
+  if (entry) {
+    const local = findLocalSample(entry, allTs, allHtml);
+    return {
+      library: entry.name,
+      sampleHtml: local.sampleHtml || entry.sampleHtml,
+      sampleTs: local.sampleTs || entry.sampleTs,
+      source: local.sampleHtml || local.sampleTs ? "local" : "registry",
+    };
+  }
 
-  const local = findLocalSample(entry, allTs, allHtml);
-  return {
-    library: entry.name,
-    sampleHtml: local.sampleHtml || entry.sampleHtml,
-    sampleTs: local.sampleTs || entry.sampleTs,
-    source: local.sampleHtml || local.sampleTs ? "local" : "registry",
-  };
+  // Installed but not yet used: still claim it (registry sample teaches the agent the API).
+  const installed = libs.find((lib) => lib.package && deps[lib.package]);
+  if (installed) {
+    return { library: installed.name, sampleHtml: installed.sampleHtml, sampleTs: installed.sampleTs, source: "installed" };
+  }
+
+  return { library: null, sampleHtml: null, sampleTs: null };
 }
 
 /** Find a real local usage sample for a matched registry entry. */
