@@ -22,6 +22,7 @@ export const REGISTRY = {
       // claim ngx-select-ex; teach the agent to mirror local usage instead.
       name: "ngx-select (local)",
       test: /<ngx-select\b/i,
+      tagTest: /<ngx-select\b/i,
       sampleHtml: `<ngx-select [items]="items" [optionTextField]="'name'" [optionValueField]="'value'" [(ngModel)]="selected" placeholder="Pilih..."></ngx-select>`,
       sampleTs: `// <ngx-select> is provided by a local/core package (e.g. @uiigateway/core) — mirror an existing local usage.`,
     },

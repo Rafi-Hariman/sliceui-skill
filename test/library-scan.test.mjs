@@ -66,6 +66,8 @@ export class CComponent {}`);
   assert.ok(capabilities.select.library.includes("ngx-select"), "select resolves to ngx-select local");
   assert.ok(!capabilities.select.library.includes("ngx-select-ex"), "NOT attributed to ngx-select-ex");
   assert.ok(!libraries.inUse.includes("ngx-select-ex"), "ngx-select-ex NOT marked in use");
+  assert.equal(capabilities.select.source, "local", "re-exported tag yields a local sample");
+  assert.ok(capabilities.select.sampleHtml.includes("<ngx-select"), "real template usage captured as sampleHtml");
 });
 
 test("@danielmoncada/angular-datetime-picker detected for date category", () => {

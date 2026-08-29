@@ -50,7 +50,7 @@ function buildCapability(category, combined, allTs, allHtml) {
   const entry = imported || libs.find((lib) => lib.test.test(combined));
   if (!entry) return { library: null, sampleHtml: null, sampleTs: null };
 
-  const local = findLocalSample(entry.name, allTs, allHtml);
+  const local = findLocalSample(entry, allTs, allHtml);
   return {
     library: entry.name,
     sampleHtml: local.sampleHtml || entry.sampleHtml,
@@ -59,9 +59,10 @@ function buildCapability(category, combined, allTs, allHtml) {
   };
 }
 
-/** Find the first component in the project that imports this library. */
-function findLocalSample(libName, allTs, allHtml) {
-  // match a TS file whose imports reference the library
+/** Find a real local usage sample for a matched registry entry. */
+function findLocalSample(entry, allTs, allHtml) {
+  const libName = entry.name;
+  // (1) match a TS file whose imports reference the library package directly
   for (const f of allTs) {
     if (importSources(f.src).some((s) => s.includes(libName))) {
       const meta = componentMeta(f.src);
@@ -70,7 +71,29 @@ function findLocalSample(libName, allTs, allHtml) {
       return { sampleHtml: html, sampleTs: tsSample };
     }
   }
+  // (2) re-exported components (no direct import): match the template tag itself,
+  //     and return the first real usage as sampleHtml so the agent mirrors it.
+  if (entry.tagTest) {
+    for (const h of allHtml) {
+      if (entry.tagTest.test(h.src)) {
+        const snippet = extractTagBlock(h.src, entry.tagTest);
+        if (snippet) return { sampleHtml: snippet, sampleTs: null };
+      }
+    }
+  }
   return {};
+}
+
+/** Extract the first template block containing the tag, trimmed to a useful span. */
+function extractTagBlock(src, tagTest) {
+  const idx = src.search(tagTest);
+  if (idx === -1) return null;
+  const start = Math.max(0, src.lastIndexOf("\n", Math.max(0, idx - 200)) + 1);
+  const end = src.indexOf("\n", idx + 200);
+  const chunk = src.slice(start, end === -1 ? src.length : end);
+  const lines = chunk.split("\n");
+  const keep = lines.filter((l) => l.trim()).slice(0, 20);
+  return keep.join("\n");
 }
 
 function readTemplate(tsPath, templateUrl, allHtml) {

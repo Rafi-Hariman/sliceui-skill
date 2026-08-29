@@ -67,5 +67,6 @@ The agent maps each transcript element to the matching capability. If a category
 
 ## Status
 
+v0.4.0 — kill generation-time search: capabilities are authoritative (local samples for re-exported components), mock data + literal text by default, no i18n/test wiring during a slice.
 v0.3.0 — exact FIGML fidelity (frame/divider fills + hidden-layer dropping, transcript schema v3) + accurate library detection (import-first, comment-aware, `@danielmoncada/angular-datetime-picker`, local `<ngx-select>`).
 v0.2.0 — XML-first input + library-aware project context.
