@@ -20,6 +20,7 @@ Usage:
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
   sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
+  sliceui update                Self-update the CLI + refresh the installed skill
   sliceui --help                This help
   sliceui --version             Print version
 
@@ -66,6 +67,10 @@ async function run(argv) {
     }
     case "uninstall": {
       const { main } = await import("./commands/uninstall.mjs");
+      return main(rest);
+    }
+    case "update": {
+      const { main } = await import("./commands/update.mjs");
       return main(rest);
     }
     default:
