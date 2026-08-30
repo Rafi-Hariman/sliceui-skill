@@ -35,6 +35,9 @@ export function scanLibraryUsage(root, deps = {}) {
     const entry = findEntryByName(name);
     if (!entry) return false;
     if (entry.test.test(combined)) return true;
+    // Installed via package.json. Local registry entries (no `package` field) are matched
+    // by their `test`/usage pattern above — this fallback is npm-install only, mirroring
+    // findLocalSample's `entry.package || entry.name` resolution.
     return Boolean(entry.package && deps[entry.package]);
   });
 
@@ -89,6 +92,9 @@ function buildCapability(category, combined, allTs, allHtml, allScss, deps) {
 function findLocalSample(entry, allTs, allHtml, allScss) {
   const pkgName = entry.package || entry.name;
   const tagTest = entry.tagTest || tagTestFor(entry.name);
+  // A tag-only entry (no `package`/`testImport`) is matched by its template tag, not by an
+  // import string — e.g. "ngx-select (local)" is a re-exported tag with no import to match.
+  const importGated = Boolean(entry.package || entry.testImport);
 
   // (1) HTML sample — a real component template that USES the library's tag. Requiring the
   // tag (not just the package import) matters: a component can import pilar for a different
@@ -100,14 +106,18 @@ function findLocalSample(entry, allTs, allHtml, allScss) {
   if (tagTest) {
     let bestCount = 0;
     for (const f of allTs) {
-      if (!importSources(f.src).some((s) => s.includes(pkgName))) continue;
+      if (importGated && !importSources(f.src).some((s) => s.includes(pkgName))) continue;
       const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(f.src)?.[1];
       if (!templateUrl) continue;
       const html = readTemplate(f.path, templateUrl, allHtml);
       if (!html) continue;
       const count = html.split(tagTest.source.replace("\\b", "")).length - 1;
-      if (count > bestCount) {
-        bestCount = count;
+      // Prefer a LIST/read view over a FORM/edit/detail view: a slice most often reproduces
+      // the list + filter + table, and a form component carries form-specific ::ng-deep
+      // (e.g. .table-input-autonumeric) that a list slice must NOT be required to copy.
+      const score = count - (isFormView(f.path) ? 1000 : 0);
+      if (score > bestCount) {
+        bestCount = score;
         sampleHtml = html;
         chosenTs = f;
       }
@@ -159,6 +169,11 @@ function findLocalSample(entry, allTs, allHtml, allScss) {
   const { sampleScss, sampleScssPath } = readStylesheet(chosenTs, allScss);
 
   return { sampleHtml, sampleTs, sampleScss, sampleScssPath };
+}
+
+/** Form/detail/add components are poor exemplars for a list slice — deprioritize them. */
+function isFormView(path) {
+  return /[\\/]?[\w]*-?(edit|form|detail|add|create|update)[-\\.\w]*\.component\.ts$/i.test(path);
 }
 
 /** Build a tag regex from the entry's display name ("pilar (uii-table)" → /<uii-table\b/). */

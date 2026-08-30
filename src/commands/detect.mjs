@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { scanLibraryUsage } from "../lib/library-scan.mjs";
 import { extractStyleTokens } from "../lib/style-tokens.mjs";
+import { extractConventions } from "../lib/conventions.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
 
@@ -86,6 +87,11 @@ export function detectProject(rootDir) {
   // Design tokens from the project's own stylesheets (SCSS vars + CSS custom props + mixins).
   const designTokens = stylePaths.length ? extractStyleTokens(root, stylePaths) : { scss: [], cssProps: [], mixins: [] };
 
+  // Code conventions — HOW this team writes (reusable classes, ::ng-deep corpus, page
+  // anatomy, naming). Distinct from designTokens (WHAT tokens exist): these are the rules
+  // the generated code must follow to read as native to this project.
+  const conventions = extractConventions(root, { prefix });
+
   // Provenance: which signal produced each claim — source code beats config beats registry default.
   const provenance = {
     prefix: prefixSource ?? "configFile",
@@ -95,7 +101,7 @@ export function detectProject(rootDir) {
   };
 
   return {
-    version: 3,
+    version: 4,
     cwd: root,
     detected: true,
     framework: fw,
@@ -114,6 +120,7 @@ export function detectProject(rootDir) {
     capabilities,
     libraries,
     designTokens,
+    conventions,
     routing,
     sampleComponents,
     generatedAt: new Date().toISOString(),

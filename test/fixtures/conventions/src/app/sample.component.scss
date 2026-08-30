@@ -1,0 +1,29 @@
+.content {
+  padding: 5px 20px 20px 20px;
+}
+
+::ng-deep .ngx-select__choices {
+  border-radius: 7px;
+  padding: 5px;
+  margin-top: 4px !important;
+}
+
+::ng-deep .ngx-select__item_active {
+  color: #fff;
+  outline: 0;
+  background-color: #428bca;
+}
+
+:host ::ng-deep .label-custom-success {
+  display: flex;
+  width: 92px;
+  border-radius: 5px;
+  border: 1px solid #72cfcf !important;
+  background: #dcf5ef;
+  color: #303030;
+}
+
+:host ::ng-deep .label-custom-warning {
+  border: 1px solid #f6d9b2 !important;
+  background: #fef7ec;
+}

@@ -13,6 +13,7 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
+import { renderConventionsMd } from "../lib/conventions.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -101,11 +102,23 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
     created.push(".gitignore");
   }
 
-  // --- 5. detect (+ persist, so the agent can read it right after init) ---
+  // --- 5. detect + conventions (persist all 3 artifacts, so the agent can read them right after init) ---
   const ctx = detectProject(root);
   const ctxPath = join(sliceuiDir, "project-context.json");
   writeFileSync(ctxPath, JSON.stringify(ctx, null, 2) + "\n");
   created.push(".sliceui/project-context.json");
+
+  // conventions.json — deterministic facts (machine-readable, the verify gate's ground truth)
+  const conventions = ctx.conventions ?? {};
+  const convPath = join(sliceuiDir, "conventions.json");
+  writeFileSync(convPath, JSON.stringify({ ...conventions, generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
+  created.push(".sliceui/conventions.json");
+
+  // conventions.md — agent-facing narrative profile (deterministic template)
+  const convMdPath = join(sliceuiDir, "conventions.md");
+  const fwLabel = ctx.framework?.label ?? "";
+  writeFileSync(convMdPath, renderConventionsMd(conventions, fwLabel));
+  created.push(".sliceui/conventions.md");
 
   return {
     ok: true,

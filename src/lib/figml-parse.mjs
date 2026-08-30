@@ -163,7 +163,9 @@ function mapNode(tag, attrs, kids, ox, oy) {
       return { ...base, type: "divider", bg: color ?? undefined };
 
     case "VECTOR":
-      return { ...base, type: "icon", description: name };
+      // Carry the vector's fill color — a status/action icon's color is the design effect
+      // that was being lost (defect #3: red #f44444 / pink #f6cacb badge icons dropped).
+      return { ...base, type: "icon", description: name, bg: color ?? undefined };
 
     case "FRAME": {
       const axis = attrs.layoutMode === "HORIZONTAL" ? "row" : attrs.layoutMode === "VERTICAL" ? "column" : undefined;
@@ -213,6 +215,9 @@ function classifyInstance(name) {
   if (/Button|_btn|Btn/i.test(n)) return { type: "button" };
   if (/^Field|_field|^search|Input|Select|Dropdown|Combobox/i.test(n)) return { type: "input" };
   if (/Icon_|Icon$/i.test(n)) return { type: "icon" };
+  // Must precede the "card" check — "Checkbox" contains "Box", which would otherwise
+  // classify a checkbox as a card (defect #6: Checkbox_FNC rendered as a bare card#).
+  if (/Checkbox|_checkbox/i.test(n)) return { type: "checkbox" };
   if (/Information|Alert|Card|Box|Panel/i.test(n)) return { type: "card" };
   if (/\b(Table|Datatable|DataGrid|Grid)\b/i.test(n)) return { type: "group", table: true };
   return { type: "group" };

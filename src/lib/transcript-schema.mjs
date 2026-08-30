@@ -6,7 +6,7 @@ export const TRANSCRIPT_VERSION = 3;
 
 export const LAYOUT_TYPES = [
   "nav", "hero", "section", "card", "footer", "text", "group",
-  "button", "input", "image", "icon", "divider", "container",
+  "button", "input", "image", "icon", "divider", "container", "checkbox",
 ];
 
 /**

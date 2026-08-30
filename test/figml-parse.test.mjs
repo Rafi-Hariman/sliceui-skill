@@ -256,3 +256,54 @@ test("table: layout-grid metadata is NOT flagged as a table", () => {
   walk(r.transcript.layout);
   assert.deepEqual(flags, [], "layoutGrids must not be flagged as a table");
 });
+
+// --- defect #6: Checkbox_FNC semantics preserved (not dropped to a bare card) ---
+
+const CHECKBOX_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="cb:1" name="Page" x="0" y="0" width="600" height="200" type="FRAME">
+  <children>
+    <Frame id="cb:2" name="row" x="0" y="0" width="600" height="40" type="FRAME">
+      <children>
+        <Checkbox_FNC id="cb:3" name="Checkbox_FNC" x="15" y="12.5" width="15" height="15" cornerRadius="2" type="INSTANCE">
+          <fills><fill blendMode="NORMAL" color="#ffffff" /></fills>
+          <variantProperties Checked="False" Indeterminate="False" Type="Checkbox" State="Default" />
+        </Checkbox_FNC>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("defect #6: Checkbox_FNC is typed `checkbox`, not a bare `card`", () => {
+  const r = parseFigml(CHECKBOX_FIXTURE, "cb.xml");
+  assert.equal(r.ok, true, r.message);
+  const row = r.transcript.layout[0];
+  const checkbox = row.children[0];
+  assert.equal(checkbox.type, "checkbox", "checkbox semantics preserved");
+  assert.equal(checkbox.bg, "#ffffff", "checkbox fill captured");
+  assert.notEqual(checkbox.type, "card", "must not degrade to card");
+});
+
+// --- defect #3: VECTOR icon fill color carried into the transcript ---
+
+const ICON_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="ic:1" name="Page" x="0" y="0" width="600" height="200" type="FRAME">
+  <children>
+    <Frame id="ic:2" name="badge" x="0" y="0" width="100" height="40" type="FRAME">
+      <children>
+        <Vector id="ic:3" name="Vector" x="1" y="3" width="12" height="12" type="VECTOR">
+          <fills><fill blendMode="NORMAL" color="#f44444" /></fills>
+        </Vector>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("defect #3: VECTOR icon carries its fill color", () => {
+  const r = parseFigml(ICON_FIXTURE, "ic.xml");
+  assert.equal(r.ok, true, r.message);
+  const icon = r.transcript.layout[0].children[0];
+  assert.equal(icon.type, "icon");
+  assert.equal(icon.bg, "#f44444", "icon fill color preserved");
+});

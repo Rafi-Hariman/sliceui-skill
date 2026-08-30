@@ -14,3 +14,6 @@ screenshot-to-code/
 
 # LLM council outputs
 council-*
+
+# Claude Code local session plans (workspace-local, not part of the package)
+.claude/

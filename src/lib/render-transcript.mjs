@@ -60,6 +60,8 @@ export function renderTranscript(t) {
       let text = "";
       if (n.type === "text" || n.type === "button") {
         text = n.text ? ` "${n.text}"` : "";
+      } else if (n.type === "icon") {
+        text = n.description ? ` (${n.description})` : "";
       }
       const style = n.style ? styleSummary(n.style) : "";
       lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${radius}${gap}${padStr}${align}${text}${style}`);

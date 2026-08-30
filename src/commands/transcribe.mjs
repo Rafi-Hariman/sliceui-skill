@@ -3,7 +3,7 @@
 //   image       → Gemini (tier 1) → static (tier 2) fallback
 // Writes .sliceui/transcript/<name>.transcript.{md,json,meta.json}.
 
-import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join, basename, extname } from "node:path";
 import { transcribeWithGemini } from "./transcribe-gemini.mjs";
 import { transcribeStatic } from "./transcribe-static.mjs";
@@ -65,6 +65,10 @@ export async function main(argv) {
   const abs = imagePath.startsWith("/") ? imagePath : join(process.cwd(), imagePath);
   const result = await transcribe(abs, process.cwd(), { forceStatic });
 
+  // Guard: conventions are the codegen ground truth. Warn (don't refuse — standalone
+  // screenshot transcription is still useful) if init hasn't produced them yet.
+  const conventionsWarnings = checkConventions(process.cwd());
+
   if (!result.ok) {
     console.error(JSON.stringify(result, null, 2));
     return 3;
@@ -92,6 +96,9 @@ export async function main(argv) {
       "  Generated code will use placeholder copy. Add a Gemini key (`sliceui init --key-from <file>`) for full transcription.\n",
     );
   }
+  if (conventionsWarnings.length) {
+    process.stderr.write(conventionsWarnings.map((w) => "⚠ " + w).join("\n") + "\n");
+  }
 
   console.log(JSON.stringify({
     ok: true,
@@ -102,6 +109,31 @@ export async function main(argv) {
     notes: result.notes.length ? result.notes : undefined,
   }, null, 2));
   return 0;
+}
+
+/** Warn when conventions (from `sliceui init`) are missing or stale. Codegen depends on them. */
+function checkConventions(cwdDir) {
+  const warnings = [];
+  const convJson = join(cwdDir, ".sliceui", "conventions.json");
+  const ctxJson = join(cwdDir, ".sliceui", "project-context.json");
+  if (!existsSync(convJson)) {
+    warnings.push("No .sliceui/conventions.json — run `sliceui init` so generated code adapts to this codebase.");
+    return warnings;
+  }
+  // Staleness: conventions.json records the inputHash it was generated from; the current
+  // project-context.json should carry the same hash. A mismatch means the codebase changed.
+  try {
+    const conv = JSON.parse(readFileSync(convJson, "utf8"));
+    if (existsSync(ctxJson)) {
+      const ctx = JSON.parse(readFileSync(ctxJson, "utf8"));
+      if (conv.inputHash && ctx.inputHash && conv.inputHash !== ctx.inputHash) {
+        warnings.push("Conventions are stale (inputHash mismatch) — re-run `sliceui init` to refresh.");
+      }
+    }
+  } catch {
+    warnings.push("Unreadable .sliceui/conventions.json — re-run `sliceui init`.");
+  }
+  return warnings;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

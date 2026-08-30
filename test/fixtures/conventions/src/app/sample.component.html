@@ -1,0 +1,16 @@
+<div class="content">
+  <h1 class="h1">Judul</h1>
+  <hr />
+  <div class="well" id="well">
+    <label class="control-label">Pilih periode</label>
+    <ngx-select [items]="items" placeholder="semua"></ngx-select>
+    <button class="btn btn-primary" (click)="onSearch()">Cari</button>
+  </div>
+  <uii-table-skeleton *ngIf="isLoading" [columnCount]="7" [rowCount]="5"></uii-table-skeleton>
+  <uii-table *ngIf="!isLoading" [rows]="rows" [columns]="columns" (editClicked)="onEditClicked($event)">
+  </uii-table>
+  <span>Menampilkan 1-10 dari 20 data</span>
+  <div class="label-custom-success">Lunas</div>
+  <div class="label-custom-success">Lunas</div>
+  <div class="label-custom-warning">Belum</div>
+</div>

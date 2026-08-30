@@ -266,7 +266,11 @@ function num(v) {
  * @returns {{ total:number, present:number, missing:string[], score:number }}
  */
 export function scssCoverage(exemplarScss, generatedScss) {
-  if (!exemplarScss) return { total: 0, present: 0, missing: [], score: 1 };
+  // A missing exemplar must NEVER score 1 (the false-confidence machine). No reference
+  // means the check cannot verify — surface it as a loud "no-exemplar" state, not a pass.
+  if (!exemplarScss) {
+    return { total: 0, present: 0, missing: [], score: null, status: "no-exemplar" };
+  }
   const selectors = extractNgDeepSelectors(exemplarScss);
   const missing = [];
   for (const sel of selectors) {

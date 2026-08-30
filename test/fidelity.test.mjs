@@ -75,3 +75,12 @@ test("scssCoverage: flags dropped library-internal selectors", () => {
   assert.ok(r.missing.some((s) => s.includes("search-options")), "search-options flagged missing");
   assert.ok(r.missing.some((s) => s.includes("limit-options")), "limit-options flagged missing");
 });
+
+test("scssCoverage: null exemplar is a hard FAIL, never score 1", () => {
+  // The false-confidence machine: a missing reference used to return score: 1.
+  const r = scssCoverage(null, ".x { color: red }");
+  assert.equal(r.score, null, "null exemplar → score null");
+  assert.equal(r.status, "no-exemplar", "null exemplar → loud no-exemplar state");
+  assert.equal(r.total, 0);
+  assert.equal(r.present, 0);
+});

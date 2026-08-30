@@ -41,15 +41,21 @@ test("handles no-package gracefully", () => {
   assert.ok(ctx.detectionWarnings.length > 0);
 });
 
-test("project-context v3: provenance, tokens, module structure, staleness", () => {
+test("project-context v4: provenance, tokens, conventions, module structure, staleness", () => {
   const ctx = detectProject(join(FIX, "angular13"));
-  assert.equal(ctx.version, 3);
+  assert.equal(ctx.version, 4);
   // provenance present for key claims
   assert.equal(ctx.provenance.prefix, "sourceCode", "prefix derived from source, not config");
   assert.ok(ctx.provenance.styleExt, "styleExt provenance present");
   // design tokens mined from _tokens.scss (SCSS vars + CSS custom props)
   assert.ok(ctx.designTokens.scss.some((t) => t.name === "$primary" && t.value === "#22c55e"), "$primary mined");
   assert.ok(ctx.designTokens.cssProps.some((t) => t.name === "--color-bg"), "--color-bg mined");
+  // conventions present (extractConventions wired into detect)
+  assert.ok(ctx.conventions, "conventions present");
+  assert.ok(Array.isArray(ctx.conventions.classVocabulary), "classVocabulary array");
+  assert.ok(Array.isArray(ctx.conventions.ngDeepCorpus), "ngDeepCorpus array");
+  assert.equal(ctx.conventions.componentAnatomy.mockRowsFloor, 15, "default mockRowsFloor 15");
+  assert.equal(ctx.conventions.naming.prefix, "app", "naming prefix from detect");
   // module structure + staleness
   assert.equal(ctx.appModulePath, "src/app/app.module.ts");
   assert.ok(ctx.moduleStructure.pattern, "moduleStructure pattern present");

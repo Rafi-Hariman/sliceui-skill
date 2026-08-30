@@ -19,6 +19,7 @@ Usage:
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui fidelity <xml>        Score visual-attribute preservation (FIGML → transcript)
+  sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions
   sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
   sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
   sliceui update                Self-update the CLI + refresh the installed skill
@@ -68,6 +69,10 @@ async function run(argv) {
     }
     case "fidelity": {
       const { main } = await import("./commands/fidelity.mjs");
+      return main(rest);
+    }
+    case "verify": {
+      const { main } = await import("./commands/verify.mjs");
       return main(rest);
     }
     case "uninstall": {
