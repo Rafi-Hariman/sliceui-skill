@@ -156,3 +156,20 @@ export class PComponent {}`);
   assert.equal(capabilities.table.source, "local", "local template sample captured");
   assert.ok(capabilities.table.sampleHtml.includes("<uii-table"), "real <uii-table> usage is the sample");
 });
+
+test("sampleScss: local sample carries the component's stylesheet", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
+  const app = join(dir, "src", "app");
+  mkdirSync(app, { recursive: true });
+  writeFileSync(join(app, "t.component.ts"), `import { Component } from "@angular/core";
+import { TableModule } from "pilar";
+@Component({ selector: "ugw-t", templateUrl: "./t.component.html", styleUrls: ["./t.component.scss"] })
+export class TComponent {}`);
+  writeFileSync(join(app, "t.component.html"), `<uii-table [rows]="rows" [columns]="columns"></uii-table>`);
+  writeFileSync(join(app, "t.component.scss"), `:host ::ng-deep .ugw-pagination-container li.page-box {\n  border-bottom: 1px solid;\n}\n::ng-deep .ngx-select__item_active { color: #fff; }\n`);
+  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18" });
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(capabilities.table.source, "local");
+  assert.ok(capabilities.table.sampleScss.includes("li.page-box"), "sampleScss carries the ::ng-deep block");
+  assert.equal(capabilities.table.sampleScssPath, "./t.component.scss");
+});

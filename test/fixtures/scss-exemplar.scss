@@ -1,0 +1,55 @@
+// Fixture: a pilar-style component stylesheet. The ::ng-deep blocks target the library's
+// internal DOM — these selectors MUST survive into any generated SCSS (regression guard
+// for the "inverted familiarity filter" bug: agents dropped the unfamiliar ones).
+.h1 {
+  color: #000;
+  font-family: "Roboto", sans-serif;
+}
+
+.content {
+  padding: 5px 20px 20px 20px;
+}
+
+:host ::ng-deep .form-control {
+  border-radius: 6px;
+  border-color: #b1bccc;
+}
+
+:host ::ng-deep .ngx-select__toggle-caret {
+  color: #03337b !important;
+  width: 9px !important;
+}
+
+:host ::ng-deep .ugw-pagination-container li.page-box {
+  font-weight: bold !important;
+  border-bottom: 1px solid !important;
+}
+
+::ng-deep .ngx-select__choices {
+  border-radius: 7px;
+  padding: 5px;
+  margin-top: 4px !important;
+}
+
+::ng-deep .ngx-select__item_active {
+  color: #fff;
+  background-color: #428bca;
+}
+
+::ng-deep .dropdown-menu > li > a:hover {
+  color: white;
+  background-color: #093697;
+}
+
+::ng-deep .search-options button {
+  border-radius: 0px 5px 5px 0px !important;
+}
+
+::ng-deep .filter-options .limit-options select {
+  border-radius: 6px;
+  border-color: #bdbdbd !important;
+}
+
+:host ::ng-deep .table-footer {
+  margin: 0px !important;
+}

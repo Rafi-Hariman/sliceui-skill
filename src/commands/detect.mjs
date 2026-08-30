@@ -364,7 +364,9 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
     if (fwId === "angular") {
       const selector = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
       const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
-      samples.push({ path: rel, selector, templateUrl, note: "read this file to absorb local idioms" });
+      const styleUrlsMatch = /styleUrls:\s*\[([^\]]*)\]/.exec(content)?.[1] ?? "";
+      const styleUrls = [...styleUrlsMatch.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+      samples.push({ path: rel, selector, templateUrl, styleUrls, note: "read this file to absorb local idioms" });
     } else {
       samples.push({ path: rel, note: "read this file to absorb local idioms" });
     }

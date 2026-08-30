@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeFidelity } from "../src/lib/fidelity.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { computeFidelity, scssCoverage } from "../src/lib/fidelity.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const EXEMPLAR = readFileSync(join(HERE, "fixtures", "scss-exemplar.scss"), "utf8");
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>
 <?figml version="1.0"?>
@@ -45,4 +51,27 @@ test("fidelity: AUTO lineHeight is not scored (not a real visual value)", () => 
   const r = computeFidelity(xml, "x.xml");
   assert.equal(r.byAttr.lineHeight, undefined, "AUTO lineHeight not in the denominator");
   assert.equal(r.score, 1, "still 100% — AUTO contributes no visual value");
+});
+
+test("scssCoverage: full coverage when all ::ng-deep selectors survive", () => {
+  const r = scssCoverage(EXEMPLAR, EXEMPLAR); // generated = exemplar verbatim
+  assert.equal(r.score, 1, "all selectors present");
+  assert.equal(r.missing.length, 0);
+  assert.ok(r.total >= 6, "extracted at least the 6 regression selectors");
+});
+
+test("scssCoverage: flags dropped library-internal selectors", () => {
+  // Simulate the "inverted familiarity filter": keep recognized selectors, drop unfamiliar ones.
+  const generated = `
+:host ::ng-deep .form-control { border-radius: 6px; }
+:host ::ng-deep .ngx-select__toggle-caret { color: #03337b; }
+::ng-deep .ngx-select__item_active { color: #fff; }
+:host ::ng-deep .table-footer { margin: 0; }
+`;
+  const r = scssCoverage(EXEMPLAR, generated);
+  assert.ok(r.score < 1, "dropped selectors lower the score");
+  assert.ok(r.missing.some((s) => s.includes("li.page-box")), "li.page-box flagged missing");
+  assert.ok(r.missing.some((s) => s.includes("dropdown-menu")), "dropdown-menu hover flagged missing");
+  assert.ok(r.missing.some((s) => s.includes("search-options")), "search-options flagged missing");
+  assert.ok(r.missing.some((s) => s.includes("limit-options")), "limit-options flagged missing");
 });

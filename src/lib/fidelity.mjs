@@ -252,3 +252,55 @@ function num(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
+
+// ---------- SCSS ::ng-deep selector coverage ----------
+
+/**
+ * Deterministically check that every ::ng-deep / :host ::ng-deep selector in the exemplar
+ * survived into the generated SCSS. This is the grep-gate that catches the "inverted
+ * familiarity filter" — the agent reconstructing SCSS and dropping unfamiliar
+ * library-internal selectors (li.page-box, .search-options, .limit-options, …).
+ *
+ * @param {string|null} exemplarScss — the sample SCSS (from capabilities.*.sampleScss)
+ * @param {string} generatedScss
+ * @returns {{ total:number, present:number, missing:string[], score:number }}
+ */
+export function scssCoverage(exemplarScss, generatedScss) {
+  if (!exemplarScss) return { total: 0, present: 0, missing: [], score: 1 };
+  const selectors = extractNgDeepSelectors(exemplarScss);
+  const missing = [];
+  for (const sel of selectors) {
+    if (!generatedScss.includes(sel)) missing.push(sel);
+  }
+  const present = selectors.length - missing.length;
+  return {
+    total: selectors.length,
+    present,
+    missing,
+    score: selectors.length ? present / selectors.length : 1,
+  };
+}
+
+/** Extract the selectors inside ::ng-deep / :host ::ng-deep blocks. A selector here is a
+ *  whitespace-normalized, deduped class/tag chain (e.g. ".ugw-pagination-container li.page-box").
+ *  Multi-selector groups (comma) are split; pseudo classes (:hover, :first-child) are kept. */
+function extractNgDeepSelectors(scss) {
+  // Strip comments first so "::ng-deep" inside a // or /* */ comment never counts.
+  const src = scss
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/.*$/gm, " ");
+  const found = new Set();
+  // Match "::ng-deep" possibly preceded by ":host " and followed by a selector or block.
+  const blocks = src.match(/(?::host\s+)?::ng-deep(?:\s*\.?)([^{}]+)\s*\{[^}]*\}/g) ?? [];
+  for (const block of blocks) {
+    // Drop the trailing { ... } so we're left with the selector list.
+    const selList = block.replace(/\s*\{[^}]*\}$/, "");
+    // Remove the ::ng-deep / :host prefix to isolate the selector(s).
+    const body = selList.replace(/(?::host\s+)?::ng-deep\s*\.?/, "");
+    for (const part of body.split(",")) {
+      const sel = part.replace(/\s+/g, " ").trim();
+      if (sel && !sel.startsWith("{")) found.add(sel);
+    }
+  }
+  return [...found];
+}
