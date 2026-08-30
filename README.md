@@ -81,6 +81,7 @@ Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slid
 
 ## Status
 
+v0.7.0 — dropped the no-search invariant: project-context is now a **map, not a mirror**. The agent reads pointed-to files (`sampleComponents[*].path`, library `.d.ts`, theme configs) to learn framework idiom, while the transcript stays authoritative for design. detect emits `deps`, sample components as pointers (no inline copies), git-HEAD-stamped `inputHash`, and a monorepo/polyglot warning. Vendored pilar catalog removed (an artifact of the no-search era).
 v0.6.0 — vendored showcase catalog: real-usage snippets extracted verbatim from the pilar docs app (uii-table kitchen-sink/column-definitions + the org's `<ngx-select>` idiom), injected as `source:"vendored"` samples between local usage and registry defaults; richest-local-sample selection.
 v0.5.2 — `sliceui fidelity <xml>`: deterministic visual-attribute coverage score (parser → transcript), closing the "70% vs 95%" gap from a gut feeling to a number you can CI-enforce. Also carries `axis` on INSTANCE nodes.
 v0.5.1 — fidelity fix: transcript now carries `cornerRadius`/`padding`/`itemSpacing`(gap)/`lineHeight` (previously dropped), so generated spacing/radius matches the design instead of being guessed from geometry.

@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSy
 import { resolve, join, dirname } from "node:path";
 import { cwd } from "node:process";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { scanLibraryUsage } from "../lib/library-scan.mjs";
 import { extractStyleTokens } from "../lib/style-tokens.mjs";
 
@@ -99,6 +100,7 @@ export function detectProject(rootDir) {
     detected: true,
     framework: fw,
     moduleOrStandalone: fw.id === "angular" ? (fw.versionMajor >= 14 ? "standalone-capable" : "module") : "n/a",
+    deps,
     prefix,
     prefixAlternates,
     prefixNote,
@@ -124,6 +126,22 @@ export function detectProject(rootDir) {
 
 function detectFramework(deps, warnings) {
   const ver = (name) => (typeof deps[name] === "string" ? deps[name] : "");
+
+  const present = [];
+  if (deps["@angular/core"]) present.push("angular");
+  if (deps["next"]) present.push("nextjs");
+  if (deps["svelte"]) present.push("svelte");
+  if (deps["vue"]) present.push("vue");
+  if (deps["react"]) present.push("react");
+
+  // Monorepo / polyglot: several framework deps → surface it, but pick one deterministically
+  // (same priority order as before) and warn the user to scope the target directory.
+  if (present.length > 1) {
+    warnings.push(
+      `Multiple frameworks detected (${present.join(", ")}) — using "${present[0]}". ` +
+      "If you're slicing into a subproject, run `sliceui detect` from that subproject's directory.",
+    );
+  }
 
   const angularCore = deps["@angular/core"];
   if (angularCore) {
@@ -342,8 +360,11 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
     const path = found[i];
     const content = readFileSyncSafe(path) ?? "";
     const rel = toRel(root, path);
+    // Pointers, not mirrors — the agent reads these files to learn idiom (no inline copies).
     if (fwId === "angular") {
-      samples.push(parseAngularComponent(rel, content, root));
+      const selector = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
+      const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
+      samples.push({ path: rel, selector, templateUrl, note: "read this file to absorb local idioms" });
     } else {
       samples.push({ path: rel, note: "read this file to absorb local idioms" });
     }
@@ -351,49 +372,26 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
   return samples;
 }
 
-function parseAngularComponent(rel, content, root) {
-  const selector = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
-  const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
-  const styleUrlsMatch = /styleUrls:\s*\[([^\]]*)\]/.exec(content)?.[1] ?? "";
-  const styleUrls = [...styleUrlsMatch.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
-  const hasInline = /template:\s*`/.test(content);
-  return {
-    path: rel,
-    selector,
-    templateUrl,
-    styleUrls,
-    hasInlineTemplate: hasInline,
-    // Verbatim inline samples — the agent uses these directly (no "read the file" round-trip).
-    sampleTs: extractImports(content),
-    sampleHtml: templateUrl ? readTemplateInline(root, rel, templateUrl) : null,
-  };
-}
-
-/** First ~10 import lines (the module/package wiring the agent must mirror). */
-function extractImports(content) {
-  return content
-    .split("\n")
-    .filter((l) => /^import\s/.test(l))
-    .slice(0, 10)
-    .join("\n");
-}
-
-/** Read the templateUrl file relative to the component, trimmed to ~40 lines. */
-function readTemplateInline(root, rel, templateUrl) {
-  const abs = join(dirname(join(root, rel)), templateUrl);
-  const content = readFileSyncSafe(abs);
-  if (!content) return null;
-  return content.trim().split("\n").slice(0, 40).join("\n");
-}
-
-/** Hash the config inputs so a stale project-context is detectable. */
+/** Hash the config inputs + git HEAD so a stale project-context is detectable. */
 function hashInputs(root) {
   const hash = createHash("sha1");
-  for (const f of ["package.json", "angular.json", "tsconfig.json"]) {
+  for (const f of ["package.json", "angular.json", "tsconfig.json", "package-lock.json"]) {
     const c = readFileSyncSafe(join(root, f));
     if (c) hash.update(f).update(c);
   }
+  // Include git HEAD when available so a new commit invalidates the cached context.
+  const head = gitHead(root);
+  if (head) hash.update("git").update(head);
   return hash.digest("hex").slice(0, 12);
+}
+
+/** `git rev-parse HEAD` (best-effort; null outside a repo or on failure). */
+function gitHead(root) {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, stdio: "pipe", encoding: "utf8", timeout: 2000 }).trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 function guessComponentDir(root, fwId) {

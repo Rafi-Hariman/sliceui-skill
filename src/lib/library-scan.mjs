@@ -10,7 +10,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames } from "./library-registry.mjs";
 import { importSources } from "./ts-ast.mjs";
-import { vendoredSample } from "./vendors.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
 
@@ -49,11 +48,8 @@ export function scanLibraryUsage(root, deps = {}) {
  *  Precedence (highest first):
  *    1. local usage — a precise import (testImport) wins over a bare tag (test), which wins
  *       over a generic re-exported tag (tagTest). Always beats a bare install.
- *    2. vendored — real-usage snippets extracted from the library's own showcase
- *       (scripts/extract-pilar.mjs) — verbatim, version-pinned; beats a hand-written registry
- *       sample but loses to actual usage in THIS project.
- *    3. installed — first entry whose npm `package` appears in deps (registry order = priority).
- *    4. null — fall back to plain HTML with a note.
+ *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
+ *    3. null — fall back to plain HTML with a note.
  */
 function buildCapability(category, combined, allTs, allHtml, deps) {
   const libs = REGISTRY[category] || [];
@@ -69,31 +65,16 @@ function buildCapability(category, combined, allTs, allHtml, deps) {
     if (local.sampleHtml || local.sampleTs) {
       return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, source: "local" };
     }
-    // No usage in this project yet — the vendored showcase snippet is the real idiom.
-    const vendored = vendoredFor(entry);
-    if (vendored) {
-      return { library: entry.name, sampleHtml: vendored.sampleHtml, sampleTs: vendored.sampleTs, source: "vendored", vendoredFrom: `${vendored.pkg}@${vendored.versionPinned}` };
-    }
     return { library: entry.name, sampleHtml: entry.sampleHtml, sampleTs: entry.sampleTs, source: "registry" };
   }
 
-  // Installed but not yet used: vendored showcase sample beats the hand-written registry one.
+  // Installed but not yet used: claim it (registry sample teaches the agent the API).
   const installed = libs.find((lib) => lib.package && deps[lib.package]);
   if (installed) {
-    const vendored = vendoredFor(installed);
-    if (vendored) {
-      return { library: installed.name, sampleHtml: vendored.sampleHtml, sampleTs: vendored.sampleTs, source: "vendored", vendoredFrom: `${vendored.pkg}@${vendored.versionPinned}` };
-    }
     return { library: installed.name, sampleHtml: installed.sampleHtml, sampleTs: installed.sampleTs, source: "installed" };
   }
 
   return { library: null, sampleHtml: null, sampleTs: null };
-}
-
-/** Vendored showcase snippet for a registry entry, when one exists for its tag. */
-function vendoredFor(entry) {
-  const m = /\((uii-[a-z-]+)\)/i.exec(entry.name) || (/^ngx-select/.test(entry.name) ? ["", "ngx-select"] : null);
-  return m ? vendoredSample(m[1]) : null;
 }
 
 /** Find a real local usage sample for a matched registry entry.

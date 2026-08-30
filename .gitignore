@@ -9,5 +9,8 @@ node_modules/
 testing/
 active-repo/
 
+# Reference repos (external, for study only)
+screenshot-to-code/
+
 # LLM council outputs
 council-*
