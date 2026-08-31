@@ -3,13 +3,17 @@
 // check returns { name, status: pass|fail|skip, detail }. The gate must be able to say
 // "I cannot verify this" — a check that lacks its ground truth reports `skip`, never pass.
 //
-// Six checks, each closing a known defect class from the history-agreement audit:
+// Thirteen checks, each closing a known defect class from the history-agreement audit:
 //   1. scssCoverage  — every ::ng-deep selector in the conventions corpus survived verbatim
 //   2. textCoverage  — fidelity-critical text (buttons/placeholders/title) not dropped
 //   3. tableBindings — legal binding set, checkbox evidenced by RAW XML (not transcript)
 //   4. classVocabulary — reuse the project's classes; invented status labels are red
 //   5. anatomy       — table present ⇒ skeleton loading state present
 //   6. mockRowCount  — rows ≥ max(conventions floor, transcript pagination total)
+//   7. ngxSelectBinding — every <ngx-select> carries [(ngModel)] + (select) (dead-filter defect)
+//   8. rowAuth       — action-column rows carry the auth flags pilar needs to render icons
+//   9. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
+//  10. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
 
 import { scssCoverage } from "./fidelity.mjs";
 
@@ -60,6 +64,10 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkNoHashedSelectors(scss),
     checkIconColor(ts + " " + scss, transcript),
     checkPhantomWrapper(html, transcript),
+    checkNgxSelectBinding(html),
+    checkRowAuth(html, ts, rawXml),
+    checkFilterRowButton(html, rawXml),
+    checkButtonOrder(html, scss, rawXml),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -312,6 +320,124 @@ function checkPhantomWrapper(html, transcript) {
   return { name: "phantomWrapper", status: "pass", detail: "no structural wrappers beyond the design" };
 }
 
+// ---------- 3c. ngx-select binding (dead-filter defect) ----------
+
+function checkNgxSelectBinding(html) {
+  const selects = [...html.matchAll(/<ngx-select\b[\s\S]*?>/gi)].map((m) => m[0]);
+  if (!selects.length) {
+    return { name: "ngxSelectBinding", status: "skip", detail: "no <ngx-select> in output" };
+  }
+  const problems = [];
+  selects.forEach((tag, i) => {
+    if (!/\[\(ngModel\)\]/.test(tag)) problems.push(`select #${i + 1} missing [(ngModel)]`);
+    if (!/\(select\)\s*=/.test(tag)) problems.push(`select #${i + 1} missing (select)= handler`);
+  });
+  if (problems.length) {
+    return { name: "ngxSelectBinding", status: "fail", detail: `${problems.length} ngx-select binding problem(s)`, problems };
+  }
+  return { name: "ngxSelectBinding", status: "pass", detail: `${selects.length} ngx-select(s) bound with [(ngModel)] + (select)` };
+}
+
+// ---------- 3d. row auth (action-column icons only render when row.auth.<flag> truthy) ----------
+
+function checkRowAuth(html, ts, rawXml) {
+  if (!/\[actionColumn\]/.test(html)) {
+    return { name: "rowAuth", status: "skip", detail: "no [actionColumn] (action column not emitted)" };
+  }
+  if (!rawXml || !/<Aksi\b/i.test(rawXml)) {
+    return { name: "rowAuth", status: "skip", detail: "no <Aksi> action-node evidence in raw XML" };
+  }
+  const required = requiredAuthKeysFromXml(rawXml);
+  if (!required.length) {
+    return { name: "rowAuth", status: "skip", detail: "<Aksi> present but no enabled action booleans (nothing to require)" };
+  }
+  const assigned = detectAuthFlags(ts);
+  const missing = required.filter((k) => !assigned.has(k));
+  if (missing.length) {
+    return {
+      name: "rowAuth",
+      status: "fail",
+      detail: `action-column auth missing: ${missing.join(", ")}`,
+      missing,
+      required,
+    };
+  }
+  return { name: "rowAuth", status: "pass", detail: `action-column auth flags present (${required.join(", ")})`, required };
+}
+
+function requiredAuthKeysFromXml(rawXml) {
+  const keys = new Set();
+  for (const block of rawXml.matchAll(/<Aksi\b[\s\S]*?<\/Aksi>/gi)) {
+    const props = block[0].match(/<componentProperties\b[\s\S]*?<\/componentProperties>/i);
+    if (!props) continue;
+    for (const prop of props[0].matchAll(/<([A-Za-z_][\w]*)\b([^>]*)\/>/g)) {
+      const name = prop[1];
+      const attrs = prop[2];
+      if (/type="BOOLEAN"/.test(attrs) && /value="true"/.test(attrs)) {
+        const key = normalizeFigmaAction(name);
+        if (key) keys.add(key);
+      }
+    }
+  }
+  return [...keys];
+}
+
+function normalizeFigmaAction(rawName) {
+  const base = String(rawName).toLowerCase().replace(/_\d+(_\d+)?$/, "").replace(/^_+|_+$/g, "");
+  return TABLE_ACTION_AUTH[base] ?? null;
+}
+
+/** Scan the WHOLE ts string (not just `[…]` bodies — auth is often attached inside a `.map()`
+ *  callback) for truthy auth flag assignments. Accepts:
+ *    auth.canUpdate = true | 1          (also this.auth.canUpdate)
+ *    auth["canUpdate"] = true | 1
+ *    auth: { canUpdate: true }          (and AuthorizationModel({ canUpdate: true }) literals)
+ */
+function detectAuthFlags(ts) {
+  const flags = new Set();
+  for (const m of ts.matchAll(/\bauth\s*\.\s*([A-Za-z_$][\w$]*)\s*=\s*(?:true|1)\b/g)) flags.add(m[1]);
+  for (const m of ts.matchAll(/\bauth\s*\[\s*["']([A-Za-z]+)["']\s*\]\s*=\s*(?:true|1)\b/g)) flags.add(m[1]);
+  for (const m of ts.matchAll(/\b(?:auth|AuthorizationModel)\s*(?::|=)\s*(?:new\s+AuthorizationModel\s*\(\s*)?\{([^}]*)\}/g)) {
+    for (const p of m[1].matchAll(/\b(can[A-Za-z]+)\s*:\s*(?:true|1)\b/g)) flags.add(p[1]);
+  }
+  return flags;
+}
+
+// ---------- 3e. filter-row button (XML button in the filter group is not dropped) ----------
+
+function checkFilterRowButton(html, rawXml) {
+  if (!rawXml) {
+    return { name: "filterRowButton", status: "skip", detail: "no raw XML to check filter buttons against" };
+  }
+  // The "Cari" search button lives in the filter group, adjacent to the fields (its XML is a
+  // <Button_FNC> whose child text is "Cari"). Count the XML's filter-area buttons.
+  const filterButtons = [...rawXml.matchAll(/<Button_FNC\b[\s\S]*?<\/Button_FNC>/gi)]
+    .filter((m) => /characters="Cari"/i.test(m[0]));
+  if (!filterButtons.length) {
+    return { name: "filterRowButton", status: "skip", detail: "no filter-area button (Cari) in XML" };
+  }
+  // The generated HTML must render a button whose text is "Cari".
+  const hasCariButton = /<button\b[^>]*>[\s\S]*?Cari/i.test(html);
+  if (!hasCariButton) {
+    return { name: "filterRowButton", status: "fail", detail: "XML has a Cari filter button but output dropped it" };
+  }
+  return { name: "filterRowButton", status: "pass", detail: "filter-row Cari button present" };
+}
+
+// ---------- 3f. button order (paired action buttons match XML left→right order) ----------
+
+function checkButtonOrder(html, scss, rawXml) {
+  // Only meaningful when the output actually reverses the visual order. The defect: the agent
+  // emits `flex-direction: row-reverse` on a row of paired action buttons, flipping the XML's
+  // left→right order. That signal lives in SCSS (e.g. `.action-bar { flex-direction: row-reverse }`)
+  // or as an inline style. Without the reverse signal there is nothing to flag.
+  const reverse = /flex-direction\s*:\s*row-reverse/i.test(scss + " " + html);
+  if (!reverse) {
+    return { name: "buttonOrder", status: "skip", detail: "no row-reverse signal in output" };
+  }
+  return { name: "buttonOrder", status: "fail", detail: "bulk/action buttons reversed (row-reverse) vs XML left→right order" };
+}
+
 // ---------- 4c. icon color / status-badge semantics ----------
 
 /** FontAwesome icon colors. The XML's icon fill color picks which `fa-*` is faithful: a
@@ -323,6 +449,33 @@ const FA_ICON_COLORS = {
   "#f9933f": ["fa-exclamation-triangle", "fa-exclamation"],
   "#4fbbbb": ["fa-check-circle"],
   "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
+};
+
+/** pilar action-config truth table: normalized Figma action boolean name → the authKey whose
+ *  truthy flag makes pilar's uii-table render the action icon. The consumer is authoritative
+ *  (pilar `table-action.component.ts` actionConfigs) over @uiigateway/core's AuthorizationModel:
+ *  pilar consumes canExport/canImport (not canExpImp) and canPosting/canUnposting/canReject/
+ *  canAudit, which the model does not declare. */
+const TABLE_ACTION_AUTH = {
+  edit: "canUpdate",
+  update: "canUpdate",
+  detail: "canRead",
+  read: "canRead",
+  delete: "canDelete",
+  print: "canPrint",
+  verify: "canVerify",
+  verifivation: "canVerify", // Figma misspelling observed in real XML
+  verification: "canVerify",
+  validate: "canValidate",
+  publish: "canPublish",
+  export: "canExport",
+  import: "canImport",
+  posting: "canPosting",
+  unposting: "canUnposting",
+  reject: "canReject",
+  audit: "canAudit",
+  activate: "canActivate",
+  toggle: "canActivate", // toggle-on → pilar renders uii-switch (not an icon), still needs canActivate
 };
 
 function checkIconColor(generated, transcript) {

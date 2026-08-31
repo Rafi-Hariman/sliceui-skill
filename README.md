@@ -1,4 +1,4 @@
-# SliceUI — Agent Skill + CLI
+# SliceUI: Agent Skill + CLI
 
 Convert a UI design into component code that matches your project's framework, version, and UI libraries.
 
@@ -8,10 +8,10 @@ Built for agentic coding CLIs (Claude Code, Cursor, GLM Code, …) and models th
 
 Two inputs, one pipeline:
 
-- **XML (preferred):** export a Figma design with the FIGML plugin, then `sliceui transcribe design.xml` parses it deterministically — exact text, colors, geometry, and component names. No API key, no vision, instant, roughly 90%+ attribute fidelity.
+- **XML (preferred):** export a Figma design with the FIGML plugin, then `sliceui transcribe design.xml` parses it deterministically: exact text, colors, geometry, and component names. No API key, no vision, instant, roughly 90%+ attribute fidelity.
 - **Screenshot (fallback):** for non-Figma sources. Gemini vision (your key), with a macOS static and OCR fallback.
 
-Beyond transcription, SliceUI learns the project's **framework** and **conventions**. `init` scans the codebase to build a `capabilities` map (which library serves each UI element category, with a real usage snippet) plus a `conventions` profile (reusable classes, deep-selector override corpus, page anatomy, naming). Generated code reuses the components and styles the team already uses — including hover and focus states — instead of raw elements and invented classes.
+Beyond transcription, SliceUI learns the project's **framework** and **conventions**. `init` scans the codebase to build a `capabilities` map (which library serves each UI element category, with a real usage snippet) plus a `conventions` profile (reusable classes, deep-selector override corpus, page anatomy, naming). Generated code reuses the components and styles the team already uses, including hover and focus states, instead of raw elements and invented classes.
 
 ## Framework support
 
@@ -26,7 +26,7 @@ SliceUI detects the target framework from the project's dependencies and emits t
 | Svelte | ✅ | ✅ Svelte 5 runes |
 | Tailwind / HTML | ✅ (fallback) | ✅ utility classes / semantic HTML |
 
-The **transcription** layer is framework-agnostic: a transcript carries only design facts (text, color, geometry, icons), so it is equally useful in every framework. The **adaptation** layer (library mapping, convention mining, verification) is deepest for Angular today and degrades gracefully elsewhere — a project whose UI library is not in the registry still receives native, working markup with an explicit note, never a guessed library.
+The **transcription** layer is framework-agnostic: a transcript carries only design facts (text, color, geometry, icons), so it is equally useful in every framework. The **adaptation** layer (library mapping, convention mining, verification) is deepest for Angular today and degrades gracefully elsewhere. A project whose UI library is not in the registry still receives native, working markup with an explicit note, never a guessed library.
 
 ## Install
 
@@ -107,7 +107,7 @@ Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slid
 
 ### 2. `conventions.json` + `conventions.md`: HOW this team writes
 
-`init` also distills the codebase's unwritten rules:
+`init` also captures the codebase's unwritten rules:
 
 - `classVocabulary`, the classes the project reuses, so the agent reuses them instead of inventing.
 - An **override corpus**, every deep-selector / style-penetration block across the project, merged and scoped by capability family. The agent copies these verbatim; a dropped selector means a lost design effect.
@@ -124,11 +124,11 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ### 4. `verify`
 
-`sliceui verify <dir>` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, mock-row count, compiled-scope leaks, icon colors, and structural wrappers. A run with no ground truth is never green.
+`sliceui verify <dir> [name]` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, mock-row count, compiled-scope leaks, icon colors, structural wrappers, **ngx-select bindings** (`[(ngModel)]` and `(select)`; a dead filter is rejected), **per-row auth** (an action column must attach the `AuthorizationModel` flags `uii-table` needs to render its icons, mapped from the XML `<Aksi>` booleans), **filter-row buttons** (a `Cari` button in the XML is not dropped), and **button order** (`flex-direction: row-reverse` flipping the XML's left-to-right order is rejected). A run with no ground truth is never green.
 
 ### 5. `referee`
 
-`sliceui referee` validates every ground-truth artifact against the two sources of truth — the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent.
+`sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent.
 
 ## Requirements
 
@@ -137,6 +137,7 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ## Status
 
+v0.10.0: close the e2e defect gap. `sliceui verify` grows from 9 to 13 checks: `ngxSelectBinding` (every `<ngx-select>` must carry `[(ngModel)]` and `(select)`), `rowAuth` (an action column must attach per-row `AuthorizationModel` flags so `uii-table` renders the edit/detail/delete icons, mapped from the XML `<Aksi>` component-property booleans), `filterRowButton` (a `Cari`/filter button in the XML is not dropped), and `buttonOrder` (`flex-direction: row-reverse` on paired action buttons is rejected). SKILL.md now teaches the agent: grid "N fields + 1 button" rows keep the button, every `ngx-select` is bound, action columns carry per-row `auth` (with an action→authKey→icon table), bulk buttons follow the XML's left→right order, and `sliceui verify` is a post-generate gate. The `uii-table` registry sample carries `[actionColumn]` + an `AuthorizationModel` hint. Calibrated against the same human reference: the reference passes and the known-broken output now fails on all five named defects.
 v0.9.0: end-to-end quality pipeline. `sliceui referee` (two-headed ground-truth validator), `sliceui resolve` (resolve-then-assemble, the agent emits only exact idiom candidates), and `sliceui verify` hardened to 9 checks (compiled-scope leaks, invented icon colors, and structural wrappers the design does not have are all rejected). Ground-truth fixes: `sampleComponents` excludes the app shell and picks feature-relevant components (scans monorepo `projects/`), conventions no longer teach a structural wrapper as an instruction (structure comes from the design only), and the mock-row floor is a sane minimum (the slice total is handled by verify). Calibrated against a human-written reference: the reference passes, and a known-corrupt output fails on exactly the corruption signals.
 v0.8.0: adapt conventions into init + verify gate. `init` produces 3 artifacts (project-context + conventions.json + conventions.md); `sliceui verify` with deterministic checks; gate-honesty fixes (null-exemplar hard-fails, no-ground-truth never green); parser fixes (vector icon fill color, checkbox detection).
 v0.7.1: last-mile styling. `capabilities.*.sampleScss` carries the exemplar stylesheet; stylesheet-coverage gate; SKILL.md button alignment + table mock rules.

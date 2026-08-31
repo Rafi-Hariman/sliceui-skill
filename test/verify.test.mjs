@@ -34,6 +34,44 @@ const TRANSCRIPT = {
 
 const RAW_XML_WITH_CHECKBOX = "<Checkbox_FNC id=\"x\" ... />";
 const RAW_XML_NO_CHECKBOX = "<Rectangle id=\"y\" ... />";
+const RAW_XML_WITH_AKSI = `<Aksi id="x:1" name="Aksi" type="INSTANCE">
+  <componentProperties>
+    <edit_4879_2 type="BOOLEAN" value="true" />
+    <detail_4879_3 type="BOOLEAN" value="false" />
+    <delete_5037_1 type="BOOLEAN" value="false" />
+    <toggle_4879_0 type="BOOLEAN" value="false" />
+    <verifivation_5037_0 type="BOOLEAN" value="false" />
+  </componentProperties>
+</Aksi>`;
+const RAW_XML_WITH_FILTER_BUTTON = `<Button_FNC id="f:1" name="Button_FNC">
+  <children><Text id="t:1" name="Button" characters="Cari" /></children>
+</Button_FNC>`;
+
+const ACTION_HTML = `<uii-table [rows]="rows" [columns]="columns" [actionTitle]="'Aksi'" [actionColumn]="true" (editClicked)="onEdit($event)"></uii-table>`;
+
+const GOOD_TS_AUTH = `import { AuthorizationModel } from "@uiigateway/core";
+const base = [
+  { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
+  { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
+  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
+  { nim: "16" }, { nim: "17" }, { nim: "18" }, { nim: "19" }, { nim: "20" },
+];
+this.rows = base.map((x, i) => {
+  const auth = new AuthorizationModel();
+  auth.canUpdate = true;
+  return { ...x, number: i + 1, auth };
+});`;
+
+const BAD_TS = `const MOCK_ROWS = [
+  { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
+  { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
+  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
+  { nim: "16" }, { nim: "17" }, { nim: "18" }, { nim: "19" }, { nim: "20" },
+];
+this.rows = MOCK_ROWS.map((x, i) => {
+  x.number = i + 1;
+  return x;
+});`;
 
 const GOOD_SCSS = `
 ::ng-deep .ngx-select__choices { border-radius: 7px; }
@@ -52,7 +90,7 @@ const GOOD_HTML = `
 const FAITHFUL_HTML = `
 <h1 class="h1">Ubah tagihan</h1>
 <button (click)="onSearch()">Cari</button>
-<ngx-select placeholder="Pilih jenis tagihan"></ngx-select>
+<ngx-select [items]="items" [(ngModel)]="selected" (select)="onSelect($event)" placeholder="Pilih jenis tagihan"></ngx-select>
 <uii-table-skeleton *ngIf="isLoading"></uii-table-skeleton>
 <uii-table [rows]="rows" [columns]="columns" [checkboxColumn]="true" [actionTitle]="'Aksi'" (editClicked)="onEdit($event)"></uii-table>
 `;
@@ -222,4 +260,125 @@ test("verify: phantomWrapper fails when well wrapper has no transcript counterpa
   const check = r.checks.find((c) => c.name === "phantomWrapper");
   assert.equal(check.status, "fail");
   assert.ok(check.detail.includes("well"), "detail names the phantom well");
+});
+
+// ---------- ngxSelectBinding ----------
+
+test("verify: ngxSelectBinding fails when a select lacks [(ngModel)]", () => {
+  const html = `<ngx-select [items]="items" [optionTextField]="'label'"></ngx-select>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "ngxSelectBinding");
+  assert.equal(check.status, "fail");
+  assert.ok(check.problems.some((p) => p.includes("ngModel")), "missing ngModel flagged");
+});
+
+test("verify: ngxSelectBinding passes when bound with [(ngModel)] + (select)", () => {
+  const html = `<ngx-select [items]="items" [(ngModel)]="selected" (select)="onSelect($event)"></ngx-select>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "ngxSelectBinding");
+  assert.equal(check.status, "pass");
+});
+
+test("verify: ngxSelectBinding skips when no <ngx-select> present", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "ngxSelectBinding");
+  assert.equal(check.status, "skip");
+});
+
+// ---------- rowAuth ----------
+
+test("verify: rowAuth passes when actionColumn rows carry the required auth flag", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: ACTION_HTML, ts: GOOD_TS_AUTH,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI,
+  });
+  const check = r.checks.find((c) => c.name === "rowAuth");
+  assert.equal(check.status, "pass");
+  assert.deepEqual([...check.required ?? []].sort(), ["canUpdate"]);
+});
+
+test("verify: rowAuth fails when actionColumn rows lack the auth flag (edit→canUpdate)", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: ACTION_HTML, ts: BAD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI,
+  });
+  const check = r.checks.find((c) => c.name === "rowAuth");
+  assert.equal(check.status, "fail");
+  assert.ok(check.missing.includes("canUpdate"), "missing names canUpdate");
+});
+
+test("verify: rowAuth skips without [actionColumn] or without <Aksi> evidence", () => {
+  const noAction = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS_AUTH,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI,
+  });
+  assert.equal(noAction.checks.find((c) => c.name === "rowAuth").status, "skip");
+
+  const noAksi = verifyComponent({
+    scss: GOOD_SCSS, html: ACTION_HTML, ts: GOOD_TS_AUTH,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(noAksi.checks.find((c) => c.name === "rowAuth").status, "skip");
+});
+
+// ---------- filterRowButton ----------
+
+test("verify: filterRowButton fails when the XML Cari button is dropped", () => {
+  const htmlNoCari = `<div class="row"><input placeholder="NIM" /></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlNoCari, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_FILTER_BUTTON,
+  });
+  const check = r.checks.find((c) => c.name === "filterRowButton");
+  assert.equal(check.status, "fail");
+});
+
+test("verify: filterRowButton passes when a Cari button is rendered", () => {
+  const htmlWithCari = `<div class="row"><button (click)="onSearch()">Cari</button></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithCari, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_FILTER_BUTTON,
+  });
+  const check = r.checks.find((c) => c.name === "filterRowButton");
+  assert.equal(check.status, "pass");
+});
+
+test("verify: filterRowButton skips when the XML has no filter button", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "filterRowButton");
+  assert.equal(check.status, "skip");
+});
+
+// ---------- buttonOrder ----------
+
+test("verify: buttonOrder fails when bulk buttons are row-reverse", () => {
+  const scssReverse = GOOD_SCSS + "\n.action-bar { display: flex; flex-direction: row-reverse; }\n";
+  const r = verifyComponent({
+    scss: scssReverse, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "buttonOrder");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("row-reverse"), "detail names row-reverse");
+});
+
+test("verify: buttonOrder skips when there is no reverse signal", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "buttonOrder");
+  assert.equal(check.status, "skip");
 });

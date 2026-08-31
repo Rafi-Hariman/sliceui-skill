@@ -45,8 +45,8 @@ export const REGISTRY = {
       name: "pilar (uii-table)",
       package: "pilar",
       test: /uii-table|uii-client-table|uii-server-table/i,
-      sampleHtml: `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true" [paginationOptions]="true" [searchOptions]="true"></uii-table>`,
-      sampleTs: `import { TableModule } from "pilar";\n// columns: [{ prop: "nim", name: "NIM" }]; rows: [{ nim: "..." }]\n// add TableModule to imports[]`,
+      sampleHtml: `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true" [actionColumn]="true" [paginationOptions]="true" [searchOptions]="true" (editClicked)="onEdit($event)"></uii-table>`,
+      sampleTs: `import { TableModule } from "pilar";\nimport { AuthorizationModel } from "@uiigateway/core";\n// columns: [{ prop: "nim", name: "NIM" }];\n// rows carry auth so action icons render: auth.canUpdate = true -> fa-pencil\n// add TableModule to imports[]`,
     },
     {
       name: "ngx-datatable",
