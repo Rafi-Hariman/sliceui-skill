@@ -106,3 +106,13 @@ test("renderConventionsMd: splits reusable vs component-specific", () => {
   // The component-specific block is annotated with its source so the agent can judge context.
   assert.ok(md.includes("installment-spreadsheet.component.scss"), "specific block annotated with source");
 });
+
+test("ngDeepCorpus: bare form-control + ngx-select__toggle are reusable", () => {
+  const c = extractConventions(FIX, { prefix: "ugw" });
+  const fc = c.ngDeepCorpus.find((x) => x.selector === "form-control");
+  assert.ok(fc, "bare form-control block captured");
+  assert.equal(fc.reusable, true, "bare form-control is reusable (input rounding idiom)");
+  const toggle = c.ngDeepCorpus.find((x) => x.selector === "ngx-select__toggle");
+  assert.ok(toggle, "bare ngx-select__toggle block captured");
+  assert.equal(toggle.reusable, true, "bare ngx-select__toggle is reusable (border idiom)");
+});

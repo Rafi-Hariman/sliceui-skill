@@ -112,9 +112,13 @@ function hintFor(cls) {
  *  and its internal cell/empty/data classes, but NOT generic descendants like `row-container`
  *  (which also tags component-specific editable-cell blocks). */
 export const LIBRARY_INTERNAL = {
-  select: /ngx-select__toggle-caret|ngx-select__choices|ngx-select__item_active|dropdown-menu/i,
+  select: /ngx-select__toggle-caret|ngx-select__choices|ngx-select__item_active|dropdown-menu|^ngx-select__toggle$/i,
   table: /ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|table-footer|gateway-table\s*$|cell-html|gateway-table-data|gateway-empty-data/i,
   layout: /ugw-header|ugw-sidebar|ugw-breadcrumb/i,
+  // Bare form controls are the project's universal input rounding/border idiom — distinct from
+  // component-specific pseudo variants (form-control:focus = spreadsheet border:none) and from
+  // .ngx-select .form-control (the table-cell select), both of which stay non-reusable.
+  form: /^form-control$|^input$/i,
 };
 
 /** A corpus block is "reusable" (safe to copy into any slice) when its selector is a known
@@ -146,7 +150,7 @@ function extractNgDeepCorpus(allScss) {
         byBlock = new Map();
         variants.set(key, byBlock);
       }
-      const canon = block.block.replace(/\s+/g, " ");
+      const canon = semanticCanon(block.block);
       if (!byBlock.has(canon)) {
         byBlock.set(canon, { count: 0, block: block.block, source: toRelPath(f.path), family: familyForSelector(block.selector) });
       }
@@ -181,6 +185,14 @@ function normalizeSelector(sel) {
     .trim();
 }
 
+/** Canonical form of a block body for dedup voting: collapse whitespace and normalize
+ *  hex colors to lowercase, so `border-color: #b1bccc` and `border-color: #B1BCCC` vote
+ *  together. This stops a single semantic variant (e.g. `border-radius: 6px`) from fragmenting
+ *  across case/whitespace differences and losing a majority vote to an outlier. */
+function semanticCanon(block) {
+  return block.replace(/\s+/g, " ").replace(/#[0-9a-fA-F]{3,8}\b/g, (hex) => hex.toLowerCase());
+}
+
 /** Classify a ::ng-deep selector into the capability family it styles. This scopes the
  *  verify gate to the capabilities actually in play — a component that renders only
  *  ngx-select + uii-table must not be required to copy every modal/dialog/editor block. */
@@ -190,6 +202,10 @@ function familyForSelector(sel) {
   if (/label-custom/.test(sel)) return "label";
   if (/\.fa-|font-awesome|fa-check|fa-times|fa-clock/.test(sel)) return "icon";
   if (/ugw-header|ugw-sidebar|ugw-breadcrumb|ugw-info-box/i.test(sel)) return "layout";
+  // Bare form controls (`.form-control`, `.input`) are the universal input rounding/border idiom.
+  // Pseudo/variant selectors (`.form-control:focus`, `.ngx-select .form-control`) are matched
+  // earlier by `ngx-select` → select, or fall through to `other` — they stay non-reusable.
+  if (/^form-control$|^input$/i.test(sel)) return "form";
   return "other";
 }
 

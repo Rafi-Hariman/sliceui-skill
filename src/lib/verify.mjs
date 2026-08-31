@@ -15,6 +15,8 @@
 //   9. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
 //  10. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
 //  11. tableOptions  — search/limit/pagination bindings map XML evidence (search bar, "Tampilkan N data", pagination footer)
+//  12. gridColumns   — a filter row's col-*-N spans must sum to ≤ 12 (no wrapped children)
+//  13. noTranslation — no `| translate` pipe (SliceUI emits literal text, never i18n)
 
 import { scssCoverage } from "./fidelity.mjs";
 import { LIBRARY_INTERNAL } from "./conventions.mjs";
@@ -58,6 +60,8 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkFilterRowButton(html, rawXml),
     checkButtonOrder(html, scss, rawXml),
     checkTableOptions(html, rawXml),
+    checkGridColumns(html),
+    checkNoTranslation(html, ts),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -321,11 +325,28 @@ function checkNgxSelectBinding(html) {
   selects.forEach((tag, i) => {
     if (!/\[\(ngModel\)\]/.test(tag)) problems.push(`select #${i + 1} missing [(ngModel)]`);
     if (!/\(select\)\s*=/.test(tag)) problems.push(`select #${i + 1} missing (select)= handler`);
+    if (/formControlName\s*=/.test(tag)) problems.push(`select #${i + 1} uses formControlName (reactive-form legacy idiom — SliceUI emits [(ngModel)])`);
   });
   if (problems.length) {
     return { name: "ngxSelectBinding", status: "fail", detail: `${problems.length} ngx-select binding problem(s)`, problems };
   }
   return { name: "ngxSelectBinding", status: "pass", detail: `${selects.length} ngx-select(s) bound with [(ngModel)] + (select)` };
+}
+
+// ---------- 3c2. no translation (literal text only) ----------
+
+function checkNoTranslation(html, ts) {
+  const src = html + " " + ts;
+  const matches = [...src.matchAll(/\|\s*translate\b/g)];
+  if (matches.length) {
+    return {
+      name: "noTranslation",
+      status: "fail",
+      detail: `${matches.length} \`| translate\` pipe(s) — SliceUI emits literal text, never i18n`,
+      count: matches.length,
+    };
+  }
+  return { name: "noTranslation", status: "pass", detail: "no `| translate` pipe" };
 }
 
 // ---------- 3d. row auth (action-column icons only render when row.auth.<flag> truthy) ----------
@@ -462,6 +483,36 @@ function checkTableOptions(html, rawXml) {
     return { name: "tableOptions", status: "skip", detail: "no search/limit/pagination evidence in XML" };
   }
   return { name: "tableOptions", status: "pass", detail: `table options bound (${required.join(", ")})` };
+}
+
+// ---------- 3h. grid columns (a filter row's col spans must sum to ≤ 12) ----------
+
+function checkGridColumns(html) {
+  // A `.row` whose Bootstrap col-*-N spans sum to more than 12 wraps its trailing children onto
+  // the next line. The 0.11.0 output put 4 items in one filter row all at col-md-4 (16 > 12),
+  // so the "Cari" button fell to a new line. Enforce the invariant deterministically instead of
+  // relying on the agent reading a prose rule.
+  const problems = [];
+  // Split into top-level <div class="row"> blocks (no nesting in these slices).
+  const rowRe = /<div[^>]*class="[^"]*\brow\b[^"]*"[\s\S]*?(?=<div[^>]*class="[^"]*\brow\b|$)/gi;
+  const rows = html.match(rowRe) || [html];
+  let rowIdx = 0;
+  for (const row of rows) {
+    rowIdx++;
+    let span = 0;
+    let count = 0;
+    for (const m of row.matchAll(/col-(?:xs|sm|md|lg|xl|xxl)-(\d+)/gi)) {
+      span += Number(m[1]);
+      count++;
+    }
+    if (span > 12) {
+      problems.push(`filter row #${rowIdx} spans ${span}/12 columns across ${count} items (a child wraps to the next line)`);
+    }
+  }
+  if (problems.length) {
+    return { name: "gridColumns", status: "fail", detail: problems.join("; "), problems };
+  }
+  return { name: "gridColumns", status: "pass", detail: "no filter row exceeds 12 columns" };
 }
 
 // ---------- 4c. icon color / status-badge semantics ----------

@@ -27,3 +27,11 @@
   border: 1px solid #f6d9b2 !important;
   background: #fef7ec;
 }
+
+:host ::ng-deep .form-control {
+  border-radius: 6px;
+}
+
+::ng-deep.ngx-select__toggle {
+  border-color: #b1bccc !important;
+}

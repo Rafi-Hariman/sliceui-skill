@@ -446,3 +446,65 @@ test("verify: scssCoverage requires the bare .gateway-table shell when a table i
   assert.equal(check.status, "fail");
   assert.ok(check.missing.some((s) => s.includes("gateway-table")), "gateway-table flagged missing");
 });
+
+// ---------- gridColumns ----------
+
+test("verify: gridColumns fails when a filter row's col spans exceed 12", () => {
+  const htmlOverflow = `<div class="row">
+    <div class="col-md-4">a</div><div class="col-md-4">b</div><div class="col-md-4">c</div><div class="col-md-4">d</div>
+  </div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlOverflow, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "gridColumns");
+  assert.equal(check.status, "fail");
+  assert.ok(check.problems.some((p) => p.includes("16/12")), "16/12 overflow named");
+});
+
+test("verify: gridColumns passes when spans total ≤ 12", () => {
+  const htmlOk = `<div class="row">
+    <div class="col-md-3">a</div><div class="col-md-3">b</div><div class="col-md-3">c</div><div class="col-md-3">d</div>
+  </div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlOk, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "gridColumns");
+  assert.equal(check.status, "pass");
+});
+
+// ---------- noTranslation ----------
+
+test("verify: noTranslation fails on a | translate pipe", () => {
+  const htmlTranslate = `<h1>{{ 'bill.type' | translate }}</h1>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlTranslate, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "noTranslation");
+  assert.equal(check.status, "fail");
+  assert.ok(check.count >= 1, "counts the translate pipe");
+});
+
+test("verify: noTranslation passes on literal text", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "noTranslation");
+  assert.equal(check.status, "pass");
+});
+
+// ---------- ngxSelectBinding rejects formControlName ----------
+
+test("verify: ngxSelectBinding fails when a select uses formControlName (legacy reactive form)", () => {
+  const htmlReactive = `<ngx-select [items]="items" formControlName="kd_jenis_tagihan"></ngx-select>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlReactive, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "ngxSelectBinding");
+  assert.equal(check.status, "fail");
+  assert.ok(check.problems.some((p) => p.includes("formControlName")), "formControlName flagged");
+});
