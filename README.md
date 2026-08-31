@@ -1,17 +1,17 @@
-# SliceUI — Agent Skill + CLI
+# SliceUI: Agent Skill + CLI
 
-Convert a UI design into **idiomatic component code that matches your project** — its framework, version, and the actual UI libraries it uses (`ngx-select`, `ngx-datatable`, `ngx-bootstrap`, `uii-*`, `pilar`, …).
+Convert a UI design into component code that matches your project's framework, version, and UI libraries (`ngx-select`, `ngx-datatable`, `ngx-bootstrap`, ...).
 
-Built for agentic coding CLIs (Claude Code, Cursor, GLM Code, …) and **models that cannot see images**. SliceUI converts the design into a structured text transcript first, so any text-only model can generate accurate UI code.
+Built for agentic coding CLIs (Claude Code, Cursor, GLM Code, ...) and models that cannot see images. SliceUI turns the design into a structured text transcript first, so any text-only model can generate accurate UI code.
 
 ## Why
 
 Two inputs, one pipeline:
 
-- **XML (preferred)** — export your Figma design with the FIGML plugin → `sliceui transcribe design.xml` parses it **deterministically**: exact text, exact colors, exact geometry, and component names. No API key, no vision, instant, ~90%+ accuracy.
-- **Screenshot (fallback)** — for non-Figma sources. Gemini vision (your key) → macOS static+OCR fallback.
+- **XML (preferred):** export a Figma design with the FIGML plugin, then `sliceui transcribe design.xml` parses it deterministically: exact text, colors, geometry, and component names. No API key, no vision, instant, roughly 90%+ accuracy.
+- **Screenshot (fallback):** for non-Figma sources. Gemini vision (your key), with a macOS static and OCR fallback.
 
-SliceUI also **learns your project's libraries**: `detect` scans `node_modules` usage to build a `capabilities` map (select → `ngx-select-ex` with a real usage snippet, table → `ngx-datatable`, etc.), so generated code reuses the components the team already uses — hover/focus/UX included — instead of raw `<select>`/`<table>`.
+SliceUI also learns the project's libraries and conventions. `init` scans the codebase to build a `capabilities` map (select to `ngx-select-ex` with a real usage snippet, table to `ngx-datatable`, and so on) plus a `conventions` profile (reusable classes, the `::ng-deep` corpus, page anatomy, naming). Generated code reuses the components and styles the team already uses, including hover and focus states, instead of raw `<select>` or `<table>` tags and invented classes.
 
 ## Install
 
@@ -20,73 +20,116 @@ npm i -g sliceui-skill
 sliceui install            # writes the skill into ~/.claude/skills/sliceui/
 ```
 
-Then in **any** project, just ask your agent:
+Then in any project, ask your agent:
 
 > slice this into my app: .sliceui/xml/design.xml
 
-The skill activates, the CLI does the heavy lifting, the agent writes the files.
+The skill activates, the CLI does the heavy lifting, and the agent writes the files.
+
+## The pipeline (v0.9.0)
+
+```
+sliceui init        → project-context.json (WHAT) + conventions.json/.md (HOW this team writes)
+sliceui transcribe  → transcript (exact: layout + colors + text + icons + checkbox)
+sliceui resolve     → every styled leaf → resolved[] (exact idiom candidates)
+sliceui verify      → 9 deterministic checks: fidelity + conventions + structure (exit 0/1)
+sliceui referee     → validate ground-truth artifacts (XML + codebase)
+```
 
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `sliceui install [--dir DIR]` | Install the agent skill (default `~/.claude/skills/sliceui`). Use `--dir` for other agent CLIs' skill dirs. |
-| `sliceui init [--key-from F]` | Set up this project: `.sliceui/{images,xml,transcript}/`, config, `.env.local`, gitignore, detect |
-| `sliceui detect` | Detect framework + library usage → `.sliceui/project-context.json` (with `capabilities`) |
+| `sliceui init [--key-from F]` | Set up this project: `.sliceui/{images,xml,transcript}/`, config, `.env.local`, gitignore, detect + conventions |
+| `sliceui detect` | Detect framework, library usage, and conventions → `.sliceui/project-context.json` + `conventions.json` |
 | `sliceui transcribe <input>` | `.xml`/`.figml` → exact FIGML parse; image → Gemini → static fallback. Writes `.sliceui/transcript/<name>.transcript.*` |
+| `sliceui resolve <xml\|json>` | Resolve every styled leaf to exact idiom candidates → `.sliceui/resolve/<name>.resolved.json` |
+| `sliceui verify <dir> [name]` | Gate a generated component: 9 deterministic checks (fidelity + conventions + structure). Exit 0/1 |
+| `sliceui referee [root]` | Validate ground-truth artifacts against XML and codebase |
 | `sliceui doctor` | Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini) |
-| `sliceui fidelity <xml>` | Score visual-attribute preservation (FIGML → transcript) as a single % + per-attribute breakdown |
+| `sliceui fidelity <xml>` | Score visual-attribute preservation (FIGML → transcript) as a single % plus per-attribute breakdown |
 | `sliceui uninstall` | Remove this project's `.sliceui/` setup |
+| `sliceui update` | Self-update the CLI and refresh the installed skill |
 | `sliceui --help` | Usage |
 
 ## What this sends where
 
-- **XML input:** 100% local — parsed deterministically, no network, no key.
-- **Screenshot (tier 1 Gemini):** the image is sent to Google's Gemini API using **your** key, transcribed into a layout transcript. Requires `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY`).
-- **Screenshot (tier 2 static):** everything stays local — image decode (`sips`), OCR (macOS Swift Vision), layout extraction. Requires macOS.
+- **XML input:** 100% local, parsed deterministically, no network, no key.
+- **Screenshot (tier 1 Gemini):** the image is sent to Google's Gemini API using your key, then transcribed into a layout transcript. Requires `GEMINI_API_KEY` (or `VITE_GEMINI_API_KEY`).
+- **Screenshot (tier 2 static):** everything stays local. Image decode (`sips`), OCR (macOS Swift Vision), layout extraction. Requires macOS.
 - **No telemetry.** SliceUI never phones home. Your key is never committed or logged.
 - **Privacy:** prefer XML (local) or `--static` when the material is sensitive.
 
-## How it adapts (project context)
+## How it adapts (project context + conventions)
 
-`detect` builds a `capabilities` map from two signals:
+`init` runs `detect`, which builds two artifacts.
 
-1. **actual usage** in source (import-first, then template tags), and
-2. **`package.json` deps** — so a freshly-scaffolded project resolves its libraries *before* any component imports them.
+### 1. `project-context.json`: WHAT the project is
 
-Resolution precedence per category: **local usage (`source:"local"`) → vendored showcase snippet (`source:"vendored"`) → installed package (`source:"installed"`) → `null`** (plain HTML + note). Vendored snippets are real-usage examples extracted verbatim from the library's own showcase app (`scripts/extract-pilar.mjs` → `src/lib/vendors/pilar/`, version-pinned) — the same material a repo-reading agent would use. Local usage still wins when the project has its own (richest sample preferred).
+A `capabilities` map from two signals:
+
+1. actual usage in source (import-first, then template tags), and
+2. `package.json` deps, so a freshly scaffolded project resolves its libraries before any component imports them.
+
+Resolution precedence per category: local usage (`source:"local"`) → installed package (`source:"installed"`) → `null` (plain HTML + note). Local usage wins when the project has its own. The richest sample is preferred, and list views are preferred over form or edit views.
 
 ```json
 "capabilities": {
   "select": { "library": "ngx-select-ex", "sampleHtml": "<ngx-select ...>", "source": "installed" },
-  "table":  { "library": "pilar (uii-table)", "sampleHtml": "...", "source": "installed" },
+  "table":  { "library": "ngx-datatable", "sampleHtml": "...", "source": "installed" },
   "modal":  { "library": "ngx-bootstrap", "sampleHtml": "...", "source": "local" }
 }
 ```
 
-Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slider`, `switch`, `pagination`, `divider`, `well`, `checkbox`, `layout`. The agent maps each transcript element to the matching capability — never inventing a library the project doesn't have.
+Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slider`, `switch`, `pagination`, `divider`, `well`, `checkbox`, `layout`. The agent maps each transcript element to the matching capability and never invents a library the project does not have.
 
-`project-context.json` (v3) also carries, beyond capabilities:
+`project-context.json` also carries:
+- `provenance`, which signal produced each claim, tagged `sourceCode | configFile | registryDefault`. Source code is the ground truth.
+- `designTokens`, the project's own SCSS variables, CSS custom props, and mixins (literal values only).
+- `sampleComponents`, the feature components (app shell excluded) that render the project's tables and selects, chosen by relevance. The agent reads these to learn idiom.
+- `appModulePath`, `moduleStructure`, `generatedAt`, and `inputHash`.
 
-- **`provenance`** — which signal produced each claim (`prefix`/`styleExt`/`componentDir`/`uiLibrary`), tagged `sourceCode | configFile | registryDefault`. Source code is ground truth; config is only a fallback. This is why `prefix` derives from actual `selector:` usage (with `prefixAlternates` showing the full distribution), not blindly from `angular.json`.
-- **`designTokens`** — the project's own SCSS variables, CSS custom props, and mixins, mined from its stylesheets (literal values only), so generated styles reference real tokens instead of hardcoded hex.
-- **`sampleComponents`** — inlined verbatim (`sampleTs` imports + `sampleHtml` template), no "read the file" round-trip.
-- **`appModulePath` + `moduleStructure`** — where to register a new Angular component, no repo search.
-- **`generatedAt` + `inputHash`** — detect stale context.
+### 2. `conventions.json` + `conventions.md`: HOW this team writes
+
+`init` also distills the codebase's unwritten rules:
+
+- `classVocabulary`, the classes the project reuses (`label-custom-*`, `.well`, `.control-label`, ...) so the agent reuses them instead of inventing.
+- `ngDeepCorpus`, every `::ng-deep` or `:host ::ng-deep` block across the project, merged and family-scoped. The agent copies these verbatim; a dropped selector means a lost design effect.
+- `componentAnatomy`, the page structure idiom (table skeleton, pagination, mock-row floor).
+- `naming`, the prefix and event-handler pattern.
+
+### Single source of truth
+
+Structure comes from the XML and transcript only. Conventions style elements that already exist in the design and never add structural wrappers. If the XML has no `.well`, the agent does not emit one. `sliceui verify` has a `phantomWrapper` check that flags any wrapper the design does not show.
+
+### 3. `resolve`
+
+`sliceui resolve` maps every styled leaf (status badge, icon, caret) from the XML evidence (colors, icons) to exact idiom candidates, the correct `label-custom-*` and `fa-*` combination. The agent emits only the strings in each leaf's `resolved[]`. A wrong icon, such as `fa-exclamation-triangle` for a red `#f44444` badge, becomes structurally impossible.
+
+### 4. `verify`
+
+`sliceui verify <dir>` runs 9 deterministic chec ks: `scssCoverage`, `textCoverage`, `tableBindings` (checkbox evidenced by raw XML), `classVocabulary`, `anatomy`, `mockRowCount`, `noHashedSelectors` (rejects compiled `[_ngcontent]` leaks), `iconColor`, and `phantomWrapper`. A run with no ground truth is never green.
+
+### 5. `referee`
+
+`sliceui referee` validates every ground-truth artifact against the two sources of truth, XML (fidelity) and codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims, such as a convention that would teach a wrapper the design does not have, before they reach the agent.
 
 ## Requirements
 
-- Node ≥ 20 (Node 18 is EOL).
+- Node >= 20 (Node 18 is EOL).
 - macOS for the screenshot static tier (`sips` + `swiftc`). XML input works everywhere.
 
 ## Status
 
-v0.7.1 — last-mile styling: `capabilities.*.sampleScss` now carries the exemplar component's stylesheet (the `::ng-deep` block) so the agent copies library-internal selectors verbatim instead of dropping them; `scssCoverage` gate in fidelity.mjs verifies none were lost; `sampleComponents[*].styleUrls` pointer restored; SKILL.md rules for button alignment (`align-items: flex-end`) and uii-table (always mock/client-side, never `serverMode`).
-v0.7.0 — dropped the no-search invariant: project-context is now a **map, not a mirror**. The agent reads pointed-to files (`sampleComponents[*].path`, library `.d.ts`, theme configs) to learn framework idiom, while the transcript stays authoritative for design. detect emits `deps`, sample components as pointers (no inline copies), git-HEAD-stamped `inputHash`, and a monorepo/polyglot warning. Vendored pilar catalog removed (an artifact of the no-search era).
-v0.6.0 — vendored showcase catalog: real-usage snippets extracted verbatim from the pilar docs app (uii-table kitchen-sink/column-definitions + the org's `<ngx-select>` idiom), injected as `source:"vendored"` samples between local usage and registry defaults; richest-local-sample selection.
-v0.5.2 — `sliceui fidelity <xml>`: deterministic visual-attribute coverage score (parser → transcript), closing the "70% vs 95%" gap from a gut feeling to a number you can CI-enforce. Also carries `axis` on INSTANCE nodes.
-v0.5.1 — fidelity fix: transcript now carries `cornerRadius`/`padding`/`itemSpacing`(gap)/`lineHeight` (previously dropped), so generated spacing/radius matches the design instead of being guessed from geometry.
-v0.5.0 — project-context v3: source>config prefix/provenance, `uii-*`/`@uiigateway`/bootstrap catalog, package.json-driven capabilities, design-token mining, inlined samples, non-silent nulls, module structure + staleness.
-v0.4.0 — kill generation-time search: capabilities are authoritative (local samples for re-exported components), mock data + literal text by default, no i18n/test wiring during a slice.
-v0.3.0 — exact FIGML fidelity (frame/divider fills + hidden-layer dropping, transcript schema v3) + accurate library detection (import-first, comment-aware, `@danielmoncada/angular-datetime-picker`, local `<ngx-select>`).
-v0.2.0 — XML-first input + library-aware project context.
+v0.9.0: end-to-end quality pipeline. `sliceui referee` (two-headed ground-truth validator), `sliceui resolve` (resolve-then-assemble, the agent emits only exact idiom candidates), and `sliceui verify` hardened to 9 checks (`noHashedSelectors` rejects `[_ngcontent]` leaks, `iconColor` rejects invented icon colors, `phantomWrapper` rejects structural wrappers the design does not have, for example a phantom `.well`). Ground-truth fixes: `sampleComponents` excludes the app shell and picks feature-relevant components (scans monorepo `projects/`), `conventions.md` no longer teaches `id="well"` as an instruction (structure comes from XML only), and `mockRowsFloor` is a sane floor (the slice total is handled by verify). Calibrated against a human-written reference: hope-result passes, sliceui-result fails on exactly the corruption signals.
+v0.8.0: adapt conventions into init + verify gate. `init` produces 3 artifacts (project-context + conventions.json + conventions.md); `sliceui verify` with 6 deterministic checks; gate-honesty fixes (null-exemplar hard-fails, no-ground-truth never green); parser fixes (VECTOR icon fill color, Checkbox_FNC → checkbox).
+v0.7.1: last-mile styling. `capabilities.*.sampleScss` carries the exemplar stylesheet; `scssCoverage` gate; SKILL.md button alignment + table mock rules.
+v0.7.0: dropped the no-search invariant. project-context is a map, not a mirror. The agent reads pointed-to files to learn idiom; the transcript stays authoritative for design.
+v0.6.0: vendored showcase catalog. Real-usage snippets from the library's own showcase app.
+v0.5.2: `sliceui fidelity <xml>`. Deterministic visual-attribute coverage score.
+v0.5.1: fidelity fix. transcript carries `cornerRadius`/`padding`/`itemSpacing`/`lineHeight`.
+v0.5.0: project-context v3. source>config prefix/provenance, library catalog, design-token mining, non-silent nulls.
+v0.4.0: kill generation-time search. Capabilities authoritative, mock + literal by default.
+v0.3.0: exact FIGML fidelity + accurate library detection.
+v0.2.0: XML-first input + library-aware project context.

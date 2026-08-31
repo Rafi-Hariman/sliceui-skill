@@ -82,6 +82,25 @@ sliceui transcribe <path>       # .xml/.figml → exact; .png/.jpg → vision
 
 Writes `.sliceui/transcript/<name>.transcript.{md,json,meta.json}`. Read the `.md` (or `.json`) into context.
 
+### Step 3b — Resolve styled leaves (resolve-then-assemble)
+
+```bash
+sliceui resolve <path>          # .xml/.figml → .sliceui/resolve/<name>.resolved.json
+```
+
+For every styled leaf (status badge, icon, caret), `resolve` maps the XML evidence (colors, icons)
+to **exact idiom candidates** from the project corpus — the correct `label-custom-*` + `fa-*`
+combination. Read `.sliceui/resolve/<name>.resolved.json` before generating:
+
+- **Emit ONLY the strings in each leaf's `resolved[]`** (plus known glue). Never invent a hex,
+  icon, or class that resolve didn't produce — a wrong icon (`fa-exclamation-triangle` for a red
+  `#f44444` badge) is exactly what resolve exists to prevent.
+- **`candidates` ≠ a single answer** — when several labels co-occur with an icon, resolve lists
+  them all; pick using the transcript's status TEXT (e.g. "Belum bayar" → `-waiting`,
+  "Dibatalkan" → `-rejected`), not by guess.
+- **`fallback: native-plain`** — the design has a styled element the project has no idiom for;
+  render plain CSS and note it. Never silently drop it.
+
 ### Step 4 — Generate the component
 
 Generate in **three passes, in order**. Do not skip the inventory; do not jump to styling before the layout matches the XML.
@@ -89,6 +108,8 @@ Generate in **three passes, in order**. Do not skip the inventory; do not jump t
 #### Pass 1 — Inventory: build the element list (most-basic first)
 
 Read the transcript top-to-bottom and write out a numbered checklist **before writing any code**. Count, don't skim — every node analyzed sequentially, from the most basic UI element up:
+
+> **STRUCTURE = XML/TRANSCRIPT ONLY.** Conventions (`.well`, `.control-label`, skeleton, table wiring) are STYLING idioms for elements that ALREADY EXIST in the design — they never ADD structural wrappers. If the XML has no `.well` wrapper, do NOT emit one (no `<div id="well">`, no `page-canvas`). The XML is the single source of truth for what elements exist.
 
 1. **Container** — what wraps the slice; its `bg`, radius, padding.
 2. **Title** — exact text, size, weight, color.

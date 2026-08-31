@@ -20,6 +20,8 @@ Usage:
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui fidelity <xml>        Score visual-attribute preservation (FIGML → transcript)
   sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions
+  sliceui referee [root]        Validate ground-truth artifacts (XML + codebase) — the corruption map
+  sliceui resolve <xml|json>    Resolve styled leaves → exact idiom candidates (resolve-then-assemble)
   sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
   sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
   sliceui update                Self-update the CLI + refresh the installed skill
@@ -73,6 +75,14 @@ async function run(argv) {
     }
     case "verify": {
       const { main } = await import("./commands/verify.mjs");
+      return main(rest);
+    }
+    case "referee": {
+      const { main } = await import("./commands/referee.mjs");
+      return main(rest);
+    }
+    case "resolve": {
+      const { main } = await import("./commands/resolve.mjs");
       return main(rest);
     }
     case "uninstall": {

@@ -16,10 +16,10 @@ import { scssCoverage } from "./fidelity.mjs";
 /** Legal uii-table inputs/outputs. Anything else is red unless evidenced. */
 const LEGAL_TABLE_BINDINGS = new Set([
   "rows", "columns", "actionTitle", "actionColumn", "checkboxColumn",
-  "paginationOptions", "searchOptions", "selectedLimit",
+  "paginationOptions", "searchOptions", "selectedLimit", "limitOptions",
 ]);
 const LEGAL_TABLE_OUTPUTS = new Set([
-  "editClicked", "deleteClicked", "detailClicked",
+  "editClicked", "deleteClicked", "detailClicked", "selectedRow",
 ]);
 const FORBIDDEN_TABLE_BINDINGS = new Set([
   "serverMode", "page", "pageChanged", "limitChanged", "searchChanged",
@@ -57,6 +57,9 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
     checkMockRowCount(ts, conventions?.componentAnatomy, transcript),
+    checkNoHashedSelectors(scss),
+    checkIconColor(ts + " " + scss, transcript),
+    checkPhantomWrapper(html, transcript),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -259,6 +262,104 @@ function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []
   return { name: "classVocabulary", status: "pass", detail: "no invented classes" };
 }
 
+// ---------- 4b. no-hashed-selectors ----------
+
+function checkNoHashedSelectors(scss) {
+  // Angular emits [_ngcontent-XXX] attribute selectors during a build. They are NOT valid
+  // source — they only match the component's compiled DOM in dev, and the hash changes on
+  // every build. A generated SCSS containing them is broken output (agent leaked a compiled
+  // selector from a wrong Grep). Hard fail.
+  const matches = [...scss.matchAll(/\[_ngcontent-[^\]]*\]/g)].map((m) => m[0]);
+  if (matches.length) {
+    return {
+      name: "noHashedSelectors",
+      status: "fail",
+      detail: `compiled [_ngcontent-*] selector(s) leaked into source SCSS: ${matches.slice(0, 3).join(", ")}`,
+    };
+  }
+  return { name: "noHashedSelectors", status: "pass", detail: "no compiled selectors in source" };
+}
+
+// ---------- 4d. phantom wrapper (structure = XML, not convention) ----------
+
+function checkPhantomWrapper(html, transcript) {
+  // User's single-source-of-truth principle: structure comes from the XML/transcript ONLY.
+  // A wrapper the design doesn't show (`.well`, `page-canvas`) is a phantom added by a
+  // convention leak. Flag structural wrappers that have no transcript counterpart.
+  const hasTranscript = Boolean(transcript);
+  if (!hasTranscript) {
+    return { name: "phantomWrapper", status: "skip", detail: "no transcript to check structure against" };
+  }
+  const transcriptText = JSON.stringify(transcript);
+  const transcriptHasWell = /\bwell\b/i.test(transcriptText);
+
+  const phantoms = [];
+  if (/(?:id|class)=["'][^"']*\bwell\b/i.test(html) && !transcriptHasWell) {
+    phantoms.push("id/class=\"well\" (design has no well)");
+  }
+  if (/class=["'][^"']*page-canvas/i.test(html) && !/page-canvas/i.test(transcriptText)) {
+    phantoms.push("page-canvas wrapper (design has none)");
+  }
+
+  if (phantoms.length) {
+    return {
+      name: "phantomWrapper",
+      status: "fail",
+      detail: `structural wrapper(s) not in the design: ${phantoms.join("; ")}`,
+      phantoms,
+    };
+  }
+  return { name: "phantomWrapper", status: "pass", detail: "no structural wrappers beyond the design" };
+}
+
+// ---------- 4c. icon color / status-badge semantics ----------
+
+/** FontAwesome icon colors. The XML's icon fill color picks which `fa-*` is faithful: a
+ *  red `#f44444` badge icon is `fa-exclamation-circle`; an orange `#f9933f` is
+ *  `fa-exclamation-triangle`. SliceUI must map the XML color → the right icon, not invent one.
+ *  (Defect: sliceui emitted `fa-exclamation-triangle` + `#f9933f` for a `#f44444` badge.) */
+const FA_ICON_COLORS = {
+  "#f44444": ["fa-exclamation-circle", "fa-times-circle", "fa-minus"],
+  "#f9933f": ["fa-exclamation-triangle", "fa-exclamation"],
+  "#4fbbbb": ["fa-check-circle"],
+  "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
+};
+
+function checkIconColor(generated, transcript) {
+  // The design's status-icon fill colors (from the transcript's icon nodes) — skip generic
+  // blue/black/white that are structural, not semantic.
+  const designColors = new Set();
+  walkNodes(transcript?.layout, (n) => {
+    if (n.type === "icon" && n.bg && !["#03337b", "#303030", "#ffffff"].includes(n.bg)) {
+      designColors.add(n.bg);
+    }
+  });
+  const semantic = [...designColors].filter((c) => FA_ICON_COLORS[c]);
+  if (!semantic.length) {
+    return { name: "iconColor", status: "skip", detail: "no semantic status-icon colors in design" };
+  }
+  // Collect (fa-*, assigned color) from generated SCSS: `::ng-deep .fa-X { color: #yyy }`.
+  const styledIcons = [...generated.matchAll(/fa-([a-z0-9-]+)[^{}]*\{[^}]*color:\s*(#[0-9a-fA-F]{6})/g)]
+    .map((m) => ({ icon: "fa-" + m[1], color: m[2].toLowerCase() }));
+  if (!styledIcons.length) {
+    return { name: "iconColor", status: "skip", detail: "no fa-* icon with a color in generated code" };
+  }
+  // Any icon styled with a color that is NOT a design semantic color = wrong mapping
+  // (the agent gave the badge a color the design doesn't have — e.g. #f9933f for a #f44444
+  // badge). Structural neutrals (#303030/#fff/#333/#000) are allowed.
+  const neutral = new Set(["#303030", "#333333", "#333", "#000000", "#000", "#ffffff", "#fff", "#f5f5f5"]);
+  const problems = [];
+  for (const { icon, color } of styledIcons) {
+    if (semantic.includes(color)) continue; // matches a design color → OK
+    if (neutral.has(color)) continue;
+    problems.push(`${icon} styled with ${color}, but design status icons are ${semantic.join(", ")}`);
+  }
+  if (problems.length) {
+    return { name: "iconColor", status: "fail", detail: problems.join("; ") };
+  }
+  return { name: "iconColor", status: "pass", detail: `icons match design colors (${semantic.join(", ")})` };
+}
+
 // ---------- 5. anatomy ----------
 
 function checkAnatomy(html, anatomy = {}) {
@@ -298,11 +399,18 @@ function checkMockRowCount(ts, anatomy = {}, transcript) {
   return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows ≥ ${required}` };
 }
 
-/** Count top-level elements in the mock array (`const base = [...]` / `rows = [...]`). */
+/** Count top-level elements in the mock array. Supports the patterns SliceUI actually emits:
+ *  `const base = [...]`, `rows = [...]`, `private mockTagihanData: Array<any> = [...]` (and
+ *  other `name = [...]` assignments). Prefers the LARGEST array — the mock data source. */
 function countMockRows(ts) {
-  const m = /(?:const\s+\w+\s*=\s*|\brows\s*=\s*)\[([\s\S]*?)\]\s*;/.exec(ts);
-  if (!m) return null;
-  return countArrayElements(m[1]);
+  let best = null;
+  const re = /(?:(?:private|protected|public|readonly|const|let|var)\s+)?\w+\s*(?::\s*[A-Za-z<>\[\]]+)?\s*=\s*\[([\s\S]*?)\]\s*;/g;
+  let m;
+  while ((m = re.exec(ts)) !== null) {
+    const n = countArrayElements(m[1]);
+    if (n > 0 && (best === null || n > best)) best = n;
+  }
+  return best;
 }
 
 /** Count top-level comma-separated elements (brace/quote aware) inside an array body. */

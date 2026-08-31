@@ -181,3 +181,45 @@ test("verify: no-exemplar never scores pass (empty corpus → skip, not pass)", 
   const check = r.checks.find((c) => c.name === "scssCoverage");
   assert.equal(check.status, "skip", "empty corpus is skip (cannot verify), never pass");
 });
+
+test("verify: noHashedSelectors fails on [_ngcontent] leak", () => {
+  const scssWithNgcontent = GOOD_SCSS + "\n::ng-deep .filter-options[_ngcontent-art-c12] { height: 40px; }\n";
+  const r = verifyComponent({
+    scss: scssWithNgcontent, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "noHashedSelectors");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("_ngcontent"), "detail names the hashed selector");
+});
+
+test("verify: iconColor fails when badge icon color is invented (#f9933f triangle vs #f44444 design)", () => {
+  // Transcript evidence: badge #fef2f2 + icon #f44444 (red). Output uses triangle #f9933f.
+  const transcriptWithBadge = {
+    layout: [
+      { type: "text", text: "Ubah tagihan" },
+      { type: "button", text: "Cari" },
+      { type: "group", bg: "#fef2f2", children: [{ type: "icon", bg: "#f44444" }] },
+    ],
+  };
+  const scssWrongIcon = GOOD_SCSS + "\n::ng-deep .fa-exclamation-triangle { color: #f9933f; }\n";
+  const r = verifyComponent({
+    scss: scssWrongIcon, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: transcriptWithBadge, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "iconColor");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("#f9933f"), "detail names the invented color");
+});
+
+test("verify: phantomWrapper fails when well wrapper has no transcript counterpart", () => {
+  const htmlWithWell = `<div class="well" id="well"><h1>Ubah tagihan</h1></div>`;
+  const transcriptNoWell = { layout: [{ type: "text", text: "Ubah tagihan" }] };
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithWell, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: transcriptNoWell, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "phantomWrapper");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("well"), "detail names the phantom well");
+});

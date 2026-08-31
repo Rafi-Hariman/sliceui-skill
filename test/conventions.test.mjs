@@ -45,7 +45,7 @@ test("componentAnatomy: well + skeleton + table + pagination floor", () => {
   const c = extractConventions(FIX, { prefix: "ugw" });
   const a = c.componentAnatomy;
 
-  assert.equal(a.well, true, "well panel detected");
+  assert.equal(a.wellAvailable, true, "well idiom available (NOT a structural instruction)");
   assert.equal(a.tableTag, "uii-table", "table tag detected");
   assert.equal(a.skeletonTag, "uii-table-skeleton", "skeleton tag detected");
   assert.equal(a.pagination, true, "pagination text detected");

@@ -146,7 +146,7 @@ function normalizeSelector(sel) {
  *  ngx-select + uii-table must not be required to copy every modal/dialog/editor block. */
 function familyForSelector(sel) {
   if (/ngx-select|dropdown-menu|ngx-select-ex/i.test(sel)) return "select";
-  if (/gateway-table|table-footer|ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options/i.test(sel)) return "table";
+  if (/gateway-table|table-footer|ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|cell-html|row-container|gateway-table-data|gateway-empty-data/i.test(sel)) return "table";
   if (/label-custom/.test(sel)) return "label";
   if (/\.fa-|font-awesome|fa-check|fa-times|fa-clock/.test(sel)) return "icon";
   if (/ugw-header|ugw-sidebar|ugw-breadcrumb|ugw-info-box/i.test(sel)) return "layout";
@@ -206,7 +206,10 @@ function extractAnatomy(allHtml, allScss) {
   if (pagination === null) pagination = /<uii-pagination\b|ugw-pagination/i.test(html);
 
   return {
-    well: /(?:id|class)=["'][^"']*\bwell\b/i.test(html),
+    // wellAvailable (not "well: wrap it"): `.well` exists as a project idiom, but whether a
+    // given slice uses it is decided by the XML/transcript — NOT this convention (user's
+    // single-source-of-truth principle; the old `well:true` caused phantom wrappers).
+    wellAvailable: /(?:id|class)=["'][^"']*\bwell\b/i.test(html),
     tableTag,
     skeletonTag,
     pagination,
@@ -276,15 +279,19 @@ export function renderConventionsMd(conventions, frameworkLabel = "") {
 
   // --- anatomy ---
   L.push("## Page anatomy");
+  L.push("");
+  L.push("**Structure comes from the XML/transcript ONLY.** Conventions style elements that");
+  L.push("already exist in the design — they never ADD structural wrappers.");
   const a = componentAnatomy;
-  if (a.well || a.tableTag || a.skeletonTag || a.pagination) {
-    L.push("");
-    L.push("- Wrap the filter form in `id=\"well\"` (a `.well` panel)." );
-    if (a.skeletonTag) L.push(`- Loading state: render \`<${a.skeletonTag} *ngIf="isLoading">\` before the table.`);
-    if (a.tableTag) L.push(`- Table: use \`<${a.tableTag}>\` with \`[rows]\` + \`[columns]\`, wired client-side only (mock).`);
-    if (a.pagination) L.push(`- Pagination: the table paginates itself from \`rows\` — provide \`${a.mockRowsFloor}\` mock rows so it activates.`);
-    L.push("");
+  if (a.wellAvailable) {
+    L.push("- `.well` is a container class THIS project uses — apply it only when the design");
+    L.push("  (transcript) actually shows a container to style. Do NOT wrap the form in `id=\"well\"`");
+    L.push("  unless the XML has that wrapper.");
   }
+  if (a.skeletonTag) L.push(`- Loading state: render \`<${a.skeletonTag} *ngIf="isLoading">\` before the table.`);
+  if (a.tableTag) L.push(`- Table: use \`<${a.tableTag}>\` with \`[rows]\` + \`[columns]\`, wired client-side only (mock).`);
+  if (a.pagination) L.push(`- Pagination: the table paginates itself from \`rows\` — provide enough mock rows to activate it (the transcript's total, or \`${a.mockRowsFloor}\` minimum).`);
+  L.push("");
 
   // --- reusable classes ---
   L.push("## Reusable classes (reuse, don't invent)");

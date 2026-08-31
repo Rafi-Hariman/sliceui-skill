@@ -351,21 +351,37 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
   const rx = patterns[fwId];
   if (!rx) return samples;
 
-  const searchRoots = componentDir ? [join(root, componentDir), join(root, "src")] : [join(root, "src")];
+  const searchRoots = componentDir
+    ? [join(root, componentDir), join(root, "src"), join(root, "projects")]
+    : [join(root, "src"), join(root, "projects")];
   const found = [];
   for (const sr of searchRoots) {
-    walkFiles(sr, found, rx, { count: 50 }, 0);
-    if (found.length >= 3) break;
+    if (!existsSync(sr)) continue;
+    walkFiles(sr, found, rx, { count: 200 }, 0);
   }
-  if (!found.length) {
-    warnings.push(`No ${fwId} component files found — code-gen will use framework defaults.`);
+  // Exclude the app shell — it's a bad idiom sample (matches collectSelectors' exclusion).
+  // Then rank by feature-relevance: a component whose template renders a capability tag
+  // (uii-table/ngx-select) is a better idiom sample than a leaf widget (activity-log etc).
+  const candidates = found.filter((p) => !/[\\/]app\.component\.ts$/.test(p));
+  if (!candidates.length) {
+    warnings.push(`No ${fwId} feature component files found — code-gen will use framework defaults.`);
     return samples;
   }
+  const relevant = candidates
+    .map((path) => {
+      const content = readFileSyncSafe(path) ?? "";
+      const template = readTemplateOf(path, content, root);
+      // A template rendering a table or select is the strongest signal of a filter+table page.
+      const score = (/<(uii-table|ngx-datatable|mat-table)(?!-skeleton)\b/i.test(template) ? 2 : 0)
+        + (/<ngx-select\b|<select\b/i.test(template) ? 1 : 0);
+      return { path, content, score };
+    })
+    .sort((a, b) => b.score - a.score);
+  // Take top-3 relevant, but keep the original order among ties for determinism.
+  const limit = Math.min(relevant.length, 3);
+  const chosen = relevant.slice(0, limit);
 
-  const limit = Math.min(found.length, 3);
-  for (let i = 0; i < limit; i++) {
-    const path = found[i];
-    const content = readFileSyncSafe(path) ?? "";
+  for (const { path, content } of chosen) {
     const rel = toRel(root, path);
     // Pointers, not mirrors — the agent reads these files to learn idiom (no inline copies).
     if (fwId === "angular") {
@@ -379,6 +395,18 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
     }
   }
   return samples;
+}
+
+/** Read a component's template (inline `template:` or `templateUrl` file) for relevance scoring. */
+function readTemplateOf(tsPath, content, root) {
+  const inline = /template\s*:\s*`([\s\S]*?)`/.exec(content)?.[1]
+    ?? /template\s*:\s*["']([\s\S]*?)["']/.exec(content)?.[1];
+  if (inline) return inline;
+  const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1];
+  if (!templateUrl) return "";
+  const dir = tsPath.replace(/[^/]*$/, "");
+  const abs = join(dir, templateUrl);
+  try { return readFileSyncSafe(abs); } catch { return ""; }
 }
 
 /** Hash the config inputs + git HEAD so a stale project-context is detectable. */
