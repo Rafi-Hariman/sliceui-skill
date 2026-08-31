@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
 import { renderConventionsMd } from "../lib/conventions.mjs";
+import { refereeArtifacts } from "../lib/referee.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -120,6 +121,15 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   writeFileSync(convMdPath, renderConventionsMd(conventions, fwLabel));
   created.push(".sliceui/conventions.md");
 
+  // Referee (codebase head): validate the conventions just extracted against real occurrences
+  // in the source tree. Report-only — a fresh scaffold must still succeed — but surface the
+  // corruption map so stale/incorrect convention claims are visible at setup time, not during a slice.
+  const referee = refereeArtifacts(root, ctx, null, null, null);
+  const redCount = referee.findings.filter((f) => f.status === "fail" || f.status === "stale").length;
+  const refereeWarnings = redCount > 0
+    ? [`referee: ${redCount} ground-truth claim(s) fail/stale — run \`sliceui referee\` for the corruption map.`]
+    : [];
+
   return {
     ok: true,
     root,
@@ -129,7 +139,7 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
     framework: ctx.framework,
     detected: ctx.detected,
     componentDir: ctx.componentDir,
-    warnings: [...warnings, ...ctx.detectionWarnings],
+    warnings: [...warnings, ...ctx.detectionWarnings, ...refereeWarnings],
   };
 }
 

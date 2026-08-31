@@ -14,8 +14,10 @@
 //   8. rowAuth       — action-column rows carry the auth flags pilar needs to render icons
 //   9. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
 //  10. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
+//  11. tableOptions  — search/limit/pagination bindings map XML evidence (search bar, "Tampilkan N data", pagination footer)
 
 import { scssCoverage } from "./fidelity.mjs";
+import { LIBRARY_INTERNAL } from "./conventions.mjs";
 
 /** Legal uii-table inputs/outputs. Anything else is red unless evidenced. */
 const LEGAL_TABLE_BINDINGS = new Set([
@@ -29,19 +31,6 @@ const FORBIDDEN_TABLE_BINDINGS = new Set([
   "serverMode", "page", "pageChanged", "limitChanged", "searchChanged",
 ]);
 
-/** Library-internal reusable ::ng-deep selectors per capability family. These are the
- *  universal "how to style this library" idioms that must survive verbatim into any slice
- *  using the library. Component-specific variants (editable-cell tables, empty states,
- *  header cells, label taxonomy members) are deliberately EXCLUDED — they belong to one
- *  slice, not the reusable corpus. */
-const LIBRARY_INTERNAL = {
-  // The canonical open-state + toggle selectors only — these are the "lost design effect"
-  // set (the unfamiliar library-internal selectors the agent drops). Granular variants
-  // (toggle-button, value-container, custom-select wrappers) are deliberately excluded.
-  select: /ngx-select__toggle-caret|ngx-select__choices|ngx-select__item_active|dropdown-menu/i,
-  table: /ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|table-footer/i,
-  layout: /ugw-header|ugw-sidebar|ugw-breadcrumb/i,
-};
 
 /**
  * @param {object} args
@@ -68,6 +57,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkRowAuth(html, ts, rawXml),
     checkFilterRowButton(html, rawXml),
     checkButtonOrder(html, scss, rawXml),
+    checkTableOptions(html, rawXml),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -436,6 +426,42 @@ function checkButtonOrder(html, scss, rawXml) {
     return { name: "buttonOrder", status: "skip", detail: "no row-reverse signal in output" };
   }
   return { name: "buttonOrder", status: "fail", detail: "bulk/action buttons reversed (row-reverse) vs XML left→right order" };
+}
+
+// ---------- 3g. table options (search/limit/pagination map XML evidence) ----------
+
+function checkTableOptions(html, rawXml) {
+  // Map XML evidence → the uii-table binding that must be present. The three bindings are
+  // LEGAL (not the forbidden server-mode set), but the 0.10.0 output dropped them even
+  // though the XML shows a search bar, "Tampilkan N data", and a pagination footer.
+  const tableTag = /<(uii-table|ngx-datatable|mat-table)(?!-skeleton)\b[\s\S]*?>/i.exec(html);
+  if (!tableTag) {
+    return { name: "tableOptions", status: "skip", detail: "no table component in output" };
+  }
+  if (!rawXml) {
+    return { name: "tableOptions", status: "skip", detail: "no raw XML to check table options against" };
+  }
+  const el = tableTag[0];
+  const inputs = new Set([...el.matchAll(/\[(\w+)\]/g)].map((m) => m[1]));
+
+  const required = [];
+  if (/<search_bar\b/i.test(rawXml)) required.push("searchOptions");
+  if (/Tampilkan\s+\d+\s+data/i.test(rawXml)) required.push("limitOptions");
+  if (/Menampilkan\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+\d+\s+data/i.test(rawXml)) required.push("paginationOptions");
+
+  const missing = required.filter((b) => !inputs.has(b));
+  if (missing.length) {
+    return {
+      name: "tableOptions",
+      status: "fail",
+      detail: `uii-table missing binding(s) evidenced by the XML: ${missing.join(", ")}`,
+      missing,
+    };
+  }
+  if (!required.length) {
+    return { name: "tableOptions", status: "skip", detail: "no search/limit/pagination evidence in XML" };
+  }
+  return { name: "tableOptions", status: "pass", detail: `table options bound (${required.join(", ")})` };
 }
 
 // ---------- 4c. icon color / status-badge semantics ----------

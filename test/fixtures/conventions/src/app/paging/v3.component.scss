@@ -1,0 +1,6 @@
+// CORRECT variant (duplicate of v2) — majority should win over the single buggy v1.
+:host ::ng-deep .ugw-pagination-container li.page-box {
+  border-style: hidden !important;
+  border-bottom: 1px solid !important;
+  border-top: 1px solid !important;
+}

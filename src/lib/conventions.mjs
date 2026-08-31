@@ -104,28 +104,68 @@ function hintFor(cls) {
 
 // ---------- ::ng-deep corpus ----------
 
+/** Library-internal reusable ::ng-deep selectors per capability family. Single source of
+ *  truth shared with verify.mjs (which imports it for the scssCoverage gate). These are the
+ *  universal "how to style this library" idioms; a selector OUTSIDE this whitelist is
+ *  component-specific (one slice's editable-cell / spreadsheet idiom) and must NOT be
+ *  copied as if reusable. The table family includes the bare table shell (`gateway-table$`)
+ *  and its internal cell/empty/data classes, but NOT generic descendants like `row-container`
+ *  (which also tags component-specific editable-cell blocks). */
+export const LIBRARY_INTERNAL = {
+  select: /ngx-select__toggle-caret|ngx-select__choices|ngx-select__item_active|dropdown-menu/i,
+  table: /ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|table-footer|gateway-table\s*$|cell-html|gateway-table-data|gateway-empty-data/i,
+  layout: /ugw-header|ugw-sidebar|ugw-breadcrumb/i,
+};
+
+/** A corpus block is "reusable" (safe to copy into any slice) when its selector is a known
+ *  library-internal idiom for its family, OR it is a status-label/icon taxonomy member
+ *  (which the project reuses across pages). Everything else is component-specific. */
+function isReusable(selector, family) {
+  if (family === "label" || family === "icon") return true;
+  const rx = LIBRARY_INTERNAL[family];
+  return rx ? rx.test(selector) : false;
+}
+
 /** Merge EVERY ::ng-deep / :host ::ng-deep block across all stylesheets into one corpus.
  *  This is the verbatim-copy source for Pass 3 — the fix for defect #1/#3 where a single
  *  sampleScss (or a null one) left the agent reconstructing and dropping selectors. */
 function extractNgDeepCorpus(allScss) {
-  const corpus = [];
-  const seen = new Set();
+  // Group by NORMALIZED selector, then keep the MOST FREQUENT block variant. First-wins was
+  // wrong: a single outlier file (e.g. a pagination block whose `border-style: hidden` was
+  // ordered AFTER `border-bottom`, clobbering it) won the tie. Majority picks the canonical
+  // variant that the team actually ships most often. Grouping keys on a WHITESPACE-COLLAPSED
+  // canonical text (not exact text) so the vote isn't fragmented by indentation differences —
+  // the winning block is still stored verbatim from its first occurrence.
+  const variants = new Map(); // normalized selector -> Map(canonicalText -> { count, block, source, family })
   for (const f of allScss) {
     for (const block of extractNgDeepBlocks(f.src)) {
-      // Dedup by NORMALIZED selector — the same idiom appears with/without `:host `, a
-      // leading dot, whitespace, or Angular `[_ngcontent-*]` attribute scopes. Those are
-      // the SAME selector; keeping them all would make the verify gate flag a faithful
-      // component as missing 3 variants of one block.
       const key = normalizeSelector(block.selector);
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      corpus.push({
-        selector: key,
-        block: block.block,
-        source: toRelPath(f.path),
-        family: familyForSelector(block.selector),
-      });
+      if (!key) continue;
+      let byBlock = variants.get(key);
+      if (!byBlock) {
+        byBlock = new Map();
+        variants.set(key, byBlock);
+      }
+      const canon = block.block.replace(/\s+/g, " ");
+      if (!byBlock.has(canon)) {
+        byBlock.set(canon, { count: 0, block: block.block, source: toRelPath(f.path), family: familyForSelector(block.selector) });
+      }
+      byBlock.get(canon).count += 1;
     }
+  }
+  const corpus = [];
+  for (const [key, byBlock] of variants) {
+    let best = null;
+    for (const [canon, meta] of byBlock) {
+      if (!best || meta.count > best.count) best = meta;
+    }
+    corpus.push({
+      selector: key,
+      block: best.block,
+      source: best.source,
+      family: best.family,
+      reusable: isReusable(key, best.family),
+    });
   }
   return corpus;
 }
@@ -154,7 +194,10 @@ function familyForSelector(sel) {
 }
 
 /** Extract full ::ng-deep blocks (selector + balanced body) so the agent copies verbatim.
- *  Handles nested selectors via balanced-brace scanning, unlike a flat [^{}]+ regex. */
+ *  Handles nested selectors via balanced-brace scanning, unlike a flat [^{}]+ regex. Also
+ *  handles the GROUP form `:host ::ng-deep { … }` (no selector head), which the 51 correct
+ *  pagination files use — the direct-form scanner alone would miss them and let a buggy
+ *  outlier win the corpus. */
 function extractNgDeepBlocks(src) {
   const clean = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/gm, " ");
   const out = [];
@@ -172,12 +215,57 @@ function extractNgDeepBlocks(src) {
     if (close === -1) continue;
     const block = clean.slice(m.index, close + 1).trim();
     const head = clean.slice(m.index + m[0].length, open).trim().replace(/^\./, "");
-    for (const part of head.split(",")) {
-      const sel = part.replace(/\s+/g, " ").trim();
-      if (sel && !sel.startsWith("{")) out.push({ selector: sel, block });
+    const headSelectors = head
+      .split(",")
+      .map((part) => part.replace(/\s+/g, " ").trim())
+      .filter((s) => s && !s.startsWith("{"));
+    if (headSelectors.length) {
+      for (const sel of headSelectors) out.push({ selector: sel, block });
+    } else {
+      // Group form `:host ::ng-deep { … }` — descend into the body and emit each top-level
+      // nested rule as its own block (reconstructed as a direct `::ng-deep <sel> { … }`).
+      for (const nested of extractNestedRules(clean.slice(open + 1, close))) {
+        out.push(nested);
+      }
     }
   }
   return out;
+}
+
+/** Split a `::ng-deep { … }` group body into top-level nested rules, each reconstructed as a
+ *  direct `:host ::ng-deep <selector> { <body> }` block so it dedups and copies like a direct
+ *  block. Preserves each nested rule's inner declaration order (the pagination border-order
+ *  bug lives in this order). */
+function extractNestedRules(body) {
+  const rules = [];
+  let depth = 0;
+  let selBuf = "";
+  let bodyStart = -1;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === "{") {
+      if (depth === 0) {
+        const selector = selBuf.replace(/\s+/g, " ").trim();
+        if (selector) rules.push({ selector, bodyStart: i + 1 });
+      }
+      depth++;
+    } else if (c === "}") {
+      depth--;
+      if (depth === 0) {
+        const rule = rules[rules.length - 1];
+        if (rule && rule.bodyEnd === undefined) rule.bodyEnd = i;
+        selBuf = "";
+      }
+    } else if (depth === 0) {
+      selBuf += c;
+    }
+  }
+  return rules
+    .filter((r) => r.selector && r.bodyStart !== -1 && r.bodyEnd !== undefined)
+    .map((r) => ({
+      selector: r.selector,
+      block: `:host ::ng-deep ${r.selector} {${body.slice(r.bodyStart, r.bodyEnd)}}`,
+    }));
 }
 
 // ---------- component anatomy ----------
@@ -321,18 +409,36 @@ export function renderConventionsMd(conventions, frameworkLabel = "") {
 
   // --- ::ng-deep corpus ---
   L.push("## ::ng-deep corpus (copy verbatim & complete)");
+  const reusable = ngDeepCorpus.filter((c) => c.reusable);
+  const specific = ngDeepCorpus.filter((c) => !c.reusable);
   if (!ngDeepCorpus.length) {
     L.push("");
     L.push("_(none detected.)_");
   } else {
     L.push("");
-    L.push("The project styles library-internal DOM with `::ng-deep`. Copy these blocks");
-    L.push("verbatim — do not drop selectors you don't recognize. A dropped selector = a lost");
-    L.push("design effect (hover, open-state, pagination border, status colors).");
+    L.push("The project styles library-internal DOM with `::ng-deep`. **Only copy the REUSABLE");
+    L.push("blocks below** when the matching capability is in play. A dropped reusable selector");
+    L.push("= a lost design effect (hover, open-state, pagination border, table radius, status colors).");
     L.push("");
-    L.push("```scss");
-    for (const c of ngDeepCorpus) L.push(c.block);
-    L.push("```");
+    if (reusable.length) {
+      L.push("### Reusable (copy when the capability is in play)");
+      L.push("");
+      L.push("```scss");
+      for (const c of reusable) L.push(c.block);
+      L.push("```");
+    }
+    if (specific.length) {
+      L.push("");
+      L.push("### Component-specific (skip unless your slice matches this exact context)");
+      L.push("");
+      L.push("These belong to ONE slice's context (e.g. a select rendered inside a table cell, or");
+      L.push("an editable spreadsheet). Do NOT copy them into a normal page filter/table — copying");
+      L.push("a `border: none` control block globally is how a page-filter select loses its border.");
+      L.push("");
+      L.push("```scss");
+      for (const c of specific) L.push(`/* source: ${c.source} */\n${c.block}`);
+      L.push("```");
+    }
   }
   L.push("");
 

@@ -382,3 +382,67 @@ test("verify: buttonOrder skips when there is no reverse signal", () => {
   const check = r.checks.find((c) => c.name === "buttonOrder");
   assert.equal(check.status, "skip");
 });
+
+// ---------- tableOptions ----------
+
+const RAW_XML_TABLE_OPTIONS = `<search_bar id="s:1" name="search_bar" />
+<Text id="t:1" name="Tampilkan" characters="Tampilkan 5 data" />
+<Text id="t:2" name="pagination" characters="Menampilkan 1-10 dari 20 data" />`;
+
+test("verify: tableOptions fails when search/limit/pagination bindings dropped", () => {
+  // A table WITHOUT the three options even though the XML evidences them.
+  const htmlBare = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlBare, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_TABLE_OPTIONS,
+  });
+  const check = r.checks.find((c) => c.name === "tableOptions");
+  assert.equal(check.status, "fail");
+  assert.ok(check.missing.includes("searchOptions"), "searchOptions missing");
+  assert.ok(check.missing.includes("limitOptions"), "limitOptions missing");
+  assert.ok(check.missing.includes("paginationOptions"), "paginationOptions missing");
+});
+
+test("verify: tableOptions passes when all three bindings present", () => {
+  const htmlBound = `<uii-table [rows]="rows" [columns]="columns" [searchOptions]="true" [limitOptions]="true" [paginationOptions]="true"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlBound, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_TABLE_OPTIONS,
+  });
+  const check = r.checks.find((c) => c.name === "tableOptions");
+  assert.equal(check.status, "pass");
+});
+
+test("verify: tableOptions skips without table or without XML evidence", () => {
+  const noTable = verifyComponent({
+    scss: GOOD_SCSS, html: `<div>no table</div>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_TABLE_OPTIONS,
+  });
+  assert.equal(noTable.checks.find((c) => c.name === "tableOptions").status, "skip");
+
+  const noEvidence = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(noEvidence.checks.find((c) => c.name === "tableOptions").status, "skip");
+});
+
+// ---------- gateway-table scssCoverage (reusable table shell) ----------
+
+test("verify: scssCoverage requires the bare .gateway-table shell when a table is in play", () => {
+  const conventionsWithShell = {
+    ...CONVENTIONS,
+    ngDeepCorpus: [
+      ...CONVENTIONS.ngDeepCorpus,
+      { selector: "gateway-table", family: "table", block: ":host ::ng-deep.gateway-table { border-top-left-radius: 6px !important; }" },
+    ],
+  };
+  // GOOD_SCSS does not contain `gateway-table`.
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: conventionsWithShell, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.equal(check.status, "fail");
+  assert.ok(check.missing.some((s) => s.includes("gateway-table")), "gateway-table flagged missing");
+});

@@ -1,0 +1,6 @@
+// BUGGY variant: border-style: hidden AFTER border-bottom clobbers the bottom border.
+:host ::ng-deep .ugw-pagination-container li.page-box {
+  border-bottom: 1px solid !important;
+  border-style: hidden !important;
+  border-top: 1px solid !important;
+}

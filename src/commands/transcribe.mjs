@@ -9,6 +9,7 @@ import { transcribeWithGemini } from "./transcribe-gemini.mjs";
 import { transcribeStatic } from "./transcribe-static.mjs";
 import { parseFigml } from "../lib/figml-parse.mjs";
 import { renderTranscript } from "../lib/render-transcript.mjs";
+import { computeFidelity } from "../lib/fidelity.mjs";
 
 const XML_EXTS = new Set([".xml", ".figml"]);
 
@@ -27,7 +28,10 @@ export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}
     }
     const r = parseFigml(xml, imagePath);
     if (!r.ok) return r;
-    return { ok: true, transcript: r.transcript, tier: 0, source: "figml", notes: [] };
+    // Fidelity: on the deterministic FIGML path, report how many visual attributes survived into
+    // the transcript — the corruption signal `sliceui fidelity` exposes, surfaced on every slice.
+    const fidelity = computeFidelity(xml, basename(imagePath));
+    return { ok: true, transcript: r.transcript, tier: 0, source: "figml", fidelity, notes: [] };
   }
 
   const notes = [];
@@ -100,11 +104,25 @@ export async function main(argv) {
     process.stderr.write(conventionsWarnings.map((w) => "⚠ " + w).join("\n") + "\n");
   }
 
+  // Fidelity: surfaced on every FIGML transcribe so the agent sees a dropped-attribute warning
+  // without a separate `sliceui fidelity` command.
+  const fidelity = result.fidelity;
+  if (fidelity) {
+    const pct = Math.round(fidelity.score * 100);
+    console.log(`Fidelity: ${pct}% (${fidelity.preserved}/${fidelity.total} visual attributes preserved)`);
+    if (fidelity.score < 0.9) {
+      process.stderr.write(
+        `⚠ FIDELITY ${pct}% — the transcript dropped visual attributes the design had. Inspect the layout before generating.\n`,
+      );
+    }
+  }
+
   console.log(JSON.stringify({
     ok: true,
     tier: result.tier,
     source: result.source,
     degraded: Boolean(result.degraded),
+    fidelity: fidelity ? { score: fidelity.score, preserved: fidelity.preserved, total: fidelity.total } : undefined,
     out: mdPath,
     notes: result.notes.length ? result.notes : undefined,
   }, null, 2));

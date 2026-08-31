@@ -1,0 +1,8 @@
+// A component-specific block: a select rendered inside a table cell loses its border here.
+// This must NOT be reusable — copying it into a page filter would drop the select border.
+:host ::ng-deep .ngx-select .form-control,
+:host ::ng-deep .ngx-select .form-control:focus {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}

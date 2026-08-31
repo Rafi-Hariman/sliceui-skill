@@ -44,11 +44,11 @@ The skill activates, the CLI does the heavy lifting, and the agent writes the fi
 ## The pipeline
 
 ```
-sliceui init        → project-context.json (WHAT) + conventions.json/.md (HOW this team writes)
-sliceui transcribe  → transcript (exact layout + colors + text + icons + checkbox)
+sliceui init        → project-context.json (WHAT) + conventions.json/.md (HOW this team writes) + referee corruption map
+sliceui transcribe  → transcript (exact layout + colors + text + icons + checkbox) + fidelity score
 sliceui resolve     → every styled leaf → resolved[] (exact idiom candidates)
-sliceui verify      → deterministic checks: fidelity + conventions + structure (exit 0/1)
-sliceui referee     → validate ground-truth artifacts (design + codebase)
+sliceui referee     → pre-generate gate: ground-truth validation (design + codebase), must be green
+sliceui verify      → post-generate blocking gate: fidelity + conventions + structure (must exit 0)
 ```
 
 ## Commands
@@ -124,11 +124,11 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ### 4. `verify`
 
-`sliceui verify <dir> [name]` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, mock-row count, compiled-scope leaks, icon colors, structural wrappers, **ngx-select bindings** (`[(ngModel)]` and `(select)`; a dead filter is rejected), **per-row auth** (an action column must attach the `AuthorizationModel` flags `uii-table` needs to render its icons, mapped from the XML `<Aksi>` booleans), **filter-row buttons** (a `Cari` button in the XML is not dropped), and **button order** (`flex-direction: row-reverse` flipping the XML's left-to-right order is rejected). A run with no ground truth is never green.
+`sliceui verify <dir> [name]` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, mock-row count, compiled-scope leaks, icon colors, structural wrappers, **ngx-select bindings** (`[(ngModel)]` and `(select)`; a dead filter is rejected), **per-row auth** (an action column must attach the `AuthorizationModel` flags `uii-table` needs to render its icons, mapped from the XML `<Aksi>` booleans), **filter-row buttons** (a `Cari` button in the XML is not dropped), **button order** (`flex-direction: row-reverse` flipping the XML's left-to-right order is rejected), and **table options** (a search bar / "Tampilkan N data" / pagination footer in the XML must map to `[searchOptions]`/`[limitOptions]`/`[paginationOptions]`). A run with no ground truth is never green. **This is a blocking post-generate gate**: the agent must reach exit 0 before declaring a slice done.
 
 ### 5. `referee`
 
-`sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent.
+`sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent. **The codebase head also runs automatically at `sliceui init`** (surfacing the corruption map at setup time), and the full run is a mandatory pre-generate step in the skill: if anything is red, the artifacts are refreshed before codegen.
 
 ## Requirements
 
@@ -137,6 +137,7 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ## Status
 
+v0.11.0: every command actually fires. An audit found three commands built but never wired into the `/sliceui` flow: `referee` (0 mentions in the skill), `fidelity` (dead as a command), and `verify` (a "report-only" suggestion the agent could skip). All three are now wired at the correct point. `sliceui transcribe` chains the fidelity score into its output (`Fidelity: NN%`, warning below 90%) so attribute loss is visible on every slice; `sliceui init` runs the referee codebase-head and surfaces the corruption map in its warnings; the skill gains a mandatory Step 3.5 pre-generate gate (`sliceui referee` must exit 0 before codegen) and the verify gate is upgraded from "report-only" to a **blocking loop** (fix the failing check, re-run, not done until exit 0). Also: corpus hygiene (`::ng-deep` blocks split into reusable vs component-specific sections so a spreadsheet-only `border: none` block can no longer leak into a page filter; majority-vote dedup picks the canonical pagination variant over a buggy outlier; the nested `:host ::ng-deep { … }` group form is now parsed), `scssCoverage` requires the bare `.gateway-table` shell, and a `tableOptions` check maps XML evidence to `[searchOptions]`/`[limitOptions]`/`[paginationOptions]`.
 v0.10.0: close the e2e defect gap. `sliceui verify` grows from 9 to 13 checks: `ngxSelectBinding` (every `<ngx-select>` must carry `[(ngModel)]` and `(select)`), `rowAuth` (an action column must attach per-row `AuthorizationModel` flags so `uii-table` renders the edit/detail/delete icons, mapped from the XML `<Aksi>` component-property booleans), `filterRowButton` (a `Cari`/filter button in the XML is not dropped), and `buttonOrder` (`flex-direction: row-reverse` on paired action buttons is rejected). SKILL.md now teaches the agent: grid "N fields + 1 button" rows keep the button, every `ngx-select` is bound, action columns carry per-row `auth` (with an action→authKey→icon table), bulk buttons follow the XML's left→right order, and `sliceui verify` is a post-generate gate. The `uii-table` registry sample carries `[actionColumn]` + an `AuthorizationModel` hint. Calibrated against the same human reference: the reference passes and the known-broken output now fails on all five named defects.
 v0.9.0: end-to-end quality pipeline. `sliceui referee` (two-headed ground-truth validator), `sliceui resolve` (resolve-then-assemble, the agent emits only exact idiom candidates), and `sliceui verify` hardened to 9 checks (compiled-scope leaks, invented icon colors, and structural wrappers the design does not have are all rejected). Ground-truth fixes: `sampleComponents` excludes the app shell and picks feature-relevant components (scans monorepo `projects/`), conventions no longer teach a structural wrapper as an instruction (structure comes from the design only), and the mock-row floor is a sane minimum (the slice total is handled by verify). Calibrated against a human-written reference: the reference passes, and a known-corrupt output fails on exactly the corruption signals.
 v0.8.0: adapt conventions into init + verify gate. `init` produces 3 artifacts (project-context + conventions.json + conventions.md); `sliceui verify` with deterministic checks; gate-honesty fixes (null-exemplar hard-fails, no-ground-truth never green); parser fixes (vector icon fill color, checkbox detection).

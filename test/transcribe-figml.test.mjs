@@ -26,6 +26,18 @@ test("transcribe auto-detects XML → figml (tier 0, exact, no key)", async () =
   assert.equal(r.transcript.meta.textQuality, "exact");
 });
 
+test("transcribe surfaces a fidelity score on the FIGML path", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-tr-"));
+  const xmlPath = join(dir, "design.xml");
+  writeFileSync(xmlPath, SAMPLE);
+  const r = await transcribe(xmlPath, dir, {});
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(r.ok, true);
+  assert.ok(r.fidelity, "fidelity object present on the FIGML path");
+  assert.equal(typeof r.fidelity.score, "number", "fidelity.score is a number");
+  assert.ok(r.fidelity.total >= 0, "fidelity.total is a non-negative count");
+});
+
 test("transcribe reports read-error for a missing XML path", async () => {
   const r = await transcribe("/nonexistent/design.xml", "/tmp", {});
   assert.equal(r.ok, false);
