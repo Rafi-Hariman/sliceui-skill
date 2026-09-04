@@ -508,3 +508,101 @@ test("verify: ngxSelectBinding fails when a select uses formControlName (legacy 
   assert.equal(check.status, "fail");
   assert.ok(check.problems.some((p) => p.includes("formControlName")), "formControlName flagged");
 });
+
+// ---------- inventedUtility ----------
+
+test("verify: inventedUtility fails on a Bootstrap-4 w-100 utility (dead in BS3)", () => {
+  const htmlWithW100 = `<button class="btn btn-primary w-100">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithW100, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("btn-block"), "hint names btn-block");
+});
+
+test("verify: inventedUtility fails on a Bootstrap-4 mr-2 margin utility", () => {
+  const htmlWithMr2 = `<button class="btn mr-2">A</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithMr2, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("margin"), "hint names margin idiom");
+});
+
+test("verify: inventedUtility passes on the BS3 idiom (btn-block)", () => {
+  const htmlWithBtnBlock = `<button class="btn btn-primary btn-block">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithBtnBlock, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "pass");
+});
+
+test("verify: inventedUtility skips when there is no class vocabulary", () => {
+  const htmlWithW100 = `<button class="btn w-100">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithW100, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, classVocabulary: [] },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "skip");
+});
+
+test("verify: inventedUtility fails on gap-2 (atomic utility the project never uses)", () => {
+  const htmlWithGap = `<div class="bulk-actions gap-2"><button class="btn">A</button></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithGap, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("gap-2"), "gap-2 flagged invented");
+});
+
+test("verify: inventedUtility fails on rounded-xl (not in vocabulary)", () => {
+  const htmlWithRounded = `<div class="well rounded-xl"></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithRounded, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("rounded-xl"), "rounded-xl flagged invented");
+});
+
+test("verify: inventedUtility fails on mt-4 the project never uses (mirror the team)", () => {
+  const htmlWithMt4 = `<div class="row mt-4"><div class="col-md-3">x</div></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithMt4, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("mt-4"), "mt-4 flagged invented");
+});
+
+test("verify: inventedUtility does not flag framework grid/layout base (row, col-md-*)", () => {
+  const htmlGrid = `<div class="row"><div class="col-md-4 col-12">a</div><div class="col-md-4">b</div></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlGrid, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "pass", "row + col-* are framework base, not invented");
+});
+
+test("verify: inventedUtility does not flag semantic classes (label-custom-warning in vocab)", () => {
+  const htmlLabel = `<span class="label label-custom-warning"></span>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlLabel, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedUtility");
+  assert.equal(check.status, "pass", "label-custom-warning is in vocabulary → legal");
+});

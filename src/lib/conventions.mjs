@@ -13,8 +13,10 @@ import { readFileSync } from "node:fs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/build/**", "**/.sliceui/**"];
 
-// Bootstrap-style grid/layout classes that carry no project-specific meaning.
-const TRIVIAL_CLASS = /^(row|container(-fluid)?|col(-(xs|sm|md|lg|xl|xxl))?(-\d+)?|text-(left|right|center|justify)|pull-(left|right)|hidden(-(xs|sm|md|lg|xl))?|visible-[a-z-]+|clearfix)$/;
+// Bootstrap-style grid/layout classes that carry no project-specific meaning. Exported so
+// verify.mjs reuses it as FRAMEWORK_BASE — the set of framework classes that are ALWAYS legal
+// (and thus never need to appear in classVocabulary to be allowed).
+export const TRIVIAL_CLASS = /^(row|container(-fluid)?|col(-(xs|sm|md|lg|xl|xxl))?(-\d+)?|text-(left|right|center|justify)|pull-(left|right)|hidden(-(xs|sm|md|lg|xl))?|visible-[a-z-]+|clearfix)$/;
 
 /**
  * Extract the project's code conventions.
@@ -87,9 +89,13 @@ function extractClassVocabulary(allHtml) {
   return vocab;
 }
 
-/** "label-custom-success" → "label-custom"; null when no trailing -segment to group. */
+/** "label-custom-success" → "label-custom"; null when no trailing -segment to group.
+ *  The trailing segment may start with a letter OR a digit: "mt-2"/"mb-3" are members of the
+ *  spacing-utility family ("mt", "mb") just as "label-custom-warning" is of "label-custom".
+ *  Without the digit case, numeric-suffix utilities can never form a family and fall off the
+ *  top-N cutoff — they'd then be flagged "invented" by verify despite heavy team usage. */
 function familyOf(cls) {
-  const m = /^(.+)-[a-zA-Z][\w-]*$/.exec(cls);
+  const m = /^(.+)-[a-zA-Z0-9][\w-]*$/.exec(cls);
   return m ? m[1] : null;
 }
 
@@ -113,7 +119,11 @@ function hintFor(cls) {
  *  (which also tags component-specific editable-cell blocks). */
 export const LIBRARY_INTERNAL = {
   select: /ngx-select__toggle-caret|ngx-select__choices|ngx-select__item_active|dropdown-menu|^ngx-select__toggle$/i,
-  table: /ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|table-footer|gateway-table\s*$|cell-html|gateway-table-data|gateway-empty-data/i,
+  // `gateway-table-data` (a hover transition one slice added) and bare `header-cell`/`data-cell`
+  // nth-child centering (master-bank centers ITS columns 4-5 by index) are excluded: they are
+  // column-index-specific or effect-specific to one page, not universal table idioms. The
+  // universal set is the shell (gateway-table$), footer/pagination, and search/limit internals.
+  table: /ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|table-footer|gateway-table\s*$|cell-html|gateway-empty-data/i,
   layout: /ugw-header|ugw-sidebar|ugw-breadcrumb/i,
   // Bare form controls are the project's universal input rounding/border idiom — distinct from
   // component-specific pseudo variants (form-control:focus = spreadsheet border:none) and from
@@ -121,13 +131,26 @@ export const LIBRARY_INTERNAL = {
   form: /^form-control$|^input$/i,
 };
 
+/** The same families' WRAPPER guard: a reusable idiom must not sit under a component-specific
+ *  wrapper class. `table-select .ngx-select__toggle-caret` (an editable-cell idiom) and
+ *  `custom-select .ngx-select__toggle-caret` (hides the caret) contain a reusable TOKEN but
+ *  belong to one slice's context — the wrapper changes what the block does. A token match
+ *  anywhere in the chain (the old behavior) let those masquerade as reusable in the corpus. */
+export const LIBRARY_INTERNAL_WRAPPER_GUARD = {
+  select: /table-select|custom-select/,
+  table: /table-select|custom-select|table-input-autonumeric/,
+};
+
 /** A corpus block is "reusable" (safe to copy into any slice) when its selector is a known
- *  library-internal idiom for its family, OR it is a status-label/icon taxonomy member
- *  (which the project reuses across pages). Everything else is component-specific. */
+ *  library-internal idiom for its family AND not chained under a component-specific wrapper,
+ *  OR it is a status-label/icon taxonomy member (which the project reuses across pages).
+ *  Everything else is component-specific. */
 function isReusable(selector, family) {
   if (family === "label" || family === "icon") return true;
   const rx = LIBRARY_INTERNAL[family];
-  return rx ? rx.test(selector) : false;
+  if (!rx || !rx.test(selector)) return false;
+  const guard = LIBRARY_INTERNAL_WRAPPER_GUARD[family];
+  return guard ? !guard.test(selector) : true;
 }
 
 /** Merge EVERY ::ng-deep / :host ::ng-deep block across all stylesheets into one corpus.

@@ -3,23 +3,27 @@
 // check returns { name, status: pass|fail|skip, detail }. The gate must be able to say
 // "I cannot verify this" — a check that lacks its ground truth reports `skip`, never pass.
 //
-// Thirteen checks, each closing a known defect class from the history-agreement audit:
+// Checks, each closing a known defect class from the history-agreement audit:
 //   1. scssCoverage  — every ::ng-deep selector in the conventions corpus survived verbatim
 //   2. textCoverage  — fidelity-critical text (buttons/placeholders/title) not dropped
 //   3. tableBindings — legal binding set, checkbox evidenced by RAW XML (not transcript)
-//   4. classVocabulary — reuse the project's classes; invented status labels are red
+//   4. classVocabulary — reuse the project's classes; invented status labels are warn
 //   5. anatomy       — table present ⇒ skeleton loading state present
 //   6. mockRowCount  — rows ≥ max(conventions floor, transcript pagination total)
-//   7. ngxSelectBinding — every <ngx-select> carries [(ngModel)] + (select) (dead-filter defect)
-//   8. rowAuth       — action-column rows carry the auth flags pilar needs to render icons
-//   9. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
-//  10. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
-//  11. tableOptions  — search/limit/pagination bindings map XML evidence (search bar, "Tampilkan N data", pagination footer)
-//  12. gridColumns   — a filter row's col-*-N spans must sum to ≤ 12 (no wrapped children)
-//  13. noTranslation — no `| translate` pipe (SliceUI emits literal text, never i18n)
+//   7. noHashedSelectors — reject compiled [_ngcontent-*] leaked into source
+//   8. iconColor     — status-icon color must be a design color (no invented mapping)
+//   9. phantomWrapper — no structural wrapper beyond the XML
+//  10. ngxSelectBinding — every <ngx-select> carries [(ngModel)] + (select) (dead-filter defect)
+//  11. rowAuth       — action-column rows carry the auth flags pilar needs to render icons
+//  12. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
+//  13. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
+//  14. tableOptions  — search/limit/pagination bindings map XML evidence
+//  15. gridColumns   — a filter row's col-*-N spans must sum to ≤ 12 (no wrapped children)
+//  16. noTranslation — no `| translate` pipe (SliceUI emits literal text, never i18n)
+//  17. inventedUtility — no atomic utility class (w-100/mr-2/gap-2/rounded-xl) the project never uses
 
 import { scssCoverage } from "./fidelity.mjs";
-import { LIBRARY_INTERNAL } from "./conventions.mjs";
+import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
 
 /** Legal uii-table inputs/outputs. Anything else is red unless evidenced. */
 const LEGAL_TABLE_BINDINGS = new Set([
@@ -62,6 +66,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkTableOptions(html, rawXml),
     checkGridColumns(html),
     checkNoTranslation(html, ts),
+    checkInventedUtility(html, conventions?.classVocabulary),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -115,7 +120,8 @@ function anyTokenPresent(selector, scss) {
 }
 
 /** Which corpus blocks must THIS component copy? Family triggered by the component's own
- *  tags/classes, then filtered to library-internal (reusable) selectors only. */
+ *  tags/classes, then filtered to library-internal (reusable) selectors only — mirroring
+ *  conventions.mjs's isReusable (token match + NOT under a component-specific wrapper). */
 function relevantCorpus(ngDeepCorpus, html) {
   const triggers = {
     select: /<ngx-select\b|dropdown-menu/i,
@@ -126,7 +132,9 @@ function relevantCorpus(ngDeepCorpus, html) {
   return ngDeepCorpus.filter((c) => {
     if (!c.family || !inPlay.includes(c.family)) return false;
     const rx = LIBRARY_INTERNAL[c.family];
-    return rx ? rx.test(c.selector) : false;
+    if (!rx || !rx.test(c.selector)) return false;
+    const guard = LIBRARY_INTERNAL_WRAPPER_GUARD[c.family];
+    return guard ? !guard.test(c.selector) : true;
   });
 }
 
@@ -347,6 +355,55 @@ function checkNoTranslation(html, ts) {
     };
   }
   return { name: "noTranslation", status: "pass", detail: "no `| translate` pipe" };
+}
+
+// ---------- 3c3. invented utility (an atomic utility class the project never uses) ----------
+
+/** Atomic utility classes that carry no project-specific meaning but whose presence in a
+ *  slice is meaningful: spacing (`m`/`p` families), sizing (`w`/`h`/`min-`/`max-`), flexbox
+ *  (`gap`, `d-*`, `flex-*`, `justify-*`, `align-*`, `order-*`), and radius (`rounded-*`).
+ *  These are the Bootstrap "utility namespaces". A slice that uses one the project itself
+ *  never uses (e.g. `w-100`, `mr-2`, `gap-2`, `rounded-xl`) is inventing — the agent should
+ *  mirror what the team actually writes, not guess framework utilities. Semantic/component
+ *  classes (`btn-*`, `label-custom-*`, `table-*`, `text-danger`, …) are deliberately OUT of
+ *  scope here — they are handled by the `classVocabulary` warn check, not flagged as invented. */
+const UTILITY_SHAPE = /^(?:[mp][trblsxye]?-|[wh]-|mw-|mh-|min-|max-|(?:row-|column-)?gap-|d-|flex|justify-content-|align-(?:items|self|content)-|order-|rounded(?:-|$))/;
+
+/** Actionable hints for the most common invented prefixes — the fix that mirrors the team's
+ *  actual idiom instead of a bare "you invented this". */
+const UTILITY_HINTS = {
+  w: "use `btn-block` or a `col-*-12` for full width",
+  h: "prefer the XML's geometry (or the component's natural height) over `h-*`",
+  mr: "use `gap`, `button-action-right`, or the project's `margin-*-N` idiom",
+  ml: "use `gap`, `button-action-right`, or the project's `margin-*-N` idiom",
+  gap: "use the project's margin idiom (the `gap` utility class is not emitted here)",
+  rounded: "take the radius from the transcript/XML",
+};
+
+function checkInventedUtility(html, classVocabulary = []) {
+  const known = new Set(classVocabulary.map((c) => c.name));
+  if (known.size === 0) {
+    return { name: "inventedUtility", status: "skip", detail: "no class vocabulary in conventions" };
+  }
+  const problems = [];
+  const seen = new Set();
+  for (const m of html.matchAll(/class=["']([^"']+)["']/g)) {
+    for (const raw of m[1].split(/\s+/)) {
+      const cls = raw.trim();
+      if (!cls || seen.has(cls)) continue;
+      seen.add(cls);
+      if (TRIVIAL_CLASS.test(cls)) continue;   // framework grid/layout base — always legal
+      if (known.has(cls)) continue;            // the team already uses it — legal
+      if (!UTILITY_SHAPE.test(cls)) continue;  // semantic/component class — out of scope here
+      const prefix = /^[a-z]+/.exec(cls)?.[0] ?? "";
+      const hint = UTILITY_HINTS[prefix];
+      problems.push(hint ? `"${cls}" is invented — ${hint}` : `"${cls}" is invented — the project never uses this utility`);
+    }
+  }
+  if (problems.length) {
+    return { name: "inventedUtility", status: "fail", detail: problems.join("; "), problems };
+  }
+  return { name: "inventedUtility", status: "pass", detail: "no invented utility classes" };
 }
 
 // ---------- 3d. row auth (action-column icons only render when row.auth.<flag> truthy) ----------

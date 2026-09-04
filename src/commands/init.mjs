@@ -49,7 +49,8 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
       version: 1,
       forceTranscribe: true,
       defaultTier: "auto",
-      notes: "forceTranscribe=true: always transcribe images to text (model-agnostic).",
+      references: [],
+      notes: "forceTranscribe=true: always transcribe images to text (model-agnostic). references = paths to hand-sliced 'golden' components the agent reads FIRST as writing patterns.",
     }, null, 2) + "\n");
     created.push(".sliceui/config.json");
   }

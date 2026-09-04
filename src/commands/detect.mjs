@@ -68,7 +68,10 @@ export function detectProject(rootDir) {
     styleExt = detectStyleExt(root, fw.id);
   }
 
-  const sampleComponents = findSampleComponents(root, fw.id, componentDir, warnings);
+  const sampleComponents = [
+    ...readGoldenReferences(root, warnings),
+    ...findSampleComponents(root, fw.id, componentDir, warnings),
+  ];
 
   // Library-aware: capabilities map (category → library + real usage sample).
   // deps feeds the "installed but not yet used" signal so a fresh scaffold still resolves
@@ -395,6 +398,57 @@ function findSampleComponents(root, fwId, componentDir, warnings) {
     }
   }
   return samples;
+}
+
+/** Read `.sliceui/config.json` `references` (hand-sliced "golden" components) and emit
+ *  sampleComponents entries the agent must read FIRST as canonical writing patterns.
+ *  A reference is a path (abs or relative to root) to a `.component.ts` file, or a directory
+ *  containing one. Graceful: absent config / empty references produce no entry and no warning
+ *  (optional feature); a reference that cannot resolve does warn (user error worth surfacing). */
+function readGoldenReferences(root, warnings) {
+  const config = readJsonSafe(join(root, ".sliceui", "config.json"));
+  const refs = config?.references ?? [];
+  if (!Array.isArray(refs) || !refs.length) return [];
+
+  const out = [];
+  for (const ref of refs) {
+    const tsPath = resolveReferenceTs(root, ref);
+    if (!tsPath) {
+      warnings.push(`reference "${ref}" has no resolvable .component.ts — skipped`);
+      continue;
+    }
+    const content = readFileSyncSafe(tsPath) ?? "";
+    const selector = /selector:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
+    const templateUrl = /templateUrl:\s*['"]([^'"]+)['"]/.exec(content)?.[1] ?? null;
+    const styleUrlsMatch = /styleUrls:\s*\[([^\]]*)\]/.exec(content)?.[1] ?? "";
+    const styleUrls = [...styleUrlsMatch.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    out.push({
+      path: toRel(root, tsPath),
+      golden: true,
+      selector,
+      templateUrl,
+      styleUrls,
+      note: "GOLDEN reference — canonical writing pattern; read FIRST (wiring/structure/SCSS idiom). XML still owns appearance.",
+    });
+  }
+  return out;
+}
+
+/** Resolve a `references` entry to its `.component.ts`: accept a direct file path, or a
+ *  directory (use its `<basename>.component.ts`, else any single `.component.ts` within). */
+function resolveReferenceTs(root, ref) {
+  const abs = resolve(root, ref);
+  if (existsSync(abs) && abs.endsWith(".component.ts")) return abs;
+  if (existsSync(abs) && statSync(abs).isDirectory()) {
+    const entries = readdirSync(abs, { withFileTypes: true });
+    const name = abs.split("/").pop();
+    const named = entries.find((e) => e.isFile() && e.name === `${name}.component.ts`);
+    if (named) return join(abs, named.name);
+    const any = entries.find((e) => e.isFile() && e.name.endsWith(".component.ts"));
+    if (any) return join(abs, any.name);
+    return null;
+  }
+  return null;
 }
 
 /** Read a component's template (inline `template:` or `templateUrl` file) for relevance scoring. */
