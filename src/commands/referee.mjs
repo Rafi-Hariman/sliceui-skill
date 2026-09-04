@@ -6,7 +6,14 @@ import { join, resolve } from "node:path";
 import { refereeArtifacts, readRawXmlFromSliceui } from "../lib/referee.mjs";
 
 export function main(argv) {
-  const root = argv[0] ? resolve(argv[0]) : process.cwd();
+  // Parse --target <name> (the slice target component basename) from argv; rest = positional root.
+  let target = null;
+  const pos = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--target" && argv[i + 1]) { target = argv[++i]; }
+    else pos.push(argv[i]);
+  }
+  const root = pos[0] ? resolve(pos[0]) : process.cwd();
   const sliceuiDir = join(root, ".sliceui");
   const ctxPath = join(sliceuiDir, "project-context.json");
   if (!existsSync(ctxPath)) {
@@ -21,13 +28,14 @@ export function main(argv) {
   // in a different working dir. codebase-evidence must scan the REAL project source tree.
   const codebaseRoot = ctx.cwd && existsSync(ctx.cwd) ? ctx.cwd : root;
 
-  const r = refereeArtifacts(codebaseRoot, ctx, xml, name, transcript);
+  const r = refereeArtifacts(codebaseRoot, ctx, xml, name, transcript, target);
 
   console.log("SliceUI referee — ground-truth validation (XML + codebase)\n");
   for (const f of r.findings) {
     const icon = f.status === "pass" ? "✓" : f.status === "fail" ? "✗" : f.status === "stale" ? "△" : "·";
     const label = f.status === "stale" ? "STALE" : f.status.toUpperCase();
-    console.log(`  ${icon} [${f.head}] ${label}  ${f.artifact}`);
+    const mode = f.mode ? `  [mode: ${f.mode}]` : "";
+    console.log(`  ${icon} [${f.head}] ${label}  ${f.artifact}${mode}`);
     console.log(`       ${f.detail}${f.evidencePath ? `  (${f.evidencePath})` : ""}`);
   }
   console.log(`\n${r.redCount} red (fail/stale) · ${r.findings.length} checks`);

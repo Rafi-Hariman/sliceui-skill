@@ -23,8 +23,31 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/build/**
  * @param {object|null} transcript — the parsed transcript (for mockRowsFloor + cell-html)
  * @returns {{ findings: Array<{head,artifact,claim,evidencePath,status,detail}>, pass: boolean }}
  */
-export function refereeArtifacts(root, ctx, xml, xmlFilename, transcript = null) {
+export function refereeArtifacts(root, ctx, xml, xmlFilename, transcript = null, target = null) {
   const findings = [];
+
+  // --- head 0: target-exists (STOP gate — a component already has front-end code) ---
+  // When the agent names the slice target (`--target <name>`), check whether the component
+  // ALREADY exists in the project before any write. If it does, this is a red finding that
+  // halts the pipeline: the agent must ask the user overwrite/merge/skip — never silently
+  // overwrite an existing mock-data or real-API component.
+  if (target) {
+    const tsPath = locateTargetTs(root, ctx, target);
+    if (tsPath) {
+      const ts = readFileSyncSafe(tsPath);
+      const mode = classifyComponentMode(ts);
+      const lines = ts.split("\n").length;
+      findings.push({
+        head: "codebase",
+        artifact: "component target",
+        claim: `"${target}" is a NEW component (does not already exist)`,
+        evidencePath: tsPath,
+        status: "fail",
+        detail: `ALREADY EXISTS (${mode}, ~${lines} lines). STOP — ask the user: overwrite / merge (keep .ts API) / skip.`,
+        mode,
+      });
+    }
+  }
 
   // --- head 1: XML-fidelity (did transcript preserve the design) ---
   if (xml) {
@@ -156,6 +179,29 @@ export function refereeArtifacts(root, ctx, xml, xmlFilename, transcript = null)
 
 function readFileSyncSafe(p) {
   try { return readFileSync(p, "utf8"); } catch { return ""; }
+}
+
+/** Locate `<name>.component.ts` for a target: prefer componentDir, then a repo-wide search. */
+function locateTargetTs(root, ctx, target) {
+  const cd = ctx?.componentDir ?? "src/app";
+  const direct = join(root, cd, `${target}.component.ts`);
+  if (existsSync(direct)) return direct;
+  // Monorepo / nested feature dirs: search the whole project, skipping vendored/built dirs.
+  const hits = fg.sync([`**/${target}.component.ts`], { cwd: root, ignore: SKIP, absolute: true });
+  return hits[0] ?? null;
+}
+
+/** Classify an existing component as "mock data" vs "real API" by its .ts contents. */
+function classifyComponentMode(ts) {
+  // Real API: HTTP client, service injection, or direct HTTP verbs.
+  if (/HttpClient|\.(get|post|put|delete|patch)\s*\(|ApiService|Service\s*[;)]|Observable|BehaviorSubject/.test(ts)) {
+    return "real API";
+  }
+  // Mock/hardcoded: mock/dummy/fixture markers, or literal arrays + no HTTP.
+  if (/mock|dummy|fixture|hardcod|faker|\bconst\s+\w+\s*=\s*\[/.test(ts)) {
+    return "mock data";
+  }
+  return "static/simple";
 }
 
 /** "Menampilkan 1-10 dari 20 data" → 20; 0 when absent. */

@@ -114,17 +114,29 @@ combination. Read `.sliceui/resolve/<name>.resolved.json` before generating:
 ### Step 3.5 — Validate ground truth (pre-generate gate)
 
 ```bash
-sliceui referee
+sliceui referee --target <component-name>
 ```
 
-Before generating, run `sliceui referee`. It cross-checks every ground-truth artifact
-(`project-context.json`, `conventions.json`, the transcript) against the two sources of truth —
-the XML (fidelity) and the codebase (does each convention claim trace to a real occurrence). It
-prints a red list of `✗` (fail) / `△` (stale) findings.
+Before generating, run `sliceui referee --target <component-name>`. It cross-checks every
+ground-truth artifact (`project-context.json`, `conventions.json`, the transcript) against the
+two sources of truth — the XML (fidelity) and the codebase (does each convention claim trace to
+a real occurrence). It prints a red list of `✗` (fail) / `△` (stale) findings.
 
-**If anything is red, STOP and fix the artifacts before generating.** Re-run `sliceui init`
-(stale conventions) or `sliceui transcribe` (dropped attributes) until `sliceui referee` exits 0.
-Never generate from corrupt or stale ground truth.
+`--target <component-name>` additionally runs the **target-exists** check: if
+`<componentDir>/<component-name>.component.ts` **already exists** in the project, the referee
+reports it as red with its mode (`mock data` / `real API`) and line count.
+
+**If anything is red, STOP before generating.** Two distinct red causes, two fixes:
+
+- **`target-exists` (component already has front-end code):** STOP and **ask the user** —
+  `overwrite` (replace the whole component), `merge` (generate `.html`/`.scss` from the design
+  but KEEP the existing `.ts` API/mock wiring), or `skip`. **Never silently overwrite an
+  existing mock-data or real-API component.**
+- **stale/fail on artifacts:** re-run `sliceui init` (stale conventions) or `sliceui transcribe`
+  (dropped attributes) until `sliceui referee` exits 0.
+
+Never generate from corrupt or stale ground truth — and never overwrite an existing component
+without an explicit choice.
 
 ### Step 4 — Generate the component
 

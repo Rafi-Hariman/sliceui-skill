@@ -145,3 +145,37 @@ test("referee: all green on a correct project", () => {
 
   rmSync(root, { recursive: true, force: true });
 });
+
+test("referee: target-exists flags a real-API component (STOP, don't overwrite)", () => {
+  const root = tmpProject({
+    "src/app/edit-bill.component.ts": `import { HttpClient } from "@angular/common/http";\n@Component({ selector: "app-edit-bill" })\nexport class EditBillComponent { constructor(private http: HttpClient) {} load() { this.http.get("/api/bill").subscribe(); } }`,
+  });
+  const ctx = { cwd: root, componentDir: "src/app", conventions: {}, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null, "edit-bill");
+  const finding = r.findings.find((f) => f.artifact === "component target");
+  assert.ok(finding, "target-exists finding present");
+  assert.equal(finding.status, "fail");
+  assert.equal(finding.mode, "real API");
+  assert.equal(r.pass, false, "existing real-API component must halt");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: target-exists flags a mock-data component", () => {
+  const root = tmpProject({
+    "src/app/list.component.ts": `@Component({ selector: "app-list" })\nexport class ListComponent { mockRows = [{ id: 1 }, { id: 2 }]; }`,
+  });
+  const ctx = { cwd: root, componentDir: "src/app", conventions: {}, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null, "list");
+  const finding = r.findings.find((f) => f.artifact === "component target");
+  assert.equal(finding.status, "fail");
+  assert.equal(finding.mode, "mock data");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: no target-exists when --target is a NEW component", () => {
+  const root = tmpProject({ "src/app/other.component.ts": `export class OtherComponent {}` });
+  const ctx = { cwd: root, componentDir: "src/app", conventions: {}, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null, "brand-new");
+  assert.equal(r.findings.find((f) => f.artifact === "component target"), undefined, "no finding for new component");
+  rmSync(root, { recursive: true, force: true });
+});
