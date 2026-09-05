@@ -207,7 +207,19 @@ Transferable (urut ROI): (1) **EmptyOutputError** — "tools ran but no artifact
 2. **Akses shell bill:** Bisakah Anda menjalankan `ng serve` app bill + menambah route preview throwaway? Fork render (a) isolated-harness vs (b) app-shell **belum terjawab & Angular/pilar-spesifik** (komponen bill terbukti 100% visual dari global class → probe isolated menyesatkan). Jika tidak bisa serve → Steps 1–2 deterministik ADALAH seluruh penutupan loop jangka dekat; render tier harus di-scope ke CI fixture app, bukan project nyata.
 3. **UX harness agent:** Haruskan CLI tetap sepenuhnya otonom & vision-free, atau satu putaran "verify & repair once" interaktif (render → screenshot → model → ≤1 fix) bisa diterima? Ini menentukan apakah render tier rilis sebagai escape hatch interaktif, perintah CI, atau tidak sama sekali.
 4. **Cakupan move-set reorg:** "pindahkan 6 file plan" atau "beri rumah ke SEMUA pengetahuan Angular yang tersebar di src/lib"? Menjalankan scope 6-file hari ini menyisakan ~separuh pengetahuan Angular → gagal mencapai tujuan plan sendiri.
-5. *(Tambahan dari gap-critic, sebaiknya diputuskan terpisah)* **Kerahasiaan:** pisahkan grammar org (pilar/`@uiigateway`) ke profile privat/de-identifikasi vs inti umum yang boleh publik; dan pastikan baris data mahasiswa di `testing/` tak pernah bocor ke commit publik.
+5. **Kerahasiaan → KEPUTUSAN (2026-09-05): gating pengetahuan UII di `init`.** *(Pertanyaan #5 dari gap-critic, kini dituntaskan user.)*
+   Diputuskan: pengetahuan UII Gateway **tidak dihapus**, tapi **hanya disertakan saat `init` mendeteksi proyek UII**. Dasar logikanya: library UII (pilar, `@uiigateway/core`) berada di GitLab UII & npm registry privat `npm.uii.ac.id` yang butuh kredensial — hanya orang UII yang bisa clone/install. Orang luar tidak akan pernah punya proyek UII untuk di-init, jadi *mengajari* idiom UII ke proyek non-UII tidak perlu terjadi sama sekali.
+
+   **Spesifikasi fingerprint UII (OR-composite, dicek saat `init`):**
+   - nama repo/proyek mengandung `uii` atau `uii-gateway`, **ATAU**
+   - `package.json` memuat dependency `@uiigateway/core` atau `pilar`, **ATAU**
+   - `.npmrc` (proyek/home) menunjuk registry `npm.uii.ac.id`.
+   > Catatan: sinyal terkuat = **dependency `@uiigateway/core`/`pilar`** (library tak-publik; kehadirannya berarti proyek memang UII). Nama repo lemah (proyek bisa bernama lain, mis. `bill-ui`). Registry menguatkan.
+
+   **Saat cocok** → `init` menyertakan *UII profile*: entri registry `pilar/uii-table` + `@uiigateway/core ugw-*`, truth-table action→authKey→icon, semantik `AuthorizationModel`, ekspektasi verify `rowAuth`/`label-custom-*` → ditulis ke project-context/conventions (idiom UII tersedia).
+   **Saat tak cocok** → *base/generic* saja (library publik: `ngx-*`, `primeng`, `mat`, dll.), tanpa idiom pilar/ugw.
+
+   **Catatan self-red-team:** gating-at-init menghapus *mengajari* proyek non-UII idiom pilar/ugw, **tetapi tidak menghapus byte grammar dari artefak publik** (repo/npm tetap memuat tabel & kontrak integrasi — bisa diunduh siapa pun, walau library-nya tak bisa di-install tanpa kredensial → risiko praktis rendah). Bila ada klausul NDA eksplisit tentang *kontrak integrasi*, langkah tambahan = pindahkan fisik grammar UII keluar dari `src/lib`/`skill` (yang selalu ter-publish) ke berkas *UII profile* yang hanya dimuat saat fingerprint cocok — **seam yang sama** dengan reorg framework (`framework/angular/uii-profile`). PII di `testing/` (data mahasiswa) tetap perlu guard CI/scrub terpisah dari keputusan ini.
 
 ---
 
