@@ -32,31 +32,33 @@ SliceUI saat ini Angular-first: pengetahuan framework tersebar di beberapa file 
 - `index.mjs` descriptor, skema `capabilities`, `initCore()`.
 - Kode React/Vue/Svelte/Next apa pun.
 
-## 4. Peta saat ini — di mana pengetahuan Angular/UII tinggal (graf v0.13.x)
+## 4. Peta — pengetahuan Angular/UII tinggal (graf v0.13.1, PASCA-Jalur-A)
 
-> **Pembaruan kunci vs v0.9.0:** pengetahuan org kini sebagian sudah dipindah ke `src/lib/profiles/uii.mjs` (ter-gate UII, lihat §5-A3). Sisa yang perlu direlokasi ke `src/framework/angular/` berkurang untuk grammar org, tapi lapisan Angular struktural (file-split, `.component.*`, decorator, template syntax) masih tersebar.
+> **Status: Jalur A SUDAH DIEKSEKUSI** (commit `3ed3963` + `ad98033` di `feat/framework-reorg`). Peta ini = **hasil akhir**, bukan lagi "target". Yang tersisa dari plan = Jalur B + cleanup opsional.
 
-| File | Isi (v0.13.x) | Sifat |
+| File | Isi (v0.13.1) | Sifat |
 |---|---|---|
-| `src/lib/library-registry.mjs` | `REGISTRY` generic (`ngx-*`, `mat-*`, `primeng`, Bootstrap) + `CATEGORIES`; **org entries sudah keluar** → `profiles/uii.mjs` `UII_REGISTRY_ENTRIES` (ter-gate) | CAMPUR |
-| `src/lib/profiles/uii.mjs` | **BARU (v0.13.1)** — home grammar org: `UII_REGISTRY_ENTRIES`, `UII_ACTION_AUTH_ICON`, `UII_AUTHKEY_BY_ACTION`, `renderUiiProfileMd()` | 100% org/Angular |
-| `src/lib/conventions.mjs` | export = aggregate `extractConventions(root,{prefix})` + 6 named (`TRIVIAL_CLASS`, `mergeGoldenClasses`, `goldenCompanionFiles`, `LIBRARY_INTERNAL`, `LIBRARY_INTERNAL_WRAPPER_GUARD`, `renderConventionsMd`). Corpus extractor (`extractNgDeepCorpus`/anatomy/naming) **privat** di balik aggregate | ~90% Angular |
-| `src/commands/detect.mjs` | `detectFramework` generik + `uiiFingerprint` (BARU) + branch `fw.id==='angular'` meng-gate deep-detect (prefix/module/styles/loaded-classes/golden `.component.ts`) | CAMPUR |
-| `src/lib/verify.mjs` | **21 check** + impor `fidelity.scssCoverage` (dead), `conventions` (LIBRARY_INTERNAL/WRAPPER_GUARD/TRIVIAL_CLASS), `profiles/uii` (`UII_AUTHKEY_BY_ACTION`); check `rowAuth` = org auth | CAMPUR |
-| `src/lib/loaded-classes.mjs` | **BARU (v0.11+)** — miner kelas-ter-load, digerakkan `angular.json styles[]` (Angular-fed) | CAMPUR |
-| `src/lib/prompt-rules/frameworks.mjs` | `FRAMEWORK_RULES` — 8 framework. Sudah multi-framework | CAMPUR |
-| `src/lib/style-tokens.mjs` | `extractStyleTokens` — GENERIK, tapi hanya dipanggil saat `stylePaths.length` (diisi branch Angular; `detect.mjs:92`) | GENERIK |
+| `src/framework/angular/verify.mjs` | **21 check** gate Angular+org (monolit; pindah dari `src/lib/`). Impor relatif: `./conventions.mjs`, `./uii-profile.mjs`. `fidelity.scssCoverage` dead-import **sudah dihapus** | org/Angular |
+| `src/framework/angular/conventions.mjs` | export = aggregate `extractConventions` + 6 named. Corpus extractor privat | ~90% Angular |
+| `src/framework/angular/uii-profile.mjs` | Home grammar org: `UII_REGISTRY_ENTRIES`, `UII_ACTION_AUTH_ICON`, `UII_AUTHKEY_BY_ACTION`, `renderUiiProfileMd()` | 100% org/Angular |
+| `src/framework/angular/detect-angular.mjs` | 5 fungsi Angular deep-detect (detectAngularDetails, collectSelectors, selectorPrefix, resolvePrefix, detectModuleStructure) — dipisah dari orchestrator | 100% Angular |
+| `src/commands/detect.mjs` | Orchestrator generik: `detectProject`, `uiiFingerprint`, `detectFramework`, `detectUiLibrary` (dipanggil semua fw), `findSampleComponents`/`readGoldenReferences`. Impor Angular dari `../framework/angular/` | CAMPUR |
+| `src/lib/detect-utils.mjs` | Helper fs/walk/token bersama (`walkFiles`, `readJsonSafe`, `readFileSyncSafe`, `extOf`, `toRel`, `extractTsconfigPaths`, `SKIP_DIRS`) — di-share detect.mjs + detect-angular.mjs (hindari circular import) | GENERIK |
+| `src/lib/library-registry.mjs` | `REGISTRY` generic + `CATEGORIES` + `registryEntries`/`withUiiEntries`. **TIDAK pindah** (generic pasca-WS5; keputusan user). `UII_REGISTRY_ENTRIES` di-merge dari profile | GENERIK |
+| `src/lib/library-scan.mjs` | Resolver capabilities. Impor `registryEntries`/`withUiiEntries` (lib) + `UII_REGISTRY_ENTRIES` (`../framework/angular/uii-profile.mjs`) | CAMPUR |
+| `src/lib/loaded-classes.mjs`, `style-tokens.mjs`, `prompt-rules/frameworks.mjs`, transkripsi | TETAP di `src/lib/` (generik/shared) | GENERIK |
 
-**Dependen yang meng-import file di atas** (koreksi v0.13 — **bukan** daftar v0.9.0):
-- `conventions.mjs` di-import oleh: **`src/lib/verify.mjs`** (LIBRARY_INTERNAL/WRAPPER_GUARD/TRIVIAL_CLASS), `src/commands/detect.mjs` (extractConventions), `src/commands/init.mjs` (renderConventionsMd/mergeGoldenClasses/goldenCompanionFiles), + **file test**: `test/conventions.test.mjs` (impor `../src/lib/conventions.mjs`). **`resolve.mjs` TIDAK import conventions** (nol import — murni, terima param). **`referee.mjs` TIDAK import conventions** (impor hanya `fidelity.mjs`). **`detect.test.mjs` TIDAK import conventions.** Plan lama keliru mencantumkan resolve/referee/detect.test & melupakan verify.
-- `library-registry.mjs` di-import oleh `library-scan.mjs` **saja** (detect TIDAK mengimpornya; registry dipakai via `scanLibraryUsage`). File test yang import langsung: **tidak ada** (`library-scan.test.mjs` import `scanLibraryUsage` dari library-scan, bukan registry).
-- `profiles/uii.mjs` di-import oleh: **`src/lib/verify.mjs`** (`UII_AUTHKEY_BY_ACTION`), **`src/lib/library-scan.mjs`** (`UII_REGISTRY_ENTRIES`), **`src/commands/init.mjs`** (`renderUiiProfileMd`), + `test/uii-profile.test.mjs`. **`library-registry.mjs` TIDAK mengimpornya** (hanya `withUiiEntries` yang terima param dari library-scan) — koreksi dari revisi pertama.
+**Dependen yang meng-import (pasca-Jalur-A):**
+- `framework/angular/conventions.mjs` di-import oleh: `framework/angular/verify.mjs` (satu folder), `commands/detect.mjs`, `commands/init.mjs`, + `test/conventions.test.mjs`. `resolve.mjs`/`referee.mjs` TIDAK (nol import).
+- `framework/angular/uii-profile.mjs` di-import oleh: `framework/angular/verify.mjs` (`UII_AUTHKEY_BY_ACTION`), `lib/library-scan.mjs` (`UII_REGISTRY_ENTRIES`), `commands/init.mjs` (`renderUiiProfileMd`), + `test/uii-profile.test.mjs`.
+- `framework/angular/detect-angular.mjs` di-import oleh: `commands/detect.mjs` (`detectAngularDetails`).
+- `lib/detect-utils.mjs` di-import oleh: `commands/detect.mjs` + `framework/angular/detect-angular.mjs`.
 
 ## 5. Jalur A — pindah-murni (step by step, desain final 2026-09-05)
 
 > **Prinsip desain yang menyelesaikan masalah audit:** *whole-file move untuk modul yang monolit org/Angular; split HANYA untuk modul yang seam fungsi Angular-nya nyata.* Pengecekan `checkIconColor` membuktikan verify monolit: ia hardcode `FA_ICON_COLORS` (warna status + glyph org) — 21 check-nya saling berbagi helper & mengasumsikan output Angular. **Split verify (7-vs-generik versi lama) tidak akan compilable** — `iconColor` yang diklaim "generik murni" ternyata org-specific. Maka verify pindah **utuh**, bukan di-split. Batas "framework-agnostik" baru relevan saat framework #2 punya verify sendiri.
 
-### A1. Whole-file moves — modul monolit org/Angular → `src/framework/angular/`
+### A1. Whole-file moves — modul monolit org/Angular → `src/framework/angular/` ✅ SELESAI (commit `3ed3963`)
 
 ```
 git mv src/lib/profiles/uii.mjs      src/framework/angular/uii-profile.mjs   # grammar org 100%
@@ -72,13 +74,11 @@ git mv src/lib/verify.mjs            src/framework/angular/verify.mjs        # 2
 
 ### A2. Split move — hanya `detect.mjs` (seam fungsi Angular nyata)
 
-Pindahkan **fungsi yang self-contained** (tak memanggil balik ke orchestrator) ke `src/framework/angular/detect-angular.mjs`:
-`detectAngularDetails`, `detectModuleStructure`, `collectSelectors`, `selectorPrefix`, `resolvePrefix`, `detectUiLibrary`.
-Mereka hanya butuh helper fs generik (`readJsonSafe`/`readFileSyncSafe`/`existsSync`) — export & import bersih, zero behavior change.
+> **Status: SELESAI (commit `ad98033`).** Fungsi yang benar-benar dipindah (5, bukan 6): `detectAngularDetails`, `collectSelectors`, `selectorPrefix`, `resolvePrefix`, `detectModuleStructure`. **`detectUiLibrary` TETAP di detect.mjs** — saat eksekusi terbukti dipanggil utk semua framework (daftar `uiLibs` berisi mui/antd/vuetify), jadi BUKAN Angular-only (koreksi dari desain awal di A2). Helper fs generik dipindah ke `src/lib/detect-utils.mjs` (bukan duplikasi) agar `detect-angular.mjs` tak impor balik ke orchestrator.
 
-**Yang TETAP di `src/commands/detect.mjs`** (orchestrator + generik): `detectProject`, `uiiFingerprint`, `detectFramework`, `parseMajor`, `guessComponentDir`, `detectStyleExt`, `extractTsconfigPaths`, `walkFiles`, helpers fs, `findSampleComponents`/`readGoldenReferences` (orchestrator-level; blok `if (fw.id==='angular')` inline tetap di orchestrator & memanggil fungsi Angular yang di-import). **Catatan jujur:** sebagian Angular inline (branch `if angular`, `readGoldenReferences` `.component.ts`) tetap berada di orchestrator — ini batas realistis dari pindah-murni; membersihkannya butuh refactor perilaku (di luar scope reorg).
+**Yang TETAP di `src/commands/detect.mjs`** (orchestrator + generik): `detectProject`, `uiiFingerprint`, `detectFramework`, `parseMajor`, `detectUiLibrary`, `guessComponentDir`, `detectStyleExt`, `findSampleComponents`/`readGoldenReferences` (orchestrator-level; blok `if (fw.id==='angular')` inline tetap di orchestrator & memanggil `detectAngularDetails` yang di-import). **Catatan jujur:** sebagian Angular inline (branch `if angular`, `readGoldenReferences` `.component.ts`) tetap berada di orchestrator — ini batas realistis dari pindah-murni; membersihkannya butuh refactor perilaku (di luar scope reorg).
 
-### A3. Rewire import (daftar FINAL — setelah A1/A2)
+### A3. Rewire import ✅ SELESAI (commit `3ed3963` + `ad98033`)
 
 - `library-scan.mjs`: `CATEGORIES, registryEntries, withUiiEntries` tetap dari `./library-registry.mjs` (TIDAK pindah). `UII_REGISTRY_ENTRIES` → `from "../framework/angular/uii-profile.mjs"` (path baru).
 - `commands/init.mjs`: `renderConventionsMd/mergeGoldenClasses/goldenCompanionFiles` dari `../framework/angular/conventions.mjs`; `renderUiiProfileMd` dari `../framework/angular/uii-profile.mjs`.
@@ -90,14 +90,14 @@ Mereka hanya butuh helper fs generik (`readJsonSafe`/`readFileSyncSafe`/`existsS
 - **Koreksi final:** `resolve.mjs`/`referee.mjs` nol-import modul tsb — tak perlu rewire. `library-registry` tidak import profile — tak perlu rewire.
 - **WAJIB (path-only, larang ubah asersi):** `test/conventions.test.mjs` (→ framework/angular/conventions), `test/verify.test.mjs` + `test/eval-hope-sliceui.test.mjs` (→ framework/angular/verify), `test/uii-profile.test.mjs` (→ framework/angular/uii-profile), `test/library-scan.test.mjs` (import scanLibraryUsage — path library-scan tak berubah, tapi bila impor profile ikut). `detect.test.mjs`/`init.test.mjs` TIDAK perlu (via fungsi).
 
-### A4. Test + commit
+### A4. Test + commit ✅ SELESAI — 179/181 hijau, zero behavior change
 
 ```
-npm test          # harus 179/181 hijau (2 skip) — ZERO behavior change
-git add -A && git commit   # satu commit per file-move bila memudahkan bisect
+npm test          # 179/181 hijau (2 skip) — ZERO behavior change ✓
+git add -A && git commit
 ```
 
-**Catatan post-reorg (BUKAN bagian move, hindari scope-creep):** dedup `walkNodes` (3×: verify/resolve/figml-parse) → satu home shared; verifikasi byte-identity golden JSON v4 utk `angular13` + `angular13-rootprefix` (bukan sekadar unit-green).
+**Catatan post-reorg (BUKAN bagian move, hindari scope-creep):** dedup `walkNodes` (3×: verify/resolve/figml-parse) → satu home shared; verifikasi byte-identity golden JSON v4 utk `angular13` + `angular13-rootprefix` (bukan sekadar unit-green). *(Belum dikerjakan — opsional, post-merge.)*
 
 ## 6. Jalur B — konfirmasi interaktif + flag
 
