@@ -96,3 +96,79 @@ export const UII_REGISTRY_ENTRIES = {
     },
   ],
 };
+
+/**
+ * The org's action → authKey → icon truth table (pilar `uii-table` renders an action icon only
+ * when the row's `auth.<flag>` is truthy). The single home for this mapping — shared by the
+ * verify gate's TABLE_ACTION_AUTH (via verify's import) and by the agent-facing uii-profile.md.
+ * Rows: { action, authKey, icon, note? }.
+ */
+export const UII_ACTION_AUTH_ICON = [
+  { action: "edit / update", authKey: "canUpdate", icon: "fa-pencil" },
+  { action: "detail / read", authKey: "canRead", icon: "visibility (mat)" },
+  { action: "delete", authKey: "canDelete", icon: "fa-trash" },
+  { action: "print", authKey: "canPrint", icon: "fa-print" },
+  { action: "verify (also verifivation/verification)", authKey: "canVerify", icon: "fa-check-square-o" },
+  { action: "validate", authKey: "canValidate", icon: "playlist_add_check (mat)" },
+  { action: "publish", authKey: "canPublish", icon: "fa-arrow-circle-up" },
+  { action: "export", authKey: "canExport", icon: "fa-cloud-upload" },
+  { action: "import", authKey: "canImport", icon: "fa-cloud-download" },
+  { action: "posting", authKey: "canPosting", icon: "fa-arrow-circle-up" },
+  { action: "unposting", authKey: "canUnposting", icon: "fa-times" },
+  { action: "reject", authKey: "canReject", icon: "fa-times" },
+  { action: "audit", authKey: "canAudit", icon: "pf-clipboard-list" },
+  { action: "activate / toggle", authKey: "canActivate", icon: "uii-switch (not an icon)" },
+];
+
+/** Machine alias map: normalized Figma action boolean → the authKey whose truthy flag makes
+ *  pilar's uii-table render the action icon. The single source for verify's normalizeFigmaAction
+ *  (the old TABLE_ACTION_AUTH lived in verify.mjs). */
+export const UII_AUTHKEY_BY_ACTION = {
+  edit: "canUpdate",
+  update: "canUpdate",
+  detail: "canRead",
+  read: "canRead",
+  delete: "canDelete",
+  print: "canPrint",
+  verify: "canVerify",
+  verifivation: "canVerify", // Figma misspelling observed in real XML
+  verification: "canVerify",
+  validate: "canValidate",
+  publish: "canPublish",
+  export: "canExport",
+  import: "canImport",
+  posting: "canPosting",
+  unposting: "canUnposting",
+  reject: "canReject",
+  audit: "canAudit",
+  activate: "canActivate",
+  toggle: "canActivate", // toggle-on → pilar renders uii-switch (not an icon), still needs canActivate
+};
+
+/** The note that accompanies the truth table (pilar is authoritative over the model's flags). */
+export const UII_AUTH_NOTE =
+  "pilar is authoritative over @uiigateway/core's AuthorizationModel: it consumes canExport/canImport (not canExpImp) plus canPosting/canUnposting/canReject/canAudit, which the model does not declare. Set flags the pilar table consumes.";
+
+/**
+ * The agent-facing profile document, written by `sliceui init` to `.sliceui/uii-profile.md`
+ * ONLY for UII projects. Keeping it out of the always-read skill body means a non-UII project
+ * is never handed the org grammar.
+ */
+export function renderUiiProfileMd() {
+  const rows = UII_ACTION_AUTH_ICON.map((r) => `| ${r.action} | \`${r.authKey}\` | ${r.icon} |`).join("\n");
+  return `# UII Gateway profile (project-specific)
+
+This project fingerprints as a UII Gateway project (pilar / @uiigateway/* on the private registry).
+When you emit a \`[actionColumn]\` on \`uii-table\`, every row must carry an \`auth\` object
+(import \`AuthorizationModel\` from \`@uiigateway/core\`) with one \`auth.<flag> = true\` per action
+the XML's \`<Aksi>\` marks enabled.
+
+**action → authKey → icon** (pilar \`uii-table\` renders an icon only when the row's \`auth.<flag>\` is truthy):
+
+| XML action | authKey (set true) | pilar icon |
+|---|---|---|
+${rows}
+
+> ${UII_AUTH_NOTE}
+`;
+}

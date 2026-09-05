@@ -24,6 +24,7 @@
 
 import { scssCoverage } from "./fidelity.mjs";
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
+import { UII_AUTHKEY_BY_ACTION } from "./profiles/uii.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
@@ -656,7 +657,7 @@ function requiredAuthKeysFromXml(rawXml) {
 
 function normalizeFigmaAction(rawName) {
   const base = String(rawName).toLowerCase().replace(/_\d+(_\d+)?$/, "").replace(/^_+|_+$/g, "");
-  return TABLE_ACTION_AUTH[base] ?? null;
+  return UII_AUTHKEY_BY_ACTION[base] ?? null;
 }
 
 /** Scan the WHOLE ts string (not just `[…]` bodies — auth is often attached inside a `.map()`
@@ -841,33 +842,6 @@ const FA_ICON_COLORS = {
   "#f9933f": ["fa-exclamation-triangle", "fa-exclamation"],
   "#4fbbbb": ["fa-check-circle"],
   "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
-};
-
-/** pilar action-config truth table: normalized Figma action boolean name → the authKey whose
- *  truthy flag makes pilar's uii-table render the action icon. The consumer is authoritative
- *  (pilar `table-action.component.ts` actionConfigs) over @uiigateway/core's AuthorizationModel:
- *  pilar consumes canExport/canImport (not canExpImp) and canPosting/canUnposting/canReject/
- *  canAudit, which the model does not declare. */
-const TABLE_ACTION_AUTH = {
-  edit: "canUpdate",
-  update: "canUpdate",
-  detail: "canRead",
-  read: "canRead",
-  delete: "canDelete",
-  print: "canPrint",
-  verify: "canVerify",
-  verifivation: "canVerify", // Figma misspelling observed in real XML
-  verification: "canVerify",
-  validate: "canValidate",
-  publish: "canPublish",
-  export: "canExport",
-  import: "canImport",
-  posting: "canPosting",
-  unposting: "canUnposting",
-  reject: "canReject",
-  audit: "canAudit",
-  activate: "canActivate",
-  toggle: "canActivate", // toggle-on → pilar renders uii-switch (not an icon), still needs canActivate
 };
 
 function checkIconColor(generated, transcript) {

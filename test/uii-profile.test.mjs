@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { detectProject } from "../src/commands/detect.mjs";
+import { initProject } from "../src/commands/init.mjs";
+import { UII_AUTHKEY_BY_ACTION } from "../src/lib/profiles/uii.mjs";
 
 // UII profile gating: org-private grammar (pilar / @uiigateway / AuthorizationModel / ugw-*)
 // must only be resolved and taught when the project fingerprints as UII. A generic project must
@@ -61,4 +63,34 @@ test("UII project via @uiigateway/core dep (repo name not uii) → profile uii",
   assert.equal(ctx.isUii, true, "@uiigateway/core dependency fingerprints UII even when the folder name is generic");
   assert.equal(ctx.profile, "uii");
   assert.ok(ctx.uiiSignals.some((s) => s.startsWith("dep:")), "dep signal present");
+});
+
+test("init writes .sliceui/uii-profile.md only for a UII project (not for generic)", () => {
+  // Generic project → no uii-profile.md on disk.
+  const g = tmpRoot("generic-app");
+  writeFileSync(join(g.root, "package.json"), JSON.stringify({ name: "generic-app", version: "1.0.0", dependencies: { "@angular/core": "^13" } }));
+  mkdirSync(join(g.root, "src", "app"), { recursive: true });
+  writeFileSync(join(g.root, "src", "app", "a.html"), "<div>hi</div>");
+  initProject(g.root);
+  assert.ok(!existsSync(join(g.root, ".sliceui", "uii-profile.md")), "generic project must NOT receive uii-profile.md");
+  rmSync(g.base, { recursive: true, force: true });
+
+  // UII project → uii-profile.md present and carries the org grammar.
+  const u = tmpRoot("portal-uii-gateway");
+  writeFileSync(join(u.root, "package.json"), JSON.stringify({ name: "x", version: "1.0.0", dependencies: { "@angular/core": "^13", pilar: "^1.0.0" } }));
+  mkdirSync(join(u.root, "src", "app"), { recursive: true });
+  writeFileSync(join(u.root, "src", "app", "a.html"), "<div>hi</div>");
+  initProject(u.root);
+  const profile = join(u.root, ".sliceui", "uii-profile.md");
+  assert.ok(existsSync(profile), "uii project receives uii-profile.md");
+  const text = readFileSync(profile, "utf8");
+  assert.match(text, /action → authKey → icon/, "profile carries the org truth table");
+  rmSync(u.base, { recursive: true, force: true });
+});
+
+test("UII_AUTHKEY_BY_ACTION is the org alias map (single home for the grammar)", () => {
+  assert.equal(UII_AUTHKEY_BY_ACTION.edit, "canUpdate");
+  assert.equal(UII_AUTHKEY_BY_ACTION.verifivation, "canVerify", "Figma misspelling mapped");
+  assert.equal(UII_AUTHKEY_BY_ACTION.unposting, "canUnposting");
+  assert.equal(UII_AUTHKEY_BY_ACTION.activate, "canActivate");
 });

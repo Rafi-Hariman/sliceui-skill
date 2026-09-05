@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
 import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../lib/conventions.mjs";
+import { renderUiiProfileMd } from "../lib/profiles/uii.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
@@ -139,6 +140,14 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   const fwLabel = ctx.framework?.label ?? "";
   writeFileSync(convMdPath, renderConventionsMd(conventions, fwLabel));
   created.push(".sliceui/conventions.md");
+
+  // uii-profile.md — the org's action→authKey→icon grammar. Written ONLY for UII projects
+  // (fingerprinted by detect); a generic project never receives the org grammar on disk.
+  if (ctx.profile === "uii") {
+    const uiiProfilePath = join(sliceuiDir, "uii-profile.md");
+    writeFileSync(uiiProfilePath, renderUiiProfileMd());
+    created.push(".sliceui/uii-profile.md");
+  }
 
   // Referee (codebase head): validate the conventions just extracted against real occurrences
   // in the source tree. Report-only — a fresh scaffold must still succeed — but surface the
