@@ -1,5 +1,7 @@
 # SliceUI Gap Analysis — "Verify hijau di terminal, UI tetap miss di localhost"
 
+> ⚠️ **SUPERSEDED (2026-09-05, v0.13.1):** catatan point-in-time dari audit **v0.12.1**. Sebagian besar fix-nya sudah dilaksanakan, dan **path yang dirujuk (`src/lib/verify.mjs`, `src/lib/conventions.mjs`) sudah pindah** ke `src/framework/angular/` oleh reorg. Lihat `PLAN-framework-reorg-e2e.md` + `src/framework/angular/` utk kondisi terkini; jangan pakai path di sini sbg acuan kerja.
+
 > **Tanggal:** 2026-09-05 · **Versi diaudit:** sliceui-skill 0.12.1 (HEAD `a6ca11a`)
 > **Metode:** audit 10-agen (9 riset paralel — verify gates, SKILL.md, diff artefak hasil-vs-golden, realita CSS project bill, 3 lensa benchmark `screenshot-to-code`, taksonomi defect Angular field, mesin resolve — + 1 kritisi independen) + verifikasi mandiri.
 > **Pertanyaan pusat:** mengapa `sliceui verify` exit 0 padahal di localhost button/padding/margin/layout masih miss?

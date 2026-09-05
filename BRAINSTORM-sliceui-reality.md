@@ -1,5 +1,7 @@
 # Brainstorming — SliceUI Reality
 
+> ⚠️ **SUPERSEDED (2026-09-05, v0.13.1):** dokumen ini ditulis saat baseline masih 168 test & sebelum reorg framework. Sejak itu: WS1–6 + Jalur A/B reorg dieksekusi, verify/conventions/uii-profile pindah ke `src/framework/angular/`, dan evaluasi kualitas baru (`test/eval-hope-sliceui.test.mjs`) hidup. Analisis strategis di sini tetap valid; **rujukan path/struktur file-nya usang**.
+
 > **Tanggal:** 2026-09-05 · **Branch:** `feat/framework-reorg` (sudah di-merge dengan `main` = v0.13.x)
 > **Metode:** audit mendalam kode 4 lensa (paralel) + riset internet 4 topik (paralel) + 2 sintesis adversarial (10 agen, 253 tool call, ~752k token).
 > **Status baseline:** 168 pass / 0 fail / 2 skip (setelah merge, sebelum tulisan ini).

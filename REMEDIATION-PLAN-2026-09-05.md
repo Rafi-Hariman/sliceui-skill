@@ -1,5 +1,7 @@
 # SliceUI Remediation Plan — Implementasi Fix Gap Analysis
 
+> ⚠️ **SUPERSEDED (2026-09-05, v0.13.1):** blueprint point-in-time utk v0.12.1→v0.13.0. Fase 0–1 + styleFidelity value-coverage sudah dilaksanakan; **path (`src/lib/verify.mjs`, `src/lib/conventions.mjs`) sudah pindah** ke `src/framework/angular/`. Fase 2 (render oracle) belum dibangun — lihat catatan issue di `PLAN-framework-reorg-e2e.md`. Jangan pakai path di sini sbg acuan kerja.
+
 > **Dari:** `SLICEUI-GAP-ANALYSIS-2026-09-05.md`
 > **Tanggal:** 2026-09-05 · **Target versi:** v0.13.0 (setelah 0c/0d)
 > **Tujuan:** blueprint implementasi konret per fix — file, fungsi, baris, logika baru, test. Semua lokasi diverifikasi di source v0.12.1.
