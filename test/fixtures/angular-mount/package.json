@@ -1,0 +1,16 @@
+{
+  "name": "angular-mount-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Angular 13 runtime-only fixture for the render-mount probe (no @angular/cli — the harness esbuild-bundles + JIT-boots it).",
+  "dependencies": {
+    "@angular/common": "13.4.0",
+    "@angular/compiler": "13.4.0",
+    "@angular/core": "13.4.0",
+    "@angular/platform-browser": "13.4.0",
+    "@angular/platform-browser-dynamic": "13.4.0",
+    "rxjs": "~7.5.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.11.4"
+  }
+}

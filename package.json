@@ -40,6 +40,8 @@
     "typescript": "^5.9.2"
   },
   "devDependencies": {
-    "playwright": "^1.63.0"
+    "esbuild": "^0.24.0",
+    "playwright": "^1.63.0",
+    "sass": "^1.80.0"
   }
 }

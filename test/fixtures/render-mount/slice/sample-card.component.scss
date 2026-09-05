@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+.content {
+  padding: 20px;
+}
+.h1 {
+  color: #555555;
+  font-size: 20px;
+  font-weight: 600;
+}
+:host ::ng-deep .child-internal {
+  color: #0ea5e9;
+}

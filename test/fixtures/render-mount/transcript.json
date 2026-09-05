@@ -1,0 +1,12 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "sample-card.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    { "id": "t1", "type": "text", "text": "Sample Card Title", "w": 400, "h": 28, "style": { "size": 20, "weight": 600, "color": "#000000" } },
+    { "id": "d1", "type": "divider", "bg": "#fdd835", "w": 400, "h": 1 },
+    { "id": "t2", "type": "button", "text": "Simpan", "w": 120, "h": 40, "bg": "#03337b", "style": { "size": 14, "color": "#ffffff" } }
+  ],
+  "images": [],
+  "icons": []
+}
