@@ -101,4 +101,11 @@ async function run(argv) {
 
 run(process.argv.slice(2)).then((code) => {
   process.exitCode = code ?? 0;
+  // `init` (interactive) reads a line from stdin but never closes it; a ref'd stdin keeps the
+  // event loop alive after the command prints, so the terminal never returns to the prompt.
+  // Unref it so the process exits cleanly once output is flushed. Safe for non-TTY (agent/CI):
+  // stdin is already null/paused there and this is a no-op.
+  if (process.stdin.isTTY && !process.stdin.destroyed) {
+    process.stdin.unref();
+  }
 });
