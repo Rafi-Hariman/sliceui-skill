@@ -7,6 +7,8 @@
 // matches, emit a native-plain fallback — honest, never silent drop (prevents the toggle-caret
 // gap where a real XML feature vanished).
 
+import { walkNodes } from "./walk-nodes.mjs";
+
 /** Semantic map: badge color + icon color → the correct label-custom-* + fa-* combo.
  *  Derived from co-occurrence in the project corpus (label-custom-waiting pairs #fef2f2 bg +
  *  #f44444 icon → fa-exclamation-circle), NOT guesswork. */
@@ -213,12 +215,4 @@ function findIconChild(node) {
     }
   }
   return null;
-}
-
-function walkNodes(nodes, fn) {
-  for (const n of nodes ?? []) {
-    if (!n || typeof n !== "object") continue;
-    fn(n);
-    if (n.children) walkNodes(n.children, fn);
-  }
 }

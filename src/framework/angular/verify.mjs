@@ -24,6 +24,7 @@
 
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
 import { UII_AUTHKEY_BY_ACTION } from "./uii-profile.mjs";
+import { walkNodes } from "../../lib/walk-nodes.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
@@ -1164,10 +1165,4 @@ function trunc(s) { const t = String(s ?? "").replace(/\s+/g, " ").trim(); retur
 
 // ---------- shared walker ----------
 
-function walkNodes(nodes, fn) {
-  for (const n of nodes ?? []) {
-    if (!n || typeof n !== "object") continue;
-    fn(n);
-    if (n.children) walkNodes(n.children, fn);
-  }
-}
+// walkNodes imported from src/lib/walk-nodes.mjs (shared home; deduped 2026-09-05).
