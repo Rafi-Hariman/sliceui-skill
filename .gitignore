@@ -17,3 +17,4 @@ council-*
 
 # Claude Code local session plans (workspace-local, not part of the package)
 .claude/
+active-repo/memories/session/

@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { scanLibraryUsage } from "../lib/library-scan.mjs";
 import { extractStyleTokens } from "../lib/style-tokens.mjs";
+import { extractLoadedClasses } from "../lib/loaded-classes.mjs";
 import { extractConventions } from "../lib/conventions.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
@@ -90,6 +91,11 @@ export function detectProject(rootDir) {
   // Design tokens from the project's own stylesheets (SCSS vars + CSS custom props + mixins).
   const designTokens = stylePaths.length ? extractStyleTokens(root, stylePaths) : { scss: [], cssProps: [], mixins: [] };
 
+  // Loaded class registry: which classes actually RESOLVE to CSS in this project (dist CSS or
+  // the loaded stylesheet chain). Distinct from the vocabulary (which classes the team USES).
+  const loaded = extractLoadedClasses(root, stylePaths);
+  const loadedClassRegistry = { classes: [...loaded.classes], source: loaded.source, files: loaded.files };
+
   // Code conventions — HOW this team writes (reusable classes, ::ng-deep corpus, page
   // anatomy, naming). Distinct from designTokens (WHAT tokens exist): these are the rules
   // the generated code must follow to read as native to this project.
@@ -123,6 +129,7 @@ export function detectProject(rootDir) {
     capabilities,
     libraries,
     designTokens,
+    loadedClassRegistry,
     conventions,
     routing,
     sampleComponents,
