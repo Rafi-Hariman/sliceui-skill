@@ -1,9 +1,11 @@
-// Per-framework generation rules.
+// Per-framework generation rules — the shared dispatcher.
 // The 7 web-framework rule sets are PORTED VERBATIM from the SliceUI web app:
 //   sliceui repo, src/lib/prompts.ts (getFrameworkRules) @ commit 42a83f6 (2026-08-27)
-// Angular rules are NET-NEW for this skill (the web app has no Angular support).
-// When updating rules here, note that src/lib/prompts.ts remains the canonical copy
-// for the web app — keep the two in sync manually.
+// The Angular rules (NET-NEW to this skill) live in src/framework/angular/rules.mjs — their
+// home is the framework folder, not this generic dispatcher.
+// When updating the ported rules, src/lib/prompts.ts remains the canonical copy — keep in sync.
+
+import { ANGULAR_RULES } from "../../framework/angular/rules.mjs";
 
 export const FRAMEWORK_RULES = {
   tailwind: `SPECIFIC RULES:
@@ -36,19 +38,7 @@ export const FRAMEWORK_RULES = {
 - Svelte 5 component with runes ($state, $derived).
 - <script lang='ts'>. Tailwind classes.`,
 
-  // ---- NET-NEW (not in the web app) ----
-  angular: `SPECIFIC RULES (Angular — version-aware, see project_context):
-- File split: <name>.component.ts + <name>.component.html + <name>.component.scss (or .css per project styleExt).
-- selector: '<prefix>-<name>' kebab-case with the project's selector prefix from project_context.
-- Use templateUrl + styleUrls (NOT inline templates unless the project samples use inline).
-- Register the component in the owning NgModule's declarations array (edit the module file).
-- Template: use *ngIf / *ngFor / (click)="handler()" / [property]="value" — the classic directives, NOT @if/@for control flow.
-- DI: inject services via the class constructor: constructor(private service: XService) {}. NOT inject().
-- Inputs/Outputs: @Input() / @Output() + EventEmitter.
-- Routing links: [routerLink], content projection with <ng-content>.
-- Styling: SCSS with :host for host styles; reuse the project's SCSS tokens/variables.
-- If uiLibrary is angular-material, prefer its modules/components (MatButtonModule etc.) and its theming tokens.
-- NO signals, NO inject(), NO @if/@for control flow, NO standalone components, UNLESS the project context version says >= 14 (inject/standalone) or >= 17 (control flow).`,
+  angular: ANGULAR_RULES, // home: src/framework/angular/rules.mjs
 };
 
 /** Look up framework rules by id; "" when unknown. */
