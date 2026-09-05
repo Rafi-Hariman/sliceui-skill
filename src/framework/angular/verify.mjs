@@ -886,7 +886,7 @@ function checkIconColor(generated, transcript) {
 }
 
 /** Normalize a CSS color value to lowercase #rrggbb (or null when it is not a literal color). */
-function parseCssColor(v) {
+export function parseCssColor(v) {
   const s = (v ?? "").trim().toLowerCase();
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(s);
   if (hex) {
@@ -997,20 +997,23 @@ function paginationTotal(transcript) {
  *
  *  Token substitution ($x / var(--y)) is skipped, never false-flagged — without a resolved value
  *  we cannot judge it (and an unreachable token is not a comparable fact). */
-function checkStyleFidelity(scss, html, transcript, conventions = {}) {
-  if (!transcript) return { name: "styleFidelity", status: "skip", detail: "no transcript to check style facts against" };
+/** Gather the authored-rule design facts (text color/size/weight + divider color) that both
+ *  `checkStyleFidelity` scores and `render-probe` renders. Returns
+ *  `{ comparable, problems }` where each `comparable` entry is
+ *  `{ kind: "text"|"divider", where, prop, design, actual, className?, text? }` and `problems`
+ *  is the drift-string list (same phrasing the verify gate reports). Shared so the string-level
+ *  gate and the browser-level probe can never disagree on WHAT to judge. */
+export function collectStyleFacts(scss, html, transcript) {
   const gen = `${String(scss ?? "")}\n${String(html ?? "")}`;
-  if (!gen.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
-
-  const comparable = []; // { where, prop, design, actual } — every fact with an authored target
+  const comparable = []; // { where, prop, design, actual, kind, className, text } — every fact with an authored target
   const problems = [];
   const seen = new Set();
 
-  const addFact = (where, prop, design, actual) => {
+  const addFact = (where, prop, design, actual, extra = {}) => {
     const key = `${where}|${prop}`;
     if (seen.has(key)) return;
     seen.add(key);
-    comparable.push({ where, prop, design, actual });
+    comparable.push({ where, prop, design, actual, ...extra });
     if (String(actual).toLowerCase() !== String(design).toLowerCase()) problems.push(`${where} ${prop}: actual ${actual}, design ${design}`);
   };
 
@@ -1023,18 +1026,19 @@ function checkStyleFidelity(scss, html, transcript, conventions = {}) {
     if (!authored) continue; // reuse class / no authored slice rule → not comparable (skip, never fail)
     const where = `text "${trunc(t)}" (.${authored.className})`;
     const decls = declMap(authored.ruleBody);
+    const extra = { kind: "text", className: authored.className, text: t };
     if (n.style?.color) {
       const dv = normHex(n.style.color);
       const cv = resolveHex(decls.color);
-      if (cv) addFact(where, "color", dv, cv);
+      if (cv) addFact(where, "color", dv, cv, extra);
     }
     if (n.style?.size) {
       const cv = pxNum(decls["font-size"]);
-      if (cv !== null) addFact(where, "font-size", Number(n.style.size), cv);
+      if (cv !== null) addFact(where, "font-size", Number(n.style.size), cv, extra);
     }
     if (n.style?.weight) {
       const cv = weightNum(decls["font-weight"]);
-      if (cv !== null) addFact(where, "font-weight", Number(n.style.weight), cv);
+      if (cv !== null) addFact(where, "font-weight", Number(n.style.weight), cv, extra);
     }
   }
 
@@ -1046,12 +1050,22 @@ function checkStyleFidelity(scss, html, transcript, conventions = {}) {
     const present = normHex(gen).includes(normHex(dividerColor));
     const where = "divider";
     if (present) {
-      comparable.push({ where, prop: "bg", design: dividerColor, actual: dividerColor });
+      comparable.push({ where, prop: "bg", design: dividerColor, actual: dividerColor, kind: "divider" });
     } else {
-      comparable.push({ where, prop: "bg", design: dividerColor, actual: "missing" });
+      comparable.push({ where, prop: "bg", design: dividerColor, actual: "missing", kind: "divider" });
       problems.push(`divider bg: actual missing ${dividerColor} (design)`);
     }
   }
+
+  return { comparable, problems };
+}
+
+function checkStyleFidelity(scss, html, transcript, conventions = {}) {
+  if (!transcript) return { name: "styleFidelity", status: "skip", detail: "no transcript to check style facts against" };
+  const gen = `${String(scss ?? "")}\n${String(html ?? "")}`;
+  if (!gen.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
+
+  const { comparable, problems } = collectStyleFacts(scss, html, transcript);
 
   if (!comparable.length) {
     return { name: "styleFidelity", status: "skip", detail: "no authored-rule design facts to compare (slice reuses project classes)" };
@@ -1128,14 +1142,14 @@ function resolveHex(v) {
 }
 
 /** A `14px`/`14` length → number; null when not a px literal (rem/em/token). */
-function pxNum(v) {
+export function pxNum(v) {
   if (!v) return null;
   const m = /^(-?\d+(?:\.\d+)?)px$/.exec(v.trim());
   return m ? Number(m[1]) : null;
 }
 
 /** font-weight: 500 | normal | bold | var → numeric 100-900, else null. */
-function weightNum(v) {
+export function weightNum(v) {
   if (!v) return null;
   const s = v.trim().toLowerCase();
   if (/^\$|var\(|--[a-z]/i.test(s)) return null;
@@ -1158,7 +1172,7 @@ function dividerColorOf(transcript) {
   return out;
 }
 
-function normHex(s) {
+export function normHex(s) {
   return String(s ?? "").replace(/#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])(?![0-9a-fA-F])/g, "#$1$1$2$2$3$3").toLowerCase();
 }
 function trunc(s) { const t = String(s ?? "").replace(/\s+/g, " ").trim(); return t.length > 24 ? t.slice(0, 24) + "…" : t; }
