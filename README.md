@@ -15,18 +15,20 @@ Beyond transcription, SliceUI learns the project's **framework** and **conventio
 
 ## Framework support
 
-SliceUI detects the target framework from the project's dependencies and emits the matching idiomatic syntax:
+SliceUI is **Angular-first**. Support is honest per layer — please read the matrix, not a single "supported ✅" column:
 
-| Framework | Detection | Code-gen rules |
-|---|---|---|
-| Angular | ✅ (incl. version, selector prefix, module structure) | ✅ version-aware (classic directives vs. modern standalone) |
-| React (TSX) | ✅ | ✅ functional component, `className`, Tailwind |
-| Next.js | ✅ | ✅ App Router, server/client components |
-| Vue 3 (SFC) | ✅ | ✅ `<script setup lang="ts">`, scoped styles |
-| Svelte | ✅ | ✅ Svelte 5 runes |
-| Tailwind / HTML | ✅ (fallback) | ✅ utility classes / semantic HTML |
+| Framework | Detect | Codegen rules | Deep adaptation (library wiring · convention mining · **verify**) |
+|---|---|---|---|
+| **Angular** (v13-first, incl. `@uiigateway`/`pilar` profile) | ✅ version · prefix · module | ✅ version-aware (`*ngIf` vs `@if`, DI, standalone) | ✅ **full** — the only framework whose generated code is gated by `sliceui verify` |
+| React (TSX) | ✅ | ✅ `className`, Tailwind, FC | ⚠️ **experimental** — transcribe/resolve work, but conventions mining is Angular-shaped and `sliceui verify` does **not** read `.tsx` (exit 2: "only `*.component.{scss,html,ts}`") |
+| Next.js | ✅ | ✅ App Router, server/client | ⚠️ **experimental** — same caveat as React |
+| Vue 3 (SFC) | ✅ | ✅ `<script setup lang="ts">`, scoped | ⚠️ **experimental** — same caveat |
+| Svelte | ✅ | ✅ Svelte 5 runes | ⚠️ **experimental** — same caveat |
+| Tailwind / HTML | ✅ (fallback) | ✅ utility classes / semantic HTML | ⚠️ **experimental** — no conventions corpus, no verify gate |
 
-The **transcription** layer is framework-agnostic: a transcript carries only design facts (text, color, geometry, icons), so it is equally useful in every framework. The **adaptation** layer (library mapping, convention mining, verification) is deepest for Angular today and degrades gracefully elsewhere. A project whose UI library is not in the registry still receives native, working markup with an explicit note, never a guessed library.
+The **transcription** layer is framework-agnostic: a transcript carries only design facts (text, color, geometry, icons), so it is equally useful in every framework. The **codegen-rules** layer ships a rule set per framework and is genuinely multi-framework.
+
+The **deep-adaptation** layer — library registry + capabilities, `::ng-deep` convention mining, golden references, and `sliceui verify` — is **implemented for Angular only today**. Non-Angular projects get correct detection, neutral transcription, and idiomatic *syntax* rules, but SliceUI does **not** verify the generated component and does not mine the project's component-library idiom. Treat non-Angular output as *experimental*: native markup with an explicit note, never a guessed library.
 
 ## Install
 

@@ -20,6 +20,8 @@ export function main(argv) {
 
   if (!html && !scss && !ts) {
     console.error(`no component files found in ${dir}`);
+    console.error("SliceUI verify only validates Angular-style components: *.component.{scss,html,ts}.");
+    console.error("React/Vue/Svelte/Next/Tailwind output is experimental today and is NOT verify-gated.");
     return 2;
   }
 
