@@ -7,7 +7,7 @@
 // Array ORDER within a category is the fixed priority when several libraries are installed.
 //
 // The org's private entries (pilar / @uiigateway/core) are NOT here — they live in
-// src/lib/profiles/uii.mjs and are merged in by library-scan via withUiiEntries()
+// src/framework/angular/uii-profile.mjs and are merged in by library-scan via withUiiEntries()
 // (registryEntries/withUiiEntries in this module stay profile-agnostic; no import needed).
 
 export const CATEGORIES = [
@@ -215,7 +215,7 @@ export function registryEntries(category) {
 
 /** A category's entries with the UII profile's org entries merged in at their original priority.
  *  Called by scanLibraryUsage ONLY when the project fingerprints as UII. The entries carry their
- *  `insertIndex` (from profiles/uii.mjs) so pilar stays first-by-design where it was. */
+ *  `insertIndex` (from framework/angular/uii-profile.mjs) so pilar stays first-by-design where it was. */
 export function withUiiEntries(category, profileEntries) {
   const base = (REGISTRY[category] || []).slice();
   for (const entry of profileEntries ?? []) {
