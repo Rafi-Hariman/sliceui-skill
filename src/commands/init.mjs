@@ -115,6 +115,9 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   // their classes are merged into the vocabulary so verify never flags a mirrored golden idiom
   // (mt-4 / col-12 / p-0) as invented.
   const conventions = { ...(ctx.conventions ?? {}) };
+  // profile gates the org-private grammar: conventions consumers (verify/conventions-mining)
+  // must know whether pilar/@uiigateway idiom is in play.
+  if (ctx.profile) conventions.profile = ctx.profile;
   // The loaded-class registry is detect's ground truth for "which utility/grid classes actually
   // resolve in a LOADED stylesheet". It lives top-level in project-context.json (detect) but the
   // verify gate reads conventions.json — carry it here so checkLoadedClass is live in production

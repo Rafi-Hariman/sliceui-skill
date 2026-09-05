@@ -8,7 +8,7 @@
 import fg from "fast-glob";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames } from "./library-registry.mjs";
+import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames, registryEntries } from "./library-registry.mjs";
 import { importSources } from "./ts-ast.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
@@ -19,7 +19,7 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui
  * @param {Record<string,string>} [deps] — merged package.json dependencies+devDependencies
  * @returns {{ capabilities: Record<string,object>, libraries: { inUse: string[] } }}
  */
-export function scanLibraryUsage(root, deps = {}) {
+export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
   const tsFiles = fg.sync(["**/*.ts"], { cwd: root, ignore: SKIP, absolute: true });
   const htmlFiles = fg.sync(["**/*.html"], { cwd: root, ignore: SKIP, absolute: true });
   const scssFiles = fg.sync(["**/*.scss"], { cwd: root, ignore: SKIP, absolute: true });
@@ -34,6 +34,7 @@ export function scanLibraryUsage(root, deps = {}) {
   const inUse = registryLibraryNames().filter((name) => {
     const entry = findEntryByName(name);
     if (!entry) return false;
+    if (entry.scope === "uii" && !includeUii) return false; // org-private libs invisible to generic projects
     if (entry.test.test(combined)) return true;
     // Installed via package.json. Local registry entries (no `package` field) are matched
     // by their `test`/usage pattern above — this fallback is npm-install only, mirroring
@@ -43,7 +44,7 @@ export function scanLibraryUsage(root, deps = {}) {
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
-    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps);
+    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii });
   }
 
   return { capabilities, libraries: { inUse } };
@@ -56,8 +57,8 @@ export function scanLibraryUsage(root, deps = {}) {
  *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
  *    3. null — fall back to plain HTML with a note.
  */
-function buildCapability(category, combined, allTs, allHtml, allScss, deps) {
-  const libs = REGISTRY[category] || [];
+function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true } = {}) {
+  const libs = registryEntries(category, { includeUii });
   // Prefer the library whose PACKAGE is actually imported — that's the authoritative
   // signal for which npm package provides the component. A generic template tag like
   // <ngx-select> can be re-exported by several packages (e.g. @uiigateway/core/pilar),

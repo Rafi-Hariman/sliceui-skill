@@ -3,7 +3,8 @@
 // Never throws: unknown projects get detected:false + warnings; the skill degrades gracefully.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
-import { resolve, join, dirname } from "node:path";
+import { resolve, join, dirname, basename } from "node:path";
+import { homedir } from "node:os";
 import { cwd } from "node:process";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -31,6 +32,9 @@ export function detectProject(rootDir) {
   }
 
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  // --- UII profile (org-private grammar gating) ---
+  const { isUii, signals } = uiiFingerprint(root, deps);
 
   // --- framework detection (priority order matters) ---
   const fw = detectFramework(deps, warnings);
@@ -77,7 +81,7 @@ export function detectProject(rootDir) {
   // Library-aware: capabilities map (category → library + real usage sample).
   // deps feeds the "installed but not yet used" signal so a fresh scaffold still resolves
   // its libraries (e.g. pilar → uii-table) before any component imports them.
-  const { capabilities, libraries } = scanLibraryUsage(root, deps);
+  const { capabilities, libraries } = scanLibraryUsage(root, deps, { includeUii: isUii });
   const uiLibrary = detectUiLibrary(deps, libraries.inUse);
 
   // Non-silent nulls: a null capability must surface a note, never quietly fall back.
@@ -113,6 +117,9 @@ export function detectProject(rootDir) {
     version: 4,
     cwd: root,
     detected: true,
+    profile: isUii ? "uii" : "generic",
+    isUii,
+    uiiSignals: signals,
     framework: fw,
     moduleOrStandalone: fw.id === "angular" ? (fw.versionMajor >= 14 ? "standalone-capable" : "module") : "n/a",
     deps,
@@ -137,6 +144,35 @@ export function detectProject(rootDir) {
     inputHash: hashInputs(root),
     detectionWarnings: warnings,
   };
+}
+
+// ---------- UII profile detection ----------
+
+/** Decide whether this project is a UII Gateway project (org-private libraries pilar /
+ *  @uiigateway/* on a private registry). Knowledge of the org's component grammar is only
+ *  loaded/served when this is true. OR-composite fingerprint:
+ *   1. root folder name contains "uii" or "uii-gateway",
+ *   2. package.json depends on `@uiigateway/core` or `pilar` (STRONGEST — private libs that
+ *      only UII projects can install),
+ *   3. an .npmrc (project or user home) points at registry `npm.uii.ac.id`.
+ *  A bare repo-name match alone is weak (a UII project may be named anything, e.g. bill-ui),
+ *  so signals are reported for transparency and profile is 'uii' on ANY match. */
+function uiiFingerprint(root, deps = {}) {
+  const signals = [];
+  const name = basename(root).toLowerCase();
+  if (/\buii\b|uii-gateway/.test(name)) signals.push("repo-name:uii");
+  if (deps["@uiigateway/core"] || deps["pilar"] || Object.keys(deps).some((d) => d.startsWith("@uiigateway/"))) {
+    signals.push("dep:uiigateway|pilar");
+  }
+  for (const npmrc of [join(root, ".npmrc"), join(homedir(), ".npmrc")]) {
+    if (!existsSync(npmrc)) continue;
+    const txt = readFileSyncSafe(npmrc) ?? "";
+    if (/npm\.uii\.ac\.id/i.test(txt)) {
+      signals.push("registry:npm.uii.ac.id");
+      break;
+    }
+  }
+  return { isUii: signals.length > 0, signals };
 }
 
 // ---------- framework detection ----------

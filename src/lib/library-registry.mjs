@@ -43,6 +43,7 @@ export const REGISTRY = {
     {
       // pilar's uii-table is the org's table — first by design (see handoff: table → uii-table).
       name: "pilar (uii-table)",
+      scope: "uii",
       package: "pilar",
       test: /uii-table|uii-client-table|uii-server-table/i,
       sampleHtml: `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true" [actionColumn]="true" [paginationOptions]="true" [searchOptions]="true" (editClicked)="onEdit($event)"></uii-table>`,
@@ -87,6 +88,7 @@ export const REGISTRY = {
     },
     {
       name: "pilar (uii-dialog)",
+      scope: "uii",
       package: "pilar",
       test: /uii-infodialog|ModalDialogComponent|ConfirmDialog2Component|DangerDialog2Component|SuccessDialog2Component|WarningDialog2Component/i,
       sampleHtml: `<!-- open via ModalService / the uii-*-dialog2 components -->`,
@@ -103,6 +105,7 @@ export const REGISTRY = {
     },
     {
       name: "pilar (uii-toast)",
+      scope: "uii",
       package: "pilar",
       test: /uii-toast|ToastService/i,
       sampleHtml: `<!-- inject ToastService; this.toast.success('Saved') -->`,
@@ -144,6 +147,7 @@ export const REGISTRY = {
     },
     {
       name: "pilar (uii-date-time-picker)",
+      scope: "uii",
       package: "pilar",
       test: /uii-date-time-picker/i,
       sampleHtml: `<input [uiiDateTimePicker]="dt" /><uii-date-time-picker-inline #dt></uii-date-time-picker-inline>`,
@@ -169,6 +173,7 @@ export const REGISTRY = {
     },
     {
       name: "pilar (uii-switch)",
+      scope: "uii",
       package: "pilar",
       test: /uii-switch/i,
       sampleHtml: `<uii-switch [(checked)]="enabled"></uii-switch>`,
@@ -178,6 +183,7 @@ export const REGISTRY = {
   pagination: [
     {
       name: "pilar (uii-pagination)",
+      scope: "uii",
       package: "pilar",
       test: /uii-pagination/i,
       sampleHtml: `<uii-pagination [currentPage]="page" [amountOfData]="total" [dataPerPage]="perPage" (pageChanged)="onPage($event)"></uii-pagination>`,
@@ -226,6 +232,7 @@ export const REGISTRY = {
     {
       // @uiigateway/core ships the org's app shell (header/sidebar/breadcrumb/templates).
       name: "@uiigateway/core (layout)",
+      scope: "uii",
       package: "@uiigateway/core",
       test: /ugw-header|ugw-sidebar|ugw-breadcrumb|ugw-empty-data|ugw-tableloader|ugw-not-found|ugw-under-construction/i,
       sampleHtml: `<ugw-header></ugw-header>\n<ugw-sidebar></ugw-sidebar>\n<ugw-breadcrumb></ugw-breadcrumb>`,
@@ -251,4 +258,14 @@ export function registryLibraryNames() {
     for (const l of cat) set.add(l.name);
   }
   return [...set];
+}
+
+/** Entries for one category, optionally excluding org-private (`scope:'uii'`) libraries. The
+ *  generic (non-UII) scan must never resolve or teach pilar / @uiigateway / ugw-* idiom — those
+ *  libraries only exist inside UII projects (private registry), so a non-UII project can never
+ *  use them. */
+export function registryEntries(category, { includeUii = true } = {}) {
+  const libs = REGISTRY[category] || [];
+  if (includeUii) return libs;
+  return libs.filter((l) => l.scope !== "uii");
 }
