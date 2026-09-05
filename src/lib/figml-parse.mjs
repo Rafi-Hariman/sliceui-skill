@@ -108,7 +108,13 @@ function walkNodes(nodes, ox, oy) {
     const childFills = kids.find((k) => k && k.fills);
     const effectiveAttrs = childFills ? { ...attrs, fills: childFills.fills } : attrs;
     const visualKids = childFills ? kids.filter((k) => k !== childFills) : kids;
-    const mapped = mapNode(tag, effectiveAttrs, visualKids, ox, oy);
+    // A child <variantProperties Type="primary|secondary|…"/> is the component's variant —
+    // a design fact the agent needs (button primary vs secondary), not a node to transcribe.
+    // Consume it into the parent attrs and drop it from the child walk.
+    const childVariant = kids.find((k) => k && k.variantProperties);
+    const effectiveAttrs2 = childVariant ? { ...effectiveAttrs, variantType: childVariant[":@"]?.Type ?? null } : effectiveAttrs;
+    const visualKids2 = childVariant ? visualKids.filter((k) => k !== childVariant) : visualKids;
+    const mapped = mapNode(tag, effectiveAttrs2, visualKids2, ox, oy);
     if (mapped) out.push(mapped);
   }
   return out;
@@ -201,6 +207,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
       if (cls.type === "input") node.label = label;
       if (cls.type === "icon") node.description = name;
       if (cls.table) node.table = true;
+      if (attrs.variantType) node.variant = attrs.variantType;
       if (childNodes.length) node.children = childNodes;
       return node;
     }

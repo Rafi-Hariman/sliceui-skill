@@ -80,3 +80,62 @@ test("resolve: non-styled structural nodes are skipped", () => {
   const r = resolveTranscript(transcript, CONVENTIONS);
   assert.equal(r.leaves.length, 0, "text + empty group are not styled leaves");
 });
+
+test("resolve: caret icon resolves by NAME (fa-caret-down), not color-first fa-search", () => {
+  const transcript = {
+    layout: [
+      { id: "caret1", type: "icon", bg: "#03337b", description: "Icon_Font_Awesome_Free_Solid_C_caret-down" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const icon = r.leaves.find((l) => l.kind === "icon");
+  const vals = icon?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(vals.includes("fa-caret-down"), `caret name must resolve fa-caret-down, got ${JSON.stringify(vals)}`);
+  assert.ok(!vals.includes("fa-search"), "caret must not be color-collapsed into fa-search");
+});
+
+test("resolve: badge with status text 'Dibatalkan' → label-custom-cancel (text beats color co-occurrence)", () => {
+  const vocab = [
+    ...CONVENTIONS.classVocabulary,
+    { name: "label-custom-cancel", family: "label-custom" },
+    { name: "label-custom-warning", family: "label-custom" },
+  ];
+  const transcript = {
+    layout: [
+      { id: "badgeB", type: "group", bg: "#f6cacb", children: [
+        { id: "iconB", type: "icon", bg: "#f44444" },
+        { id: "txtB", type: "text", text: "Dibatalkan" },
+      ]},
+    ],
+  };
+  const r = resolveTranscript(transcript, { ...CONVENTIONS, classVocabulary: vocab });
+  const status = r.statusTable[0];
+  const classes = status.resolved.filter((x) => x.kind === "class").map((x) => x.value);
+  assert.ok(classes.includes("label-custom-cancel"), `'Dibatalkan' text must pick cancel, got ${JSON.stringify(classes)}`);
+});
+
+test("resolve: button variant secondary → btn-secondary when in vocabulary", () => {
+  const vocab = [
+    ...CONVENTIONS.classVocabulary,
+    { name: "btn-secondary", family: "btn", hint: "button" },
+    { name: "btn-primary", family: "btn", hint: "button" },
+  ];
+  const transcript = {
+    layout: [
+      { id: "btn1", type: "button", text: "Ubah massal tgl akhir bayar", variant: "secondary" },
+    ],
+  };
+  const r = resolveTranscript(transcript, { ...CONVENTIONS, classVocabulary: vocab });
+  const btn = r.leaves.find((l) => l.kind === "button");
+  const classes = btn?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(classes.includes("btn-secondary"), `variant secondary → btn-secondary, got ${JSON.stringify(classes)}`);
+});
+
+test("resolve: button variant with no matching btn-* falls back native-plain (not invented)", () => {
+  const transcript = {
+    layout: [{ id: "btn2", type: "button", text: "Kirim", variant: "ghost" }],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS); // no btn-ghost in vocab
+  const btn = r.leaves.find((l) => l.kind === "button");
+  assert.ok(btn.fallback?.kind === "native-plain", "unknown variant → native-plain fallback");
+});

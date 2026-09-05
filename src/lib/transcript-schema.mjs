@@ -76,6 +76,17 @@ export function validateTranscript(t) {
         if (n.hidden !== undefined && typeof n.hidden !== "boolean") {
           errors.push(`layout node ${where}.hidden must be a boolean (got ${JSON.stringify(n.hidden)})`);
         }
+        // v4 (additive): a button/component's Figma variant ("primary"|"secondary"|"dropdown-c"),
+        // border facts, and opacity — optional, but shape-checked when present.
+        if (n.variant !== undefined && typeof n.variant !== "string") {
+          errors.push(`layout node ${where}.variant must be a string (got ${JSON.stringify(n.variant)})`);
+        }
+        if (n.opacity !== undefined && typeof n.opacity !== "number") {
+          errors.push(`layout node ${where}.opacity must be a number (got ${JSON.stringify(n.opacity)})`);
+        }
+        if (n.border !== undefined && (typeof n.border !== "object" || n.border === null)) {
+          errors.push(`layout node ${where}.border must be an object when present (got ${JSON.stringify(n.border)})`);
+        }
         if (n.children !== undefined) {
           if (!Array.isArray(n.children)) errors.push(`layout node ${where}.children must be an array`);
           else walk(n.children, `${where}.children`);
