@@ -8,7 +8,8 @@
 import fg from "fast-glob";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { REGISTRY, CATEGORIES, matchLibrary, registryLibraryNames, registryEntries } from "./library-registry.mjs";
+import { CATEGORIES, registryEntries, withUiiEntries } from "./library-registry.mjs";
+import { UII_REGISTRY_ENTRIES } from "./profiles/uii.mjs";
 import { importSources } from "./ts-ast.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
@@ -31,16 +32,20 @@ export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
   const combined = stripComments([...allTs, ...allHtml].map((x) => x.src).join("\n"));
   // "in use" = actually referenced in source OR installed via package.json. The latter lets a
   // freshly-scaffolded project (deps present, no usage yet) still report its libraries.
-  const inUse = registryLibraryNames().filter((name) => {
-    const entry = findEntryByName(name);
-    if (!entry) return false;
-    if (entry.scope === "uii" && !includeUii) return false; // org-private libs invisible to generic projects
+  // Active entries = the generic base + the UII profile's org entries ONLY when includeUii.
+  const activeEntries = [];
+  for (const cat of CATEGORIES) {
+    for (const entry of includeUii ? withUiiEntries(cat, UII_REGISTRY_ENTRIES[cat]) : registryEntries(cat)) {
+      if (!activeEntries.some((e) => e.name === entry.name)) activeEntries.push(entry);
+    }
+  }
+  const inUse = activeEntries.filter((entry) => {
     if (entry.test.test(combined)) return true;
     // Installed via package.json. Local registry entries (no `package` field) are matched
     // by their `test`/usage pattern above — this fallback is npm-install only, mirroring
     // findLocalSample's `entry.package || entry.name` resolution.
     return Boolean(entry.package && deps[entry.package]);
-  });
+  }).map((e) => e.name);
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
@@ -58,7 +63,9 @@ export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
  *    3. null — fall back to plain HTML with a note.
  */
 function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true } = {}) {
-  const libs = registryEntries(category, { includeUii });
+  const libs = includeUii
+    ? withUiiEntries(category, UII_REGISTRY_ENTRIES[category])
+    : registryEntries(category);
   // Prefer the library whose PACKAGE is actually imported — that's the authoritative
   // signal for which npm package provides the component. A generic template tag like
   // <ngx-select> can be re-exported by several packages (e.g. @uiigateway/core/pilar),
@@ -240,15 +247,6 @@ function extractSnippet(src, libName) {
   if (importIdx === -1) return null;
   const start = Math.max(0, importIdx - 1);
   return lines.slice(start, start + 25).join("\n");
-}
-
-function findEntryByName(name) {
-  for (const cat of Object.values(REGISTRY)) {
-    for (const l of cat) {
-      if (l.name === name) return l;
-    }
-  }
-  return null;
 }
 
 /** Strip // line and /* * / block comments so imports/tags in comments never count as usage. */

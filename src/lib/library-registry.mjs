@@ -3,8 +3,13 @@
 //   (1) `test` / `testImport` — the library is actually USED in source (import or tag).
 //   (2) `package` — the library's npm package is installed (package.json dependencies).
 // A `package` lets a freshly-scaffolded project resolve its components BEFORE any usage
-// exists (e.g. `pilar` → uii-table), while real local usage still wins over a bare install.
+// exists, while real local usage still wins over a bare install.
 // Array ORDER within a category is the fixed priority when several libraries are installed.
+//
+// The org's private entries (pilar / @uiigateway/core) are NOT here — they live in
+// src/lib/profiles/uii.mjs and are merged in via withUiiEntries() only for UII projects.
+
+import { UII_REGISTRY_ENTRIES } from "./profiles/uii.mjs";
 
 export const CATEGORIES = [
   "select", "table", "modal", "toast", "editor", "date", "slider", "switch",
@@ -40,15 +45,6 @@ export const REGISTRY = {
     },
   ],
   table: [
-    {
-      // pilar's uii-table is the org's table — first by design (see handoff: table → uii-table).
-      name: "pilar (uii-table)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-table|uii-client-table|uii-server-table/i,
-      sampleHtml: `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true" [actionColumn]="true" [paginationOptions]="true" [searchOptions]="true" (editClicked)="onEdit($event)"></uii-table>`,
-      sampleTs: `import { TableModule } from "pilar";\nimport { AuthorizationModel } from "@uiigateway/core";\n// columns: [{ prop: "nim", name: "NIM" }];\n// rows carry auth so action icons render: auth.canUpdate = true -> fa-pencil\n// add TableModule to imports[]`,
-    },
     {
       name: "ngx-datatable",
       package: "@swimlane/ngx-datatable",
@@ -86,14 +82,6 @@ export const REGISTRY = {
       sampleHtml: `<!-- open via dialog.open(Component, { data }) -->`,
       sampleTs: `import { MatDialogModule, MatDialog } from "@angular/material/dialog";`,
     },
-    {
-      name: "pilar (uii-dialog)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-infodialog|ModalDialogComponent|ConfirmDialog2Component|DangerDialog2Component|SuccessDialog2Component|WarningDialog2Component/i,
-      sampleHtml: `<!-- open via ModalService / the uii-*-dialog2 components -->`,
-      sampleTs: `import { ModalService } from "pilar";\n// or the uii-infodialog / *-dialog2 components for confirm/danger/success/warning dialogs`,
-    },
   ],
   toast: [
     {
@@ -102,14 +90,6 @@ export const REGISTRY = {
       test: /ngx-toastr|ToastrService|ToastrModule/i,
       sampleHtml: `<!-- inject ToastrService; toastr.success('Saved') -->`,
       sampleTs: `import { ToastrService } from "ngx-toastr";`,
-    },
-    {
-      name: "pilar (uii-toast)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-toast|ToastService/i,
-      sampleHtml: `<!-- inject ToastService; this.toast.success('Saved') -->`,
-      sampleTs: `import { ToastService } from "pilar";\n// this.toast.success('Saved') / .error('Failed')`,
     },
   ],
   editor: [
@@ -145,14 +125,6 @@ export const REGISTRY = {
       sampleHtml: `<input [owlDateTime]="dt" /><owl-date-time #dt [pickerType]="'calendar'"></owl-date-time>`,
       sampleTs: `import { OwlDateTimeModule, OwlNativeDateTimeModule } from "@danielmoncada/angular-datetime-picker";`,
     },
-    {
-      name: "pilar (uii-date-time-picker)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-date-time-picker/i,
-      sampleHtml: `<input [uiiDateTimePicker]="dt" /><uii-date-time-picker-inline #dt></uii-date-time-picker-inline>`,
-      sampleTs: `import { DateTimePickerModule } from "pilar";\n// add DateTimePickerModule to imports[]`,
-    },
   ],
   slider: [
     {
@@ -171,24 +143,8 @@ export const REGISTRY = {
       sampleHtml: `<ui-switch [(ngModel)]="enabled"></ui-switch>`,
       sampleTs: `import { UiSwitchModule } from "ngx-ui-switch";`,
     },
-    {
-      name: "pilar (uii-switch)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-switch/i,
-      sampleHtml: `<uii-switch [(checked)]="enabled"></uii-switch>`,
-      sampleTs: `import { SwitchModule } from "pilar";\n// add SwitchModule to imports[]`,
-    },
   ],
   pagination: [
-    {
-      name: "pilar (uii-pagination)",
-      scope: "uii",
-      package: "pilar",
-      test: /uii-pagination/i,
-      sampleHtml: `<uii-pagination [currentPage]="page" [amountOfData]="total" [dataPerPage]="perPage" (pageChanged)="onPage($event)"></uii-pagination>`,
-      sampleTs: `import { PaginationModule } from "pilar";\n// add PaginationModule to imports[]`,
-    },
     {
       name: "ngx-datatable pagination",
       package: "@swimlane/ngx-datatable",
@@ -228,17 +184,9 @@ export const REGISTRY = {
       sampleTs: `// awesome-bootstrap-checkbox styles <input type="checkbox"> inside .checkbox > label`,
     },
   ],
-  layout: [
-    {
-      // @uiigateway/core ships the org's app shell (header/sidebar/breadcrumb/templates).
-      name: "@uiigateway/core (layout)",
-      scope: "uii",
-      package: "@uiigateway/core",
-      test: /ugw-header|ugw-sidebar|ugw-breadcrumb|ugw-empty-data|ugw-tableloader|ugw-not-found|ugw-under-construction/i,
-      sampleHtml: `<ugw-header></ugw-header>\n<ugw-sidebar></ugw-sidebar>\n<ugw-breadcrumb></ugw-breadcrumb>`,
-      sampleTs: `import { HeaderComponent, SidebarComponent, BreadcrumbComponent } from "@uiigateway/core";\n// register in the app's core/shared module`,
-    },
-  ],
+  // layout is served by the org's @uiigateway/core shell in the uii profile only; a generic
+  // project has no library here and honestly reports a null capability (native HTML + note).
+  layout: [],
 };
 
 /**
@@ -260,12 +208,20 @@ export function registryLibraryNames() {
   return [...set];
 }
 
-/** Entries for one category, optionally excluding org-private (`scope:'uii'`) libraries. The
- *  generic (non-UII) scan must never resolve or teach pilar / @uiigateway / ugw-* idiom — those
- *  libraries only exist inside UII projects (private registry), so a non-UII project can never
- *  use them. */
-export function registryEntries(category, { includeUii = true } = {}) {
-  const libs = REGISTRY[category] || [];
-  if (includeUii) return libs;
-  return libs.filter((l) => l.scope !== "uii");
+/** Entries for one category from the GENERIC base registry. The org-private entries are only
+ *  present after withUiiEntries() merges the uii profile in. */
+export function registryEntries(category) {
+  return (REGISTRY[category] || []).slice();
+}
+
+/** A category's entries with the UII profile's org entries merged in at their original priority.
+ *  Called by scanLibraryUsage ONLY when the project fingerprints as UII. The entries carry their
+ *  `insertIndex` (from profiles/uii.mjs) so pilar stays first-by-design where it was. */
+export function withUiiEntries(category, profileEntries) {
+  const base = (REGISTRY[category] || []).slice();
+  for (const entry of profileEntries ?? []) {
+    const at = Math.min(entry.insertIndex ?? base.length, base.length);
+    base.splice(at, 0, entry);
+  }
+  return base;
 }
