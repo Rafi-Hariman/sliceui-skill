@@ -9,7 +9,8 @@
 // (via ts-ast.mjs), never deeply analyzed, because SliceUI emits mock data.
 
 import fg from "fast-glob";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/build/**", "**/.sliceui/**"];
 
@@ -17,6 +18,64 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/build/**
 // verify.mjs reuses it as FRAMEWORK_BASE — the set of framework classes that are ALWAYS legal
 // (and thus never need to appear in classVocabulary to be allowed).
 export const TRIVIAL_CLASS = /^(row|container(-fluid)?|col(-(xs|sm|md|lg|xl|xxl))?(-\d+)?|text-(left|right|center|justify)|pull-(left|right)|hidden(-(xs|sm|md|lg|xl))?|visible-[a-z-]+|clearfix)$/;
+
+/** A Golden reference's own classes become legal vocabulary. The user hand-curated that
+ *  component as the canonical writing pattern; its utility classes (mt-4, col-12, p-0) are
+ *  therefore NOT "invented" when a generated slice mirrors them. Read each reference's .html
+ *  (and its SCSS custom classes) and merge their class tokens into the vocabulary, tagged so
+ *  the merge is traceable. */
+export function mergeGoldenClasses(classVocabulary, goldenHtml) {
+  const out = [...classVocabulary];
+  const existing = new Set(classVocabulary.map((c) => c.name));
+  const add = (name) => {
+    if (!name || TRIVIAL_CLASS.test(name) || /[[\]{}()]/.test(name)) return;
+    if (existing.has(name)) return;
+    existing.add(name);
+    out.push({ name, count: 0, family: null, hint: null, source: "golden" });
+  };
+  for (const src of goldenHtml) {
+    for (const m of src.matchAll(/class=["']([^"']+)["']/g)) {
+      for (const raw of m[1].split(/\s+/)) add(raw.trim());
+    }
+  }
+  return out;
+}
+
+/** Resolve a `.sliceui/config.json` `references` entry to its companion HTML/SCSS file contents,
+ *  so the golden vocabulary merge has real markup to mine. A reference points at a `.component.ts`
+ *  (or its directory); the `.html`/`.scss` live alongside it (templateUrl/styleUrls resolve too,
+ *  but the co-located `<name>.component.{html,scss}` is the reliable default). */
+export function goldenCompanionFiles(root, refs, read = readFileSync, stat = existsSync) {
+  const htmlOut = [];
+  const filesOut = [];
+  for (const ref of refs) {
+    const abs = resolveRefToComponent(root, ref);
+    if (!abs) continue;
+    const base = abs.replace(/\.component\.ts$/, "");
+    for (const ext of ["html", "scss"]) {
+      const p = `${base}.component.${ext}`;
+      if (stat(p)) {
+        filesOut.push(p);
+        if (ext === "html") htmlOut.push(read(p, "utf8"));
+      }
+    }
+  }
+  return { html: htmlOut, files: filesOut };
+}
+
+function resolveRefToComponent(root, ref) {
+  const p = ref.startsWith("/") || /^[A-Za-z]:/.test(ref) ? ref : join(root, ref);
+  if (/\.component\.ts$/.test(p) && existsSync(p)) return p;
+  if (existsSync(p)) {
+    const entries = readdirSync(p, { withFileTypes: true });
+    const name = p.split(/[\\/]/).pop();
+    const named = entries.find((e) => e.isFile() && e.name === `${name}.component.ts`);
+    if (named) return join(p, named.name);
+    const any = entries.find((e) => e.isFile() && e.name.endsWith(".component.ts"));
+    if (any) return join(p, any.name);
+  }
+  return null;
+}
 
 /**
  * Extract the project's code conventions.

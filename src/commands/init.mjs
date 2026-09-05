@@ -13,7 +13,7 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
-import { renderConventionsMd } from "../lib/conventions.mjs";
+import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../lib/conventions.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
@@ -111,7 +111,17 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   created.push(".sliceui/project-context.json");
 
   // conventions.json — deterministic facts (machine-readable, the verify gate's ground truth)
-  const conventions = ctx.conventions ?? {};
+  // Golden references (config.json `references`) are the user's hand-curated canonical pattern:
+  // their classes are merged into the vocabulary so verify never flags a mirrored golden idiom
+  // (mt-4 / col-12 / p-0) as invented.
+  const conventions = { ...(ctx.conventions ?? {}) };
+  const refs = readJsonSafe(join(root, ".sliceui", "config.json"))?.references ?? [];
+  if (Array.isArray(refs) && refs.length) {
+    const { html } = goldenCompanionFiles(root, refs);
+    if (html.length) {
+      conventions.classVocabulary = mergeGoldenClasses(conventions.classVocabulary ?? [], html);
+    }
+  }
   const convPath = join(sliceuiDir, "conventions.json");
   writeFileSync(convPath, JSON.stringify({ ...conventions, generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   created.push(".sliceui/conventions.json");
@@ -145,6 +155,10 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
 }
 
 /** Read GEMINI_API_KEY / VITE_GEMINI_API_KEY from another env file. Returns the value or null. */
+function readJsonSafe(p) {
+  try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; }
+}
+
 function extractKeyFrom(path) {
   try {
     const env = parseEnvContent(readFileSync(resolve(path), "utf8"));

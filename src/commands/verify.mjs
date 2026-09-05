@@ -3,17 +3,20 @@
 // transcript + raw XML) and prints a structured verdict. Exit 0 = all checks pass.
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { verifyComponent } from "../lib/verify.mjs";
 
 export function main(argv) {
   const dir = argv[0] ? resolve(argv[0]) : process.cwd();
   const name = argv[1] ?? null; // optional component basename (e.g. "history-agreement")
 
+  // Ground truth lives in the nearest project root's `.sliceui/` (walk up from the component
+  // dir), NOT process.cwd() — verifying a subdirectory of a monorepo must still find it.
+  const root = nearestProjectRoot(dir);
   const { scss, html, ts } = readComponent(dir, name);
-  const conventions = readJsonSafe(join(process.cwd(), ".sliceui", "conventions.json"));
-  const transcript = readTranscript(process.cwd());
-  const rawXml = readRawXml(process.cwd());
+  const conventions = readJsonSafe(join(root, ".sliceui", "conventions.json"));
+  const transcript = readTranscript(root, name);
+  const rawXml = readRawXml(root, name);
 
   if (!html && !scss && !ts) {
     console.error(`no component files found in ${dir}`);
@@ -54,18 +57,43 @@ function readComponent(dir, name) {
   return { scss: pick("scss"), html: pick("html"), ts: pick("ts") };
 }
 
-function readTranscript(cwdDir) {
-  const tdir = join(cwdDir, ".sliceui", "transcript");
-  if (!existsSync(tdir)) return null;
-  const json = readdirSync(tdir).find((f) => f.endsWith(".transcript.json") && !f.endsWith(".meta.json"));
-  return json ? readJsonSafe(join(tdir, json)) : null;
+/** Nearest ancestor (or self) holding a package.json — the project root whose `.sliceui/`
+ *  holds this component's ground truth. Falls back to cwd when nothing is found above. */
+function nearestProjectRoot(startDir) {
+  let d = resolve(startDir);
+  for (;;) {
+    if (existsSync(join(d, "package.json"))) return d;
+    const up = dirname(d);
+    if (up === d) return process.cwd();
+    d = up;
+  }
 }
 
-function readRawXml(cwdDir) {
+/** Read the transcript paired to this component: prefer the one whose meta.image / filename
+ *  names the component (stamp-and-pair), else the first `.transcript.json`. */
+function readTranscript(cwdDir, name = null) {
+  const tdir = join(cwdDir, ".sliceui", "transcript");
+  if (!existsSync(tdir)) return null;
+  const candidates = readdirSync(tdir).filter((f) => f.endsWith(".transcript.json") && !f.endsWith(".meta.json"));
+  if (!candidates.length) return null;
+  if (name) {
+    const stem = candidates.find((f) => f.startsWith(`${name}.`));
+    if (stem) return readJsonSafe(join(tdir, stem));
+  }
+  return readJsonSafe(join(tdir, candidates[0]));
+}
+
+/** Read the raw XML/figml paired to this component (prefer a filename that names it). */
+function readRawXml(cwdDir, name = null) {
   const xdir = join(cwdDir, ".sliceui", "xml");
   if (!existsSync(xdir)) return null;
-  const xml = readdirSync(xdir).find((f) => /\.(xml|figml)$/i.test(f));
-  return xml ? readFileSyncSafe(join(xdir, xml)) : null;
+  const candidates = readdirSync(xdir).filter((f) => /\.(xml|figml)$/i.test(f));
+  if (!candidates.length) return null;
+  if (name) {
+    const stem = candidates.find((f) => f.startsWith(`${name}.`));
+    if (stem) return readFileSyncSafe(join(xdir, stem));
+  }
+  return readFileSyncSafe(join(xdir, candidates[0]));
 }
 
 function readFileSyncSafe(p) {

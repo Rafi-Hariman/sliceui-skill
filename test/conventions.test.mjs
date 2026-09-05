@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { extractConventions, renderConventionsMd } from "../src/lib/conventions.mjs";
+import { extractConventions, renderConventionsMd, mergeGoldenClasses } from "../src/lib/conventions.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures", "conventions");
@@ -115,4 +115,24 @@ test("ngDeepCorpus: bare form-control + ngx-select__toggle are reusable", () => 
   const toggle = c.ngDeepCorpus.find((x) => x.selector === "ngx-select__toggle");
   assert.ok(toggle, "bare ngx-select__toggle block captured");
   assert.equal(toggle.reusable, true, "bare ngx-select__toggle is reusable (border idiom)");
+});
+
+test("mergeGoldenClasses: golden reference classes (mt-4, col-12, p-0) become legal vocabulary", () => {
+  const base = [{ name: "control-label", count: 10, family: "control" }];
+  const goldenHtml = [`<div class="col-md-4 col-12 search-col mt-4 p-0">
+    <button class="btn btn-primary btn-block">Cari</button></div>`];
+  const merged = mergeGoldenClasses(base, goldenHtml);
+  const names = merged.map((c) => c.name);
+  // Golden classes are added (tagged source:golden)…
+  for (const expect of ["mt-4", "p-0", "search-col", "btn-block"]) {
+    assert.ok(names.includes(expect), `golden class ${expect} must be legal vocabulary`);
+  }
+  const goldenEntry = merged.find((c) => c.name === "mt-4");
+  assert.equal(goldenEntry.source, "golden", "merge must be tagged for traceability");
+  // col-12 is TRIVIAL (always legal) so it is not duplicated; col-md-4 is trivial too.
+  assert.ok(!names.includes("col-12"), "trivial grid classes are not merged");
+  assert.ok(!names.includes("col-md-4"), "trivial grid classes are not merged");
+  // Existing vocabulary is preserved and not duplicated.
+  assert.ok(names.includes("control-label"), "existing vocabulary preserved");
+  assert.equal(merged.filter((c) => c.name === "control-label").length, 1);
 });
