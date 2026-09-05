@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initProject } from "../src/commands/init.mjs";
@@ -25,6 +25,20 @@ test("init runs the referee codebase-head without crashing and returns warnings"
   // and a clean project must NOT add a referee red-count warning.
   assert.ok(Array.isArray(r.warnings), "warnings is an array");
   assert.ok(!r.warnings.some((w) => w.includes("referee:")), "clean project surfaces no referee red-count");
+});
+
+test("init writes loadedClassRegistry into conventions.json (verify gate wiring)", () => {
+  const dir = scaffold();
+  initProject(dir);
+  const convPath = join(dir, ".sliceui", "conventions.json");
+  assert.ok(existsSync(convPath), "conventions.json written");
+  const conv = JSON.parse(readFileSync(convPath, "utf8"));
+  // The loaded-class registry that detect computed must reach the file the verify gate reads —
+  // checkLoadedClass was built but never wired because conventions.json never carried it.
+  assert.ok(conv.loadedClassRegistry, "conventions.json carries loadedClassRegistry");
+  assert.ok(Array.isArray(conv.loadedClassRegistry.classes), "registry has a classes array");
+  assert.ok(conv.loadedClassRegistry.source, "registry has a source");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("init is idempotent and does not crash on a re-run (referee head runs twice)", () => {

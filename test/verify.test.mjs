@@ -902,6 +902,20 @@ test("verify: loadedClass skips without a registry (back-compat)", () => {
   assert.equal(check.status, "skip");
 });
 
+test("verify: loadedClass skips when registry resolved no stylesheet (source none — under-resolved)", () => {
+  // A registry that found nothing (source 'none', empty files) must NEVER fail classes — it is
+  // insufficient coverage, not a red. Regression guard for the anti-false-positive wiring.
+  const registry = { classes: [], source: "none", files: [] };
+  const htmlDead = `<button class="btn btn-primary w-100">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlDead, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, loadedClassRegistry: registry },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "loadedClass");
+  assert.equal(check.status, "skip", "source 'none' registry must skip, not fail dead-looking classes");
+});
+
 test("verify: loadedClass does NOT gate breakpoint grid columns against a scss (non-dist) registry", () => {
   // A scss-source registry cannot see @mixin-generated col-md-4; it must not false-fail it.
   const registry = { classes: ["mt-4"], source: "scss" };

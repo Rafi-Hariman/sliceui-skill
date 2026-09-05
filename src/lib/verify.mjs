@@ -573,11 +573,14 @@ function checkInventedUtility(html, classVocabulary = []) {
  *  out of scope). */
 function checkLoadedClass(html, registry) {
   const classes = registry?.classes;
-  if (!Array.isArray(classes) || !classes.length) {
+  const source = registry?.source ?? "none";
+  // 'none' means no stylesheet chain resolved at all — an under-resolved registry must never
+  // fail legitimate classes (insufficient coverage is a skip, not a red). Only a registry that
+  // actually READ a stylesheet may gate.
+  if (!Array.isArray(classes) || !classes.length || source === "none") {
     return { name: "loadedClass", status: "skip", detail: "no loaded-class registry (run `sliceui init` on a built project)" };
   }
   const loaded = new Set(classes);
-  const source = registry?.source ?? "none";
   // A non-compiled (scss) registry cannot see grid classes generated via @mixin make-grid-columns
   // (col-md-4, col-xs-12 are produced, never written literally). Gating those against a scss
   // registry would false-fail every bootstrap project. So: only gate breakpoint-prefixed grid

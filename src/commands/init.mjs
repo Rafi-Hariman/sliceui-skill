@@ -115,6 +115,11 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   // their classes are merged into the vocabulary so verify never flags a mirrored golden idiom
   // (mt-4 / col-12 / p-0) as invented.
   const conventions = { ...(ctx.conventions ?? {}) };
+  // The loaded-class registry is detect's ground truth for "which utility/grid classes actually
+  // resolve in a LOADED stylesheet". It lives top-level in project-context.json (detect) but the
+  // verify gate reads conventions.json — carry it here so checkLoadedClass is live in production
+  // (it was built but never wired: conventions.json never carried it → always skip).
+  if (ctx.loadedClassRegistry) conventions.loadedClassRegistry = ctx.loadedClassRegistry;
   const refs = readJsonSafe(join(root, ".sliceui", "config.json"))?.references ?? [];
   if (Array.isArray(refs) && refs.length) {
     const { html } = goldenCompanionFiles(root, refs);

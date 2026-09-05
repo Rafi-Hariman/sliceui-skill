@@ -14,7 +14,16 @@ export function main(argv) {
   // dir), NOT process.cwd() — verifying a subdirectory of a monorepo must still find it.
   const root = nearestProjectRoot(dir);
   const { scss, html, ts } = readComponent(dir, name);
-  const conventions = readJsonSafe(join(root, ".sliceui", "conventions.json"));
+  let conventions = readJsonSafe(join(root, ".sliceui", "conventions.json")) ?? null;
+  // loadedClassRegistry lives top-level in project-context.json (detect), not in conventions.json.
+  // When conventions doesn't carry it (a `sliceui detect` run without init, or older init), pull it
+  // from project-context so checkLoadedClass is live — not silently skipped.
+  if (conventions && !conventions.loadedClassRegistry) {
+    const pctx = readJsonSafe(join(root, ".sliceui", "project-context.json"));
+    if (pctx?.loadedClassRegistry) {
+      conventions = { ...conventions, loadedClassRegistry: pctx.loadedClassRegistry };
+    }
+  }
   const transcript = readTranscript(root, name);
   const rawXml = readRawXml(root, name);
 
