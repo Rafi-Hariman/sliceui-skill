@@ -7,9 +7,8 @@
 // Array ORDER within a category is the fixed priority when several libraries are installed.
 //
 // The org's private entries (pilar / @uiigateway/core) are NOT here — they live in
-// src/lib/profiles/uii.mjs and are merged in via withUiiEntries() only for UII projects.
-
-import { UII_REGISTRY_ENTRIES } from "./profiles/uii.mjs";
+// src/lib/profiles/uii.mjs and are merged in by library-scan via withUiiEntries()
+// (registryEntries/withUiiEntries in this module stay profile-agnostic; no import needed).
 
 export const CATEGORIES = [
   "select", "table", "modal", "toast", "editor", "date", "slider", "switch",
