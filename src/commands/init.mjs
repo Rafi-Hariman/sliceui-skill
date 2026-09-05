@@ -25,7 +25,7 @@ const ENV_TEMPLATE = `# SliceUI — image→code transcription key
 GEMINI_API_KEY=
 `;
 
-export function initProject(rootDir, { keyFrom = null } = {}) {
+export function initProject(rootDir, { keyFrom = null, frameworkId = null, profile = null } = {}) {
   const root = resolve(rootDir);
   const created = [];
   const warnings = [];
@@ -106,7 +106,8 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
   }
 
   // --- 5. detect + conventions (persist all 3 artifacts, so the agent can read them right after init) ---
-  const ctx = detectProject(root);
+  // --framework / --profile force detection; null = auto-detect.
+  const ctx = detectProject(root, { frameworkId, profile });
   const ctxPath = join(sliceuiDir, "project-context.json");
   writeFileSync(ctxPath, JSON.stringify(ctx, null, 2) + "\n");
   created.push(".sliceui/project-context.json");
@@ -165,6 +166,7 @@ export function initProject(rootDir, { keyFrom = null } = {}) {
     gitignoreAdded: giAdded,
     keyStatus,
     framework: ctx.framework,
+    profile: ctx.profile ?? "generic",
     detected: ctx.detected,
     componentDir: ctx.componentDir,
     warnings: [...warnings, ...ctx.detectionWarnings, ...refereeWarnings],
@@ -187,12 +189,89 @@ function extractKeyFrom(path) {
 
 // ---------- CLI entry ----------
 
-export function main(argv) {
-  const keyIdx = argv.indexOf("--key-from");
-  const keyFrom = keyIdx !== -1 && argv[keyIdx + 1] ? argv[keyIdx + 1] : null;
-  const result = initProject(process.cwd(), { keyFrom });
+/** Framework ids the CLI accepts for `--framework`. */
+const VALID_FRAMEWORK_IDS = [
+  "angular", "react-tsx", "nextjs", "vue-sfc", "svelte", "tailwind", "bootstrap5", "native-html",
+];
+const VALID_PROFILES = ["uii", "generic", "auto"];
 
-  const safe = { ...result };
+/** Parse argv into { keyFrom, frameworkId, profile, yes } — last flag wins. */
+function parseArgs(argv) {
+  const out = { keyFrom: null, frameworkId: null, profile: null, yes: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--key-from" && argv[i + 1]) { out.keyFrom = argv[++i]; }
+    else if (a === "--framework" && argv[i + 1]) { out.frameworkId = argv[++i]; }
+    else if (a === "--profile" && argv[i + 1]) { out.profile = argv[++i]; }
+    else if (a === "--yes") { out.yes = true; }
+    else if (a.startsWith("--framework=")) { out.frameworkId = a.slice("--framework=".length); }
+    else if (a.startsWith("--profile=")) { out.profile = a.slice("--profile=".length); }
+  }
+  return out;
+}
+
+/** Read one line from stdin (interactive confirmation). Returns null when stdin is not a TTY. */
+function readLine(question) {
+  if (!process.stdin.isTTY) return null;
+  return new Promise((resolveLine) => {
+    process.stdout.write(question);
+    process.stdin.once("data", (buf) => resolveLine(buf.toString().trim()));
+  });
+}
+
+/** Confirm the detected framework interactively (only when TTY + no --framework/--yes). */
+async function confirmOrPick(argv, args) {
+  // 1) explicit --framework → no prompt.
+  if (args.frameworkId) return { frameworkId: args.frameworkId, profile: args.profile };
+
+  // 2) --yes / non-TTY (agent) → no prompt, auto.
+  if (args.yes || !process.stdin.isTTY) return { frameworkId: null, profile: args.profile };
+
+  // 3) interactive: detect first to know what we'd confirm.
+  const { detectProject } = await import("./detect.mjs");
+  const pre = detectProject(process.cwd(), { profile: args.profile === "auto" ? null : args.profile });
+  const label = pre.framework?.label ?? "unknown";
+  const id = pre.framework?.id;
+  const forced = pre.framework?.forced;
+
+  // Multi-framework ambiguity is surfaced as a warning by detect; here we offer a pick only when
+  // detection itself could not settle (no known dep). Otherwise confirm the single detection.
+  if (forced || !id || id === "tailwind" && pre.detectionWarnings?.some((w) => w.includes("No known framework"))) {
+    const list = VALID_FRAMEWORK_IDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
+    const answer = await readLine(`\nNo framework detected — pick one:\n${list}\n> `);
+    const n = Number.parseInt(answer ?? "", 10);
+    const picked = VALID_FRAMEWORK_IDS[n - 1];
+    if (picked) return { frameworkId: picked, profile: args.profile };
+    process.stderr.write(`\nInvalid choice "${answer}" — aborting init. Use --framework <id> or --yes.\n`);
+    process.exit(1);
+  }
+
+  const answer = await readLine(`Init SliceUI for ${label}? [Y/n] `);
+  if (answer && /^n/i.test(answer)) {
+    process.stderr.write("Aborted by user.\n");
+    process.exit(0);
+  }
+  return { frameworkId: id, profile: args.profile };
+}
+
+export async function main(argv) {
+  const args = parseArgs(argv);
+  if (args.frameworkId && !VALID_FRAMEWORK_IDS.includes(args.frameworkId)) {
+    process.stderr.write(`Unknown --framework "${args.frameworkId}". Valid: ${VALID_FRAMEWORK_IDS.join(", ")}\n`);
+    return 2;
+  }
+  if (args.profile && !VALID_PROFILES.includes(args.profile)) {
+    process.stderr.write(`Unknown --profile "${args.profile}". Valid: ${VALID_PROFILES.join(", ")}\n`);
+    return 2;
+  }
+
+  // --profile auto = null (fingerprint decides). Resolve interactive confirm/pick.
+  const { frameworkId, profile } = await confirmOrPick(argv, args);
+  const profileArg = profile === "auto" ? null : profile;
+
+  const result = initProject(process.cwd(), { keyFrom: args.keyFrom, frameworkId, profile: profileArg });
+
+  const safe = { ...result, framework: result.framework, profile: result.profile };
   console.log(JSON.stringify(safe, null, 2));
   if (result.keyStatus === "template" || result.keyStatus === "hint-appended") {
     console.log("\nNext: paste your Gemini key into .env.local (free at https://aistudio.google.com).");
@@ -205,5 +284,5 @@ export function main(argv) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  process.exit(main(process.argv.slice(2)) ?? 0);
+  main(process.argv.slice(2)).then((code) => process.exit(code ?? 0));
 }

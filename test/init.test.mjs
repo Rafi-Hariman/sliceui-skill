@@ -27,6 +27,33 @@ test("init runs the referee codebase-head without crashing and returns warnings"
   assert.ok(!r.warnings.some((w) => w.includes("referee:")), "clean project surfaces no referee red-count");
 });
 
+test("init --framework forces the target framework (Jalur B)", () => {
+  const dir = scaffold(); // scaffold has @angular/core, but we force react
+  const r = initProject(dir, { frameworkId: "react-tsx" });
+  const ctx = JSON.parse(readFileSync(join(dir, ".sliceui", "project-context.json"), "utf8"));
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.framework.id, "react-tsx", "framework forced to react-tsx");
+  assert.equal(ctx.framework.id, "react-tsx", "project-context carries forced framework");
+});
+
+test("init --profile generic overrides a UII fingerprint (Jalur B)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-init-"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "uii-gateway-portal", version: "1.0.0", dependencies: { "@angular/core": "^13" } }));
+  mkdirSync(join(dir, "src", "app"), { recursive: true });
+  writeFileSync(join(dir, "src", "app", "a.html"), "<div>hi</div>");
+
+  const r = initProject(dir, { profile: "generic" });
+  const ctx = JSON.parse(readFileSync(join(dir, ".sliceui", "project-context.json"), "utf8"));
+  const hasUiiProfile = existsSync(join(dir, ".sliceui", "uii-profile.md"));
+  rmSync(dir, { recursive: true, force: true });
+
+  assert.equal(r.profile, "generic", "init result profile is generic (override wins over uii-named folder)");
+  assert.equal(ctx.profile, "generic", "project-context profile generic despite uii folder name");
+  assert.equal(ctx.isUii, false);
+  assert.ok(!hasUiiProfile, "uii-profile not written for overridden generic");
+});
+
 test("init writes loadedClassRegistry into conventions.json (verify gate wiring)", () => {
   const dir = scaffold();
   initProject(dir);

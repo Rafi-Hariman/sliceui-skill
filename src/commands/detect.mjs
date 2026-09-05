@@ -15,7 +15,7 @@ import { extractConventions } from "../framework/angular/conventions.mjs";
 import { detectAngularDetails } from "../framework/angular/detect-angular.mjs";
 import { walkFiles, readJsonSafe, readFileSyncSafe, toRel, extractTsconfigPaths } from "../lib/detect-utils.mjs";
 
-export function detectProject(rootDir) {
+export function detectProject(rootDir, { frameworkId = null, profile = null } = {}) {
   const warnings = [];
   const root = resolve(rootDir);
 
@@ -33,11 +33,18 @@ export function detectProject(rootDir) {
 
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-  // --- UII profile (org-private grammar gating) ---
-  const { isUii, signals } = uiiFingerprint(root, deps);
+  // --- UII profile (org-private grammar gating). An explicit --profile override wins over the
+  //     auto fingerprint (so a mis-detected project can be corrected); "auto" = fingerprint. ---
+  let isUii, signals;
+  if (profile === "uii") { isUii = true; signals = ["override:uii"]; }
+  else if (profile === "generic") { isUii = false; signals = ["override:generic"]; }
+  else { ({ isUii, signals } = uiiFingerprint(root, deps)); }
 
-  // --- framework detection (priority order matters) ---
-  const fw = detectFramework(deps, warnings);
+  // --- framework detection. An explicit --framework <id> forces the framework (skips detection),
+  //     which also lets a project with no known dep target e.g. nextjs. ---
+  const fw = frameworkId
+    ? { id: frameworkId, label: labelForId(frameworkId), version: null, versionMajor: null, forced: true }
+    : detectFramework(deps, warnings);
 
   // --- framework-specific deep detection ---
   let prefix = "";
@@ -176,6 +183,15 @@ function uiiFingerprint(root, deps = {}) {
 }
 
 // ---------- framework detection ----------
+
+const FRAMEWORK_LABELS = {
+  angular: "Angular", "react-tsx": "React", nextjs: "Next.js", "vue-sfc": "Vue 3",
+  svelte: "Svelte", tailwind: "Tailwind CSS", bootstrap5: "Bootstrap 5", "native-html": "Native HTML",
+};
+/** Human label for a forced framework id (auto-detection resolves versions/labels itself). */
+function labelForId(id) {
+  return FRAMEWORK_LABELS[id] ?? id;
+}
 
 function detectFramework(deps, warnings) {
   const ver = (name) => (typeof deps[name] === "string" ? deps[name] : "");
