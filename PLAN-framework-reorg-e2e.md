@@ -99,22 +99,27 @@ git add -A && git commit
 
 **Catatan post-reorg (BUKAN bagian move, hindari scope-creep):** dedup `walkNodes` (3×: verify/resolve/figml-parse) → satu home shared; verifikasi byte-identity golden JSON v4 utk `angular13` + `angular13-rootprefix` (bukan sekadar unit-green). *(Belum dikerjakan — opsional, post-merge.)*
 
-## 6. Jalur B — konfirmasi interaktif + flag
+## 6. Jalur B — konfirmasi interaktif + flag ✅ SELESAI (commit `65e7861`)
 
-Di `src/commands/init.mjs`:
+Di `src/commands/init.mjs` (sudah diimplementasi):
 
 ```
 sliceui init                      # deteksi framework → prompt "Init SliceUI for Next.js? [Y/n]"
 sliceui init                      # (ambigu: >1 framework) → pilih nomor
 sliceui init --framework nextjs   # skip deteksi + konfirmasi, langsung jalankan
 sliceui init --yes                # skip konfirmasi (untuk agent non-interaktif)
+sliceui init --profile uii|generic|auto   # override fingerprint UII (koreksi misdeteksi)
 ```
 
-Aturan:
+Aturan (terimplementasi):
 - Konfirmasi **hanya aktif jika `process.stdin.isTTY`** DAN tidak ada `--framework`/`--yes`.
-- `--framework <id>` memaksa framework id (valid: `angular`, `react-tsx`, `nextjs`, `vue-sfc`, `svelte`, `tailwind`, `bootstrap5`, `native-html`).
-- Ambigu (multi-framework terdeteksi) → prompt pilih, bukan diam-diam `present[0]`.
-- Jalankan `detect` TETAP sama (output `.sliceui/project-context.json` tidak berubah).
+- `--framework <id>` memaksa framework id — detectProject menerima `{ frameworkId }`, detect di-skip, label dari `FRAMEWORK_LABELS`. Valid: `angular`, `react-tsx`, `nextjs`, `vue-sfc`, `svelte`, `tailwind`, `bootstrap5`, `native-html` (nilai invalid → exit 2 + daftar valid).
+- Ambigu / tak-terdeteksi (TTY) → prompt pilih nomor, bukan diam-diam default.
+- `--profile` override fingerprint UII (`uii`/`generic`/`auto`); `--yes` non-interaktif.
+- `initProject` return + `project-context.json` membawa `framework`/`profile` hasil.
+- Test: `test/init.test.mjs` (forced framework + profile override + uii-profile.md tidak ditulis utk generic-override).
+
+**Catatan pelengkap (reorg, bukan Jalur B):** entri angular di `FRAMEWORK_RULES` → `src/framework/angular/rules.mjs` (`ANGULAR_RULES`) — commit `e91758a`; `getFrameworkRules` tetap dispatcher.
 
 > **Status verifikasi (audit 2026-09-05):** Jalur B **belum diimplementasikan sama sekali** — `init.mjs` hanya parse `--key-from`; tak ada `--framework`/`--yes`/`isTTY`. Plan §6 utuh & valid. **Gap tambahan:** keputusan UII-gating (WS3) menyimpan `profile` otomatis dari fingerprint, tapi **belum ada flag override** `sliceui init --profile uii|generic|auto` untuk koreksi misdeteksi — tambahkan di Jalur B bila diinginkan. Catatan: `bootstrap5`/`native-html` tak pernah jadi output `detectFramework` (hanya angular/nextjs/svelte/vue-sfc/react-tsx/tailwind) — semantik `--framework bootstrap5|native-html` perlu didefinisikan.
 
