@@ -136,6 +136,7 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 - Node ≥ 20 (Node 18 is EOL).
 - macOS for the screenshot static tier (`sips` + `swiftc`). XML input works everywhere.
+- **CI runs the test suite on ubuntu only.** The suite is platform-agnostic (no macOS API in tests), so macOS coverage is a known gap — the static tier is exercised manually, not in CI.
 
 ## Status
 
