@@ -1,0 +1,11 @@
+{
+  "classVocabulary": [
+    { "name": "btn", "family": "button", "hint": null },
+    { "name": "btn-primary", "family": "button", "hint": null },
+    { "name": "content", "family": "container", "hint": null },
+    { "name": "control-label", "family": "label", "hint": "field label" }
+  ],
+  "ngDeepCorpus": [],
+  "componentAnatomy": { "well": false, "tableTag": null, "skeletonTag": null, "mockRowsFloor": 15 },
+  "naming": { "prefix": "app", "eventNaming": "onXxx($event)" }
+}

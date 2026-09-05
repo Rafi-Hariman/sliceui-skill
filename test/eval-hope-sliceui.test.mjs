@@ -23,7 +23,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures", "eval-hope");
 const HOPE = join(FIX, "hope");
 const SLICE = join(FIX, "slice");
-const GT = join(FIX, ".sliceui");
+const GT = join(FIX, "ground-truth");
 
 function readComponent(dir, name) {
   const read = (ext) => {
@@ -49,7 +49,7 @@ const NAME = "sample-card"; // component basename used by both hope and slice
 test("eval: human reference passes styleFidelity while the machine slice fails it (A/B on the same design)", (t) => {
   const gt = loadGroundTruth();
   if (!gt.conventions || !gt.transcript || !gt.rawXml) {
-    t.skip("eval-hope fixture not present in test/fixtures/eval-hope/.sliceui");
+    t.skip("eval-hope fixture not present in test/fixtures/eval-hope/ground-truth");
     return;
   }
   // HOPE honors the design title color (#000) → value-coverage passes.
@@ -67,7 +67,7 @@ test("eval: human reference passes styleFidelity while the machine slice fails i
 test("eval: neither hope nor slice trips structural corruption signals (over-flag guard)", (t) => {
   const gt = loadGroundTruth();
   if (!gt.conventions || !gt.transcript || !gt.rawXml) {
-    t.skip("eval-hope fixture not present in test/fixtures/eval-hope/.sliceui");
+    t.skip("eval-hope fixture not present in test/fixtures/eval-hope/ground-truth");
     return;
   }
   for (const [label, dir] of [["HOPE", HOPE], ["SLICE", SLICE]]) {

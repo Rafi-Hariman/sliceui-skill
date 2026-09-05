@@ -1,0 +1,4 @@
+<frame name="Sample Card" width="400" height="140" type="FRAME"><children>
+<Text id="t1" name="Title" x="20" y="20" width="400" height="28" characters="Sample Card Title" type="TEXT"><fills><fill color="#000000"/></fills></Text>
+<Rectangle id="d1" name="Divider" x="20" y="60" width="400" height="1" type="RECTANGLE"><fills><fill color="#fdd835"/></fills></Rectangle>
+</children></frame>
