@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { extractConventions, renderConventionsMd, mergeGoldenClasses } from "../src/lib/conventions.mjs";
+import { extractConventions, renderConventionsMd, mergeGoldenClasses } from "../src/framework/angular/conventions.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures", "conventions");

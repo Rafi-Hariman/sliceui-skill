@@ -22,9 +22,8 @@
 //  16. noTranslation — no `| translate` pipe (SliceUI emits literal text, never i18n)
 //  17. inventedUtility — no atomic utility class (w-100/mr-2/gap-2/rounded-xl) the project never uses
 
-import { scssCoverage } from "./fidelity.mjs";
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
-import { UII_AUTHKEY_BY_ACTION } from "./profiles/uii.mjs";
+import { UII_AUTHKEY_BY_ACTION } from "./uii-profile.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);

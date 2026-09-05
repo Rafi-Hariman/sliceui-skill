@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { detectProject } from "../src/commands/detect.mjs";
 import { initProject } from "../src/commands/init.mjs";
-import { UII_AUTHKEY_BY_ACTION } from "../src/lib/profiles/uii.mjs";
+import { UII_AUTHKEY_BY_ACTION } from "../src/framework/angular/uii-profile.mjs";
 
 // UII profile gating: org-private grammar (pilar / @uiigateway / AuthorizationModel / ugw-*)
 // must only be resolved and taught when the project fingerprints as UII. A generic project must

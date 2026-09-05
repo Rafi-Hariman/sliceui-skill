@@ -13,8 +13,8 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
-import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../lib/conventions.mjs";
-import { renderUiiProfileMd } from "../lib/profiles/uii.mjs";
+import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../framework/angular/conventions.mjs";
+import { renderUiiProfileMd } from "../framework/angular/uii-profile.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];

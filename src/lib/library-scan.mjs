@@ -9,7 +9,7 @@ import fg from "fast-glob";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CATEGORIES, registryEntries, withUiiEntries } from "./library-registry.mjs";
-import { UII_REGISTRY_ENTRIES } from "./profiles/uii.mjs";
+import { UII_REGISTRY_ENTRIES } from "../framework/angular/uii-profile.mjs";
 import { importSources } from "./ts-ast.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];

@@ -4,7 +4,7 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
-import { verifyComponent } from "../lib/verify.mjs";
+import { verifyComponent } from "../framework/angular/verify.mjs";
 
 export function main(argv) {
   const dir = argv[0] ? resolve(argv[0]) : process.cwd();

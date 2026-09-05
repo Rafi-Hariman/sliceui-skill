@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { verifyComponent } from "../src/lib/verify.mjs";
+import { verifyComponent } from "../src/framework/angular/verify.mjs";
 
 // Regression eval: the HUMAN-WRITTEN reference (hope-result) must pass verify; the actual
 // SliceUI output (slicui-result) must FAIL — the gap IS the corruption map. This pins the

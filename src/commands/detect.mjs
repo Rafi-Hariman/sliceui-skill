@@ -11,7 +11,7 @@ import { execFileSync } from "node:child_process";
 import { scanLibraryUsage } from "../lib/library-scan.mjs";
 import { extractStyleTokens } from "../lib/style-tokens.mjs";
 import { extractLoadedClasses } from "../lib/loaded-classes.mjs";
-import { extractConventions } from "../lib/conventions.mjs";
+import { extractConventions } from "../framework/angular/conventions.mjs";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".angular", "build", ".sliceui", ".claude", "coverage"]);
 

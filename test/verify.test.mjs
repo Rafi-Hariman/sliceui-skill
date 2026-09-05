@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { verifyComponent } from "../src/lib/verify.mjs";
+import { verifyComponent } from "../src/framework/angular/verify.mjs";
 
 // Ground truth fixtures mirroring the history-agreement defect corpus.
 const CONVENTIONS = {
