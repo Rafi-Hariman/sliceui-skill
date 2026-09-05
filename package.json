@@ -1,6 +1,6 @@
 {
   "name": "sliceui-skill",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Agent skill + CLI: convert UI designs (Figma XML or screenshots) into idiomatic component code. Angular-first (v13, incl. @uiigateway/pilar); React/Vue/Svelte/Next/Tailwind detection + syntax rules are experimental and not verify-gated.",
   "type": "module",
   "license": "MIT",
