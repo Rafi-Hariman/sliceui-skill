@@ -72,7 +72,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkGridColumns(html),
     checkNoTranslation(html, ts),
     checkInventedUtility(html, conventions?.classVocabulary),
-    checkStyleFidelity(scss + " " + html, transcript),
+    checkStyleFidelity(scss, html, transcript, conventions),
     checkLoadedClass(html, conventions?.loadedClassRegistry),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
@@ -1005,93 +1005,171 @@ function paginationTotal(transcript) {
   return total;
 }
 
-// ---------- 18. styleFidelity (design colors of the page's key elements survive) ----------
+// ---------- 18. styleFidelity (value coverage: design values survive in the authored slice) ----------
 
-/** Style-fidelity check. The transcript carries the DESIGN's own color choices for the page's
- *  key elements (title text, divider). The classic verify-green-but-localhost-wrong miss was
- *  `.h1 { color: #555 }` when the design said `#000000` — no check compared generated SCSS values
- *  against the transcript. This check maps two deterministic, low-ambiguity facts:
- *    (a) title color — locate the rendered heading whose text is the transcript title, find its
- *        class rule in generated SCSS, and compare that rule's color to the design's title color.
- *    (b) divider color — a design divider with a non-default bg must have that color (or the
- *        transcript's own value) reachable in the generated scss+html.
- *  Token substitution ($x / var(--y)) is skipped, never false-flagged — without a resolved token
- *  value we cannot judge it. */
-function checkStyleFidelity(generated, transcript) {
+/** Style-fidelity check (value-coverage, remediation FASE 1.1). The transcript carries the
+ *  DESIGN's own values — text color/size/weight, divider color — per node. The classic
+ *  verify-green-but-localhost-wrong miss was `.h1 { color: #555 }` when the design said
+ *  `#000000`; no check compared generated SCSS VALUES against the transcript. This check
+ *  compares every design value fact that maps deterministically to an AUTHORSED slice rule
+ *  (a `.class { … }` written in the generated SCSS) and passes only when ≥80% of comparable
+ *  facts match.
+ *
+ *  Anti-false-positive guard (invented-only): a design fact is compared ONLY when the generated
+ *  element's class has its own authored rule in the slice SCSS. A class the slice REUSES from
+ *  the project (btn, form-group, control-label, ::ng-deep corpus, a library-internal token) has
+ *  no authored slice rule → the fact is skipped, never failed. This keeps "copy-convention-first"
+ *  intact while still catching invented values that drift from the design.
+ *
+ *  Token substitution ($x / var(--y)) is skipped, never false-flagged — without a resolved value
+ *  we cannot judge it (and an unreachable token is not a comparable fact). */
+function checkStyleFidelity(scss, html, transcript, conventions = {}) {
   if (!transcript) return { name: "styleFidelity", status: "skip", detail: "no transcript to check style facts against" };
-  const scssHtml = String(generated ?? "");
-  if (!scssHtml.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
+  const gen = `${String(scss ?? "")}\n${String(html ?? "")}`;
+  if (!gen.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
 
-  const title = titleNode(transcript);
+  const comparable = []; // { where, prop, design, actual } — every fact with an authored target
   const problems = [];
+  const seen = new Set();
 
-  // (a) title color: rendered heading text → its class rule's color vs design.
-  if (title?.style?.color) {
-    const designColor = normHex(title.style.color);
-    const rendered = renderedTitleColor(scssHtml, title.text);
-    if (rendered) {
-      if (rendered.designToken) {
-        // SCSS variable / css-var — cannot resolve; do not judge.
-      } else if (rendered.color !== designColor) {
-        problems.push(`title "${trunc(title.text)}" styled ${rendered.color}, design says ${designColor}`);
-      }
+  const addFact = (where, prop, design, actual) => {
+    const key = `${where}|${prop}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    comparable.push({ where, prop, design, actual });
+    if (String(actual).toLowerCase() !== String(design).toLowerCase()) problems.push(`${where} ${prop}: actual ${actual}, design ${design}`);
+  };
+
+  // (1) Authored-rule text facts: every styled text node (title, buttons, labels) whose generated
+  // element carries an authored class rule → compare color/size/weight.
+  for (const n of textNodes(transcript)) {
+    const t = (n.text ?? "").trim();
+    if (!t || GLYPH.test(t)) continue;
+    const authored = authoredRuleForText(gen, t); // { className, ruleBody } or null
+    if (!authored) continue; // reuse class / no authored slice rule → not comparable (skip, never fail)
+    const where = `text "${trunc(t)}" (.${authored.className})`;
+    const decls = declMap(authored.ruleBody);
+    if (n.style?.color) {
+      const dv = normHex(n.style.color);
+      const cv = resolveHex(decls.color);
+      if (cv) addFact(where, "color", dv, cv);
     }
-    // No rendered color for the title rule → inherited project style; can't compare. Not a fail.
+    if (n.style?.size) {
+      const cv = pxNum(decls["font-size"]);
+      if (cv !== null) addFact(where, "font-size", Number(n.style.size), cv);
+    }
+    if (n.style?.weight) {
+      const cv = weightNum(decls["font-weight"]);
+      if (cv !== null) addFact(where, "font-weight", Number(n.style.weight), cv);
+    }
   }
 
-  // (b) divider color: a non-default divider bg in the design must be reachable in output.
+  // (2) Divider color: a design divider with a non-default bg must be reachable in output.
+  //     Counted as ONE comparable fact — its actual is "missing" when absent, so a dropped
+  //     divider always drags coverage (never passes silently on a strong text match).
   const dividerColor = dividerColorOf(transcript);
   if (dividerColor) {
-    if (!normHex(scssHtml).includes(normHex(dividerColor))) {
-      problems.push(`divider color ${dividerColor} (design) missing from generated css/html`);
+    const present = normHex(gen).includes(normHex(dividerColor));
+    const where = "divider";
+    if (present) {
+      comparable.push({ where, prop: "bg", design: dividerColor, actual: dividerColor });
+    } else {
+      comparable.push({ where, prop: "bg", design: dividerColor, actual: "missing" });
+      problems.push(`divider bg: actual missing ${dividerColor} (design)`);
     }
   }
 
-  if (!problems.length) {
-    const n = (title?.style?.color ? 1 : 0) + (dividerColor ? 1 : 0);
-    return n ? { name: "styleFidelity", status: "pass", detail: "title/divider design colors preserved" }
-              : { name: "styleFidelity", status: "skip", detail: "no title-color or divider-color design facts" };
+  if (!comparable.length) {
+    return { name: "styleFidelity", status: "skip", detail: "no authored-rule design facts to compare (slice reuses project classes)" };
   }
-  return { name: "styleFidelity", status: "fail", detail: problems.join("; "), problems };
+  const ok = comparable.length - problems.length;
+  const pct = Math.round((ok / comparable.length) * 100);
+  if (problems.length && pct < 80) {
+    return {
+      name: "styleFidelity", status: "fail",
+      detail: `${problems.length}/${comparable.length} design value(s) drift (${pct}% match < 80%): ${problems.slice(0, 6).join("; ")}`,
+      problems,
+    };
+  }
+  return { name: "styleFidelity", status: "pass", detail: `${pct}% of ${comparable.length} comparable design value(s) match` };
 }
 
-/** First text node that reads like a page title — the largest (by w) text leaf in the top
- *  region, or simply the first styled text node with a color. */
-function titleNode(transcript) {
-  let firstStyled = null;
-  let largest = null;
+/** All styled text nodes (color/size/weight) — the design's text facts. */
+function textNodes(transcript) {
+  const out = [];
   walkNodes(transcript?.layout, (n) => {
     if (!n || typeof n !== "object" || n.type !== "text") return;
     const t = (n.text ?? "").trim();
-    if (!t) return;
-    if (n.style?.color && !firstStyled) firstStyled = n;
-    if (!largest || (n.w ?? 0) > (largest.w ?? 0)) largest = n;
+    if (!t || GLYPH.test(t)) return;
+    if (n.style?.color || n.style?.size || n.style?.weight) out.push(n);
   });
-  return firstStyled && largest && firstStyled.id === largest.id ? firstStyled : (firstStyled ?? largest);
+  return out;
 }
 
-/** Find the generated rule that colors the rendered heading with the title text; return its
- *  resolved color (or { designToken: true } when the color is a variable). */
-function renderedTitleColor(scssHtml, titleText) {
-  // Which element renders the title? Prefer <h1 class="…">…title…</h1>; fall back to any
-  // element whose inner text contains the title.
-  const t = (titleText ?? "").trim();
+/** Find the authored slice rule for the element that renders `text`. Returns
+ *  { className, ruleBody } for the FIRST class of the matched element that has an authored
+ *  `.class { … }` rule in the generated SCSS, or null when the element reuses project classes
+ *  (no authored slice rule). Prefer a heading; fall back to any element containing the text. */
+function authoredRuleForText(gen, text) {
+  const t = String(text ?? "").trim();
   const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const hRe = new RegExp(`<h([1-6])\\b([^>]*)>[\\s\\S]{0,80}?${esc}[\\s\\S]{0,80}?</h\\1>`, "i");
-  const anyRe = new RegExp(`<([a-z][\\w-]*)\\b([^>]*)>[\\s\\S]{0,80}?${esc}[\\s\\S]{0,80}?</\\1>`, "i");
-  const m = hRe.exec(scssHtml) || anyRe.exec(scssHtml);
+  const hRe = new RegExp(`<h([1-6])\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</h\\1>`, "i");
+  const anyRe = new RegExp(`<([a-z][\\w-]*)\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</\\1>`, "i");
+  const m = hRe.exec(gen) || anyRe.exec(gen);
   if (!m) return null;
   const cls = /class=["']([^"']+)["']/.exec(m[2])?.[1];
   if (!cls) return null;
-  const firstCls = cls.split(/\s+/)[0];
-  // Find the SCSS rule for this class and pull its color declaration.
-  const ruleRe = new RegExp(`\\.${cssEscape(firstCls)}\\b[^{]*\\{[^}]*color\\s*:\\s*([^;!}]+)`, "i");
-  const rule = ruleRe.exec(scssHtml);
-  if (!rule) return null;
-  const val = rule[1].trim();
-  if (/^\$|var\(|--[a-z]/i.test(val)) return { designToken: true };
-  const hex = /#[0-9a-f]{3,6}/i.exec(val)?.[0];
-  return hex ? { color: normHex(hex) } : null;
+  for (const c of cls.split(/\s+/)) {
+    if (!c) continue;
+    const rule = authoredRule(gen, c);
+    if (rule) return { className: c, ruleBody: rule };
+  }
+  return null;
+}
+
+/** The body of the first authored `.class { … }` rule (any selector whose head contains the
+ *  class), or null. Reused/global classes that the slice never authors return null. */
+function authoredRule(scss, cls) {
+  const clean = stripComments(scss);
+  const re = new RegExp(`(?:^|\\})[^{}]*\\.${cssEscape(cls)}\\b[^{]*\\{([^{}]*)\\}`, "g");
+  const m = re.exec(clean);
+  return m ? m[1] : null;
+}
+
+/** Map a CSS declaration block body → { property: value } (last wins). */
+function declMap(body) {
+  const out = {};
+  for (const m of String(body ?? "").matchAll(/([a-zA-Z-]+)\s*:\s*([^;]+)/g)) {
+    out[m[1].trim().toLowerCase()] = m[2].trim().replace(/!important\s*$/i, "").trim();
+  }
+  return out;
+}
+
+/** Resolve a css color value to normalized hex, or null (token/var/gradient/named → cannot judge). */
+function resolveHex(v) {
+  if (!v) return null;
+  if (/^\$|var\(|--[a-z]/i.test(v)) return null;
+  const hex = /#[0-9a-f]{3,8}/i.exec(v)?.[0];
+  return hex ? normHex(hex) : null;
+}
+
+/** A `14px`/`14` length → number; null when not a px literal (rem/em/token). */
+function pxNum(v) {
+  if (!v) return null;
+  const m = /^(-?\d+(?:\.\d+)?)px$/.exec(v.trim());
+  return m ? Number(m[1]) : null;
+}
+
+/** font-weight: 500 | normal | bold | var → numeric 100-900, else null. */
+function weightNum(v) {
+  if (!v) return null;
+  const s = v.trim().toLowerCase();
+  if (/^\$|var\(|--[a-z]/i.test(s)) return null;
+  const num = /^(\d{3})$/.exec(s);
+  if (num) return Number(num[1]);
+  const named = { normal: 400, bold: 700, bolder: 900, lighter: 100 };
+  if (s in named) return named[s];
+  return null;
 }
 
 /** A design divider with a distinctive bg color (the hr under the title). */

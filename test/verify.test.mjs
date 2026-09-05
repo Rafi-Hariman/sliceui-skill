@@ -668,6 +668,47 @@ test("verify: styleFidelity skips without a transcript", () => {
   assert.equal(check.status, "skip");
 });
 
+test("verify: styleFidelity value-coverage fails on font-size drift on an authored rule (<80%)", () => {
+  // Design: title 16px/500. Authored slice rule carries 20px + correct color → size fact drifts,
+  // giving 2 comparable (size, weight both authored) — size mismatch alone is 50% < 80% → fail.
+  const transcript = { layout: [{ type: "text", text: "Ubah tagihan", style: { size: 16, weight: 500, color: "#000000" } }] };
+  const driftScss = `.h1 { color: #000; font-size: 20px; font-weight: 500; }`;
+  const driftHtml = `<h1 class="h1">Ubah tagihan</h1>`;
+  const r = verifyComponent({ scss: driftScss, html: driftHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "fail", `font-size drift must fail: ${JSON.stringify(check.detail)}`);
+  assert.match(check.detail, /font-size/);
+});
+
+test("verify: styleFidelity value-coverage passes on authored rule with matching values", () => {
+  const transcript = { layout: [{ type: "text", text: "Ubah tagihan", style: { size: 16, weight: 500, color: "#000000" } }] };
+  const goodScss = `.h1 { color: #000; font-size: 16px; font-weight: 500; }`;
+  const goodHtml = `<h1 class="h1">Ubah tagihan</h1>`;
+  const r = verifyComponent({ scss: goodScss, html: goodHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "pass", `matching authored values must pass: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity does NOT judge a reused project class (copy-convention-first, not a fail)", () => {
+  // A project class (e.g. .control-label) is reused, not authored in the slice — verify must not
+  // demand its rule match the design (conventions are trusted; only authored slice CSS is judged).
+  const transcript = { layout: [{ type: "text", text: "Jenis tagihan", style: { size: 12, color: "#555555" } }] };
+  const reuseHtml = `<label class="control-label">Jenis tagihan</label>`; // no authored .control-label rule
+  const reuseScss = `.content { padding: 5px; }`;
+  const r = verifyComponent({ scss: reuseScss, html: reuseHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "skip", "reused project class with no authored rule → no comparable fact → skip, not fail");
+});
+
+test("verify: styleFidelity skips token-valued authored rules (cannot resolve, never false-flagged)", () => {
+  const transcript = { layout: [{ type: "text", text: "Ubah tagihan", style: { color: "#000000" } }] };
+  const tokenScss = `.h1 { color: $title-color; }`;
+  const tokenHtml = `<h1 class="h1">Ubah tagihan</h1>`;
+  const r = verifyComponent({ scss: tokenScss, html: tokenHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.notEqual(check.status, "fail", "token color must not be false-flagged");
+});
+
 // ---------- scssCoverage hardening (0.2) ----------
 
 test("verify: scssCoverage fails when a corpus token sits only in a comment or emptied rule", () => {
