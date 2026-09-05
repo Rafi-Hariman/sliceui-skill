@@ -7,8 +7,6 @@
 // matches, emit a native-plain fallback — honest, never silent drop (prevents the toggle-caret
 // gap where a real XML feature vanished).
 
-import { walkNodes } from "./walk-nodes.mjs";
-
 /** Semantic map: badge color + icon color → the correct label-custom-* + fa-* combo.
  *  Derived from co-occurrence in the project corpus (label-custom-waiting pairs #fef2f2 bg +
  *  #f44444 icon → fa-exclamation-circle), NOT guesswork. */
@@ -18,6 +16,11 @@ const FA_ICON_COLORS = {
   "#4fbbbb": ["fa-check-circle"],
   "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
 };
+
+/** Figma web export names the painted shape inside an icon instance generically ("Vector"),
+ *  while the FA glyph name sits on the INSTANCE wrapper one level up. These generic names carry
+ *  no glyph signal and must not shadow an inherited icon-instance name. */
+const GENERIC_ICON_NAME = /^(vector|icon|shape|group|frame|path|ellipse|rectangle|line|text|union|component|frame_?\d*)$/i;
 
 /**
  * @param {object} transcript — parsed transcript (layout nodes)
@@ -30,17 +33,33 @@ export function resolveTranscript(transcript, conventions = {}) {
   const leaves = [];
   const statusTable = [];
 
-  walkNodes(transcript?.layout, (node) => {
-    const r = resolveNode(node, corpus, vocab);
-    if (r) leaves.push(r);
-    if (r?.kind === "status") statusTable.push(r);
-  });
+  // DFS threading the nearest meaningful icon-instance name down to styled leaves. Real FIGML
+  // web export nests the FA glyph name on an INSTANCE wrapper while the painted, color-bearing
+  // leaf is its inner `Vector` child (generic name) — so the leaf must inherit the wrapper's name.
+  const walk = (nodes, inheritedName) => {
+    for (const node of nodes ?? []) {
+      if (!node || typeof node !== "object") continue;
+      const own = meaningfulIconName(node.description);
+      const eff = own ?? inheritedName;
+      const r = resolveNode(node, corpus, vocab, eff);
+      if (r) leaves.push(r);
+      if (r?.kind === "status") statusTable.push(r);
+      walk(node.children, eff);
+    }
+  };
+  walk(transcript?.layout, null);
 
   return { leaves, statusTable };
 }
 
+/** A non-generic icon description (the FA glyph name an INSTANCE wrapper carries), else null. */
+function meaningfulIconName(desc) {
+  const s = String(desc ?? "").trim();
+  return s && !GENERIC_ICON_NAME.test(s) ? s : null;
+}
+
 /** Resolve a single styled leaf. Returns null for non-styled structural nodes. */
-function resolveNode(node, corpus, vocab) {
+function resolveNode(node, corpus, vocab, inheritedName = null) {
   // Status badge: a group/row with bg #fef2f2-like + an icon child with a semantic color.
   const iconChild = findIconChild(node);
   const bg = node.bg ?? "";
@@ -50,16 +69,73 @@ function resolveNode(node, corpus, vocab) {
   // A bare icon (caret/action) — its Figma node name (description) is the strongest signal for
   // WHICH glyph it is (caret vs pencil vs search); color only disambiguates within a family.
   // Color-first wrongly resolved every #03337b glyph (caret, pencil, eye) to fa-search.
+  // The name may sit on the INSTANCE wrapper (real FIGML nests FA name above a generic "Vector"
+  // leaf); use the leaf's own meaningful name, else the inherited one from `resolveTranscript`.
   if (node.type === "icon" && node.bg) {
-    const desc = (node.description ?? "").toLowerCase();
-    const fa = iconFromName(desc) ?? iconFromColor(node.bg, corpus);
+    const ownDesc = meaningfulIconName(node.description);
+    const eff = ownDesc ?? inheritedName;
+    const name = String(eff ?? "").toLowerCase();
+    const fa = iconFromName(name);
+
+    // Name evidence resolved a glyph → single confident answer.
+    if (fa) {
+      return {
+        id: node.id,
+        kind: "icon",
+        type: "icon",
+        evidence: { color: node.bg, name },
+        resolved: [{ kind: "icon", value: fa }],
+        fallback: null,
+      };
+    }
+
+    // No name evidence → fall back to color. A corpus fa-* styled to this exact color beats the
+    // ambiguous color default (H1: exact > guess).
+    const exact = corpus.find((c) => /\.fa-/.test(c.selector) && c.block && c.block.includes(node.bg));
+    if (exact) {
+      const exactFa = exact.selector.match(/fa-[a-z0-9-]+/)?.[0];
+      return {
+        id: node.id,
+        kind: "icon",
+        type: "icon",
+        evidence: { color: node.bg, name },
+        resolved: exactFa ? [{ kind: "icon", value: exactFa }] : [],
+        fallback: null,
+      };
+    }
+
+    const family = FA_ICON_COLORS[node.bg] ?? [];
+    if (family.length === 1) {
+      return {
+        id: node.id,
+        kind: "icon",
+        type: "icon",
+        evidence: { color: node.bg, name },
+        resolved: [{ kind: "icon", value: family[0] }],
+        fallback: null,
+      };
+    }
+    if (family.length > 1) {
+      // Ambiguous color + no glyph name anywhere: DO NOT confidently emit the color-default first
+      // item (e.g. fa-search for #03337b). Surface the whole family + a note so the agent picks by
+      // the XML action context — honest over false confidence (H1).
+      return {
+        id: node.id,
+        kind: "icon",
+        type: "icon",
+        evidence: { color: node.bg, name },
+        resolved: family.map((v) => ({ kind: "icon", value: v })),
+        candidates: family,
+        fallback: { kind: "native-plain", note: `icon color ${node.bg} is ambiguous (${family.join("/")}) with no glyph name in the XML — pick by the action context, not color alone` },
+      };
+    }
     return {
       id: node.id,
       kind: "icon",
       type: "icon",
-      evidence: { color: node.bg, name: desc },
-      resolved: fa ? [{ kind: "icon", value: fa }] : [],
-      fallback: fa ? null : { kind: "native-plain", note: "icon glyph not resolvable from name/color — use the project's icon set" },
+      evidence: { color: node.bg, name },
+      resolved: [],
+      fallback: { kind: "native-plain", note: "icon glyph not resolvable from name/color — use the project's icon set" },
     };
   }
   // Button: variant (from XML componentProperties/variantProperties) → project btn class.
@@ -113,9 +189,8 @@ function iconFromName(desc) {
 function resolveStatus(node, iconChild, corpus, vocab) {
   const iconColor = iconChild.bg;
   // Badge icon semantics come from the DESIGN color (single source of truth): #f44444 ⇒ the
-  // exclamation-circle FAMILY. Corpus-exact color matching (iconFromColor) is for bare action
-  // icons, NOT badges — a corpus that colors a different glyph #f44444 (times-circle for a
-  // rejected label) must not hijack a red badge's family. Name wins when present (caret vs edit).
+  // exclamation-circle FAMILY. A corpus that colors a different glyph #f44444 (times-circle for
+  // a rejected label) must not hijack a red badge's family. Name wins when present (caret vs edit).
   const fa = iconFromName((iconChild.description ?? "").toLowerCase())
     ?? (FA_ICON_COLORS[iconColor] ?? [])[0]
     ?? null;
@@ -188,13 +263,6 @@ function labelFromCooccurrenceCandidates(corpus, fa) {
     .filter((c) => /label-custom/.test(c.selector) && c.selector.includes(fa))
     .map((c) => c.selector.match(/label-custom-[a-z0-9-]+/)?.[0])
     .filter(Boolean);
-}
-
-function iconFromColor(color, corpus) {
-  const faIcons = FA_ICON_COLORS[color] ?? [];
-  // A corpus fa-* selector styled to this exact color is the strongest signal.
-  const exact = corpus.find((c) => /\.fa-/.test(c.selector) && c.block && c.block.includes(color));
-  return exact?.selector.match(/fa-[a-z0-9-]+/)?.[0] ?? faIcons[0] ?? null;
 }
 
 // ---------- helpers ----------

@@ -1,0 +1,15 @@
+// Combined hover+focus rule under ::ng-deep. extractNgDeepBlocks splits the comma-group head into
+// two selector entries (`…a:hover`, `…a:focus`) that BOTH carry this identical full block — the
+// corpus collapse must merge them into ONE idiom, not list the block twice.
+::ng-deep.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus {
+  text-decoration: none;
+  color: white;
+  font-weight: bold;
+  background-color: #093697;
+}
+
+// A separate, genuinely distinct rule must NOT be merged with the above.
+::ng-deep.dropdown-menu > li > a {
+  display: block;
+}

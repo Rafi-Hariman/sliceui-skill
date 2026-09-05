@@ -6,6 +6,7 @@ import { extractConventions, renderConventionsMd, mergeGoldenClasses } from "../
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures", "conventions");
+const DEDUP_FIX = join(HERE, "fixtures", "ngdeep-dedup");
 
 test("classVocabulary: counts + families, skips grid noise", () => {
   const c = extractConventions(FIX, { prefix: "ugw" });
@@ -115,6 +116,28 @@ test("ngDeepCorpus: bare form-control + ngx-select__toggle are reusable", () => 
   const toggle = c.ngDeepCorpus.find((x) => x.selector === "ngx-select__toggle");
   assert.ok(toggle, "bare ngx-select__toggle block captured");
   assert.equal(toggle.reusable, true, "bare ngx-select__toggle is reusable (border idiom)");
+});
+
+test("ngDeepCorpus: collapses :hover/:focus variants of ONE identical block into a single idiom", () => {
+  const c = extractConventions(DEDUP_FIX, { prefix: "app" });
+  const dropdown = c.ngDeepCorpus.filter((x) => x.selector.includes("dropdown-menu > li > a"));
+  // The combined `a:hover,\n a:focus { … }` rule must be ONE corpus entry (not two), even though
+  // its comma-group head carries two state pseudo-variants. The separate distinct `> a { … }` rule
+  // (different body) stays its own entry — so expect exactly two dropdown-menu entries total.
+  assert.equal(dropdown.length, 2, `expected 2 dropdown-menu idioms (hover+focus merged + plain a), got ${dropdown.length}: ${JSON.stringify(dropdown.map((d) => d.selector))}`);
+  // The merged entry's selector carries BOTH state variants (union), so scssCoverage can match the
+  // output regardless of which the agent writes — and the block appears exactly once.
+  const merged = dropdown.find((x) => x.selector.includes(":hover") && x.selector.includes(":focus"));
+  assert.ok(merged, "the :hover,:focus pair merged into one entry with both selectors");
+  const blockCount = (merged.block.match(/background-color:\s*#093697/g) ?? []).length;
+  assert.equal(blockCount, 1, "the merged entry carries the block exactly once");
+});
+
+test("renderConventionsMd: an identical hover+focus rule renders ONCE (no duplicate .md block)", () => {
+  const c = extractConventions(DEDUP_FIX, { prefix: "app" });
+  const md = renderConventionsMd({ ngDeepCorpus: c.ngDeepCorpus, classVocabulary: [], componentAnatomy: {}, naming: {} }, "angular");
+  const occurrences = (md.match(/background-color:\s*#093697/g) ?? []).length;
+  assert.equal(occurrences, 1, `the combined dropdown block must appear exactly once in the .md, got ${occurrences}`);
 });
 
 test("mergeGoldenClasses: golden reference classes (mt-4, col-12, p-0) become legal vocabulary", () => {

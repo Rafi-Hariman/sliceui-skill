@@ -38,12 +38,22 @@ function withSkillDir(fn, { withManifest = false } = {}) {
 }
 
 test("doctor reports missing key as a soft warning (falls back to static), not hard fail", async () => {
+  // A missing Gemini key must NOT make doctor exit non-zero / say "fix before generating":
+  // XML/FIGML input transcribes without a key and the screenshot path degrades to static tier.
   const dir = makeProject({});
-  const r = await runDoctor(dir);
-  const keyCheck = r.checks.find((c) => c.label.includes("Gemini API key"));
-  assert.ok(keyCheck, "key check present");
-  assert.equal(keyCheck.ok, false);
-  // missing key alone must not fail doctor (static tier is valid)
+  await withSkillDir(async () => {
+    const r = await runDoctor(dir);
+    const keyCheck = r.checks.find((c) => c.label.includes("Gemini API key"));
+    assert.ok(keyCheck, "key check present");
+    assert.equal(keyCheck.ok, false, "key check reports not-found");
+    assert.equal(keyCheck.warn, true, "missing key is a warning, not a hard failure");
+    // The only hard fail left is the missing skill manifest (this temp env has none).
+    const hardFails = r.hardFails.filter((c) => !c.label.includes("Skill"));
+    assert.equal(hardFails.length, 0, "missing key alone must not be a hard failure");
+    // Without the missing-skill hard fail, doctor would be ok — prove key is not in hardFails.
+    assert.ok(!r.hardFails.some((c) => c.label.includes("Gemini API key")), "key check must NOT be a hard failure");
+    assert.ok(!r.hardFails.some((c) => c.label.includes("Gemini live call")), "skipped live call must NOT be a hard failure");
+  });
   rmSync(dir, { recursive: true, force: true });
 });
 

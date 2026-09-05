@@ -214,6 +214,33 @@ test("verify: mockRowCount fails when rows < transcript total (20)", () => {
   assert.equal(check.required, 20, "required = max(floor 15, transcript 20) = 20");
 });
 
+test("verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not applicable)", () => {
+  // A plain (non-library) table detail list with 3 mock rows and no pagination evidence must be
+  // "not applicable", NOT a false-positive fail demanding 15 rows the design doesn't show.
+  const ts3Rows = `const base = [
+  { nim: "1", status: "Sudah bayar" },
+  { nim: "2", status: "Sudah bayar" },
+  { nim: "3", status: "Belum bayar" },
+];`;
+  // Design evidence: only a plain table + a couple of rows, NO pagination footer anywhere.
+  const noPaginationTranscript = {
+    layout: [
+      { type: "text", text: "Detail tagihan yang sudah tergenerate" },
+      { type: "text", text: "Sample Card Title" },
+    ],
+  };
+  const r = verifyComponent({
+    scss: GOOD_SCSS,
+    html: `<div class="content"><table class="bill-table"><tr *ngFor="let row of base"><td>{{row.nim}}</td></tr></table></div>`,
+    ts: ts3Rows,
+    conventions: { ...CONVENTIONS, componentAnatomy: { ...CONVENTIONS.componentAnatomy, tableTag: "uii-table", mockRowsFloor: 15 } },
+    transcript: noPaginationTranscript,
+    rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "skip", "plain detail-list table → not applicable (skip), not fail");
+});
+
 test("verify: no-exemplar never scores pass (empty corpus → skip, not pass)", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
@@ -698,6 +725,50 @@ test("verify: styleFidelity does NOT judge a reused project class (copy-conventi
   const r = verifyComponent({ scss: reuseScss, html: reuseHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
   const check = r.checks.find((c) => c.name === "styleFidelity");
   assert.equal(check.status, "skip", "reused project class with no authored rule → no comparable fact → skip, not fail");
+});
+
+test("verify: styleFidelity DOM-aware — a label is NOT mis-attributed to a sibling .scheme-box (no false positive)", () => {
+  // Regression from the execution log: label text bound to .control-label (a reused, NON-authored
+  // class) sits in its own element BEFORE a .scheme-box value box. The old flat-regex attributed
+  // the label to the sibling .scheme-box and false-failed. DOM-aware matching binds the label to
+  // its real container (.control-label) → not authored → skipped, never failed.
+  const transcript = {
+    layout: [
+      { type: "text", text: "Total tagihan lama (Rp)", style: { color: "#555555", size: 12 } },
+    ],
+  };
+  const html = `<div class="scheme-row">
+  <div class="form-group">
+    <label class="control-label">Total tagihan lama (Rp)</label>
+    <div class="scheme-box total">{{ totalTagihanLama }}</div>
+  </div>
+</div>`;
+  // .scheme-box IS authored (with a drifting color) but .control-label is NOT authored.
+  const scss = `.content { padding: 20px; }\n.scheme-box { color: #333333; font-size: 14px; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "skip", "label binds to non-authored .control-label → skipped, not falsely attributed to .scheme-box");
+  assert.ok(!check.problems || check.problems.length === 0, "no false drift problems against the label");
+});
+
+test("verify: styleFidelity DOM-aware — an authored .control-label with correct values PASSES", () => {
+  // When the label's own class IS authored with the design values, the DOM-aware matcher binds
+  // the text to it and compares honestly → pass (not attributed to a sibling).
+  const transcript = {
+    layout: [
+      { type: "text", text: "Total tagihan lama (Rp)", style: { color: "#555555", size: 12, weight: 600 } },
+    ],
+  };
+  const html = `<div class="scheme-row">
+  <div class="form-group">
+    <label class="control-label">Total tagihan lama (Rp)</label>
+    <div class="scheme-box total">{{ totalTagihanLama }}</div>
+  </div>
+</div>`;
+  const scss = `.control-label { color: #555555; font-size: 12px; font-weight: 600; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "pass", `label authored with design values must pass, got ${JSON.stringify(check.detail)}`);
 });
 
 test("verify: styleFidelity skips token-valued authored rules (cannot resolve, never false-flagged)", () => {

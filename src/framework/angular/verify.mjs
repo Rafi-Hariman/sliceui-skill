@@ -60,7 +60,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkTableBindings(html, rawXml),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
-    checkMockRowCount(ts, conventions?.componentAnatomy, transcript),
+    checkMockRowCount(html, ts, conventions?.componentAnatomy, transcript),
     checkNoHashedSelectors(scss),
     checkNoBareNgDeep(scss, conventions?.ngDeepCorpus),
     checkIconColor(ts + " " + scss, transcript),
@@ -919,13 +919,30 @@ function checkAnatomy(html, anatomy = {}) {
 
 // ---------- 6. mockRowCount ----------
 
-function checkMockRowCount(ts, anatomy = {}, transcript) {
+/** Is this a LIBRARY table (uii-table/ngx-datatable/mat-table), i.e. the paged-data table the
+ *  mock-row floor exists for? Shared regex used by tableBindings/anatomy/scssCoverage too. */
+function isLibraryTable(html) {
+  return /<(uii-table|ngx-datatable|mat-table)(?!-skeleton)\b/i.test(String(html ?? ""));
+}
+
+function checkMockRowCount(html, ts, anatomy = {}, transcript) {
   const rows = countMockRows(ts);
   if (rows === null) {
     return { name: "mockRowCount", status: "skip", detail: "could not determine mock row count" };
   }
-  const floor = anatomy?.mockRowsFloor ?? 15;
   const target = paginationTotal(transcript);
+  // The mock-row floor exists to activate PAGINATED LIBRARY tables. A plain HTML <table> detail
+  // list (not a uii-table/ngx-datatable/mat-table, no pagination footer) is a different design —
+  // demanding 15 rows there would force the agent to invent content the design doesn't show.
+  // Honest "not applicable" (H3) instead of a false positive.
+  if (!isLibraryTable(html) && target === 0) {
+    return {
+      name: "mockRowCount",
+      status: "skip",
+      detail: "no paginated library table (uii-table/ngx-datatable/mat-table) and no pagination evidence — mock-row floor not applicable (plain/detail list)",
+    };
+  }
+  const floor = anatomy?.mockRowsFloor ?? 15;
   const required = Math.max(floor, target);
   if (rows < required) {
     return {
@@ -1022,7 +1039,7 @@ export function collectStyleFacts(scss, html, transcript) {
   for (const n of textNodes(transcript)) {
     const t = (n.text ?? "").trim();
     if (!t || GLYPH.test(t)) continue;
-    const authored = authoredRuleForText(gen, t); // { className, ruleBody } or null
+    const authored = authoredRuleForText(html, t, scss); // { className, ruleBody } or null
     if (!authored) continue; // reuse class / no authored slice rule → not comparable (skip, never fail)
     const where = `text "${trunc(t)}" (.${authored.className})`;
     const decls = declMap(authored.ruleBody);
@@ -1094,25 +1111,125 @@ function textNodes(transcript) {
   return out;
 }
 
-/** Find the authored slice rule for the element that renders `text`. Returns
- *  { className, ruleBody } for the FIRST class of the matched element that has an authored
- *  `.class { … }` rule in the generated SCSS, or null when the element reuses project classes
- *  (no authored slice rule). Prefer a heading; fall back to any element containing the text. */
-function authoredRuleForText(gen, text) {
+/** Find the authored slice rule for the element that renders `text`. DOM-aware: builds a
+ *  lightweight element tree of the generated HTML and returns the rule for the DEEPEST element
+ *  whose textContent equals the text — so a label text inside its own classed element can never
+ *  be mis-attributed to a sibling/ancestor's class (the flat-regex false-positive from the
+ *  execution log: labels "Total tagihan lama (Rp)" wrongly bound to `.scheme-box`).
+ *
+ *  Returns { className, ruleBody } for the FIRST class of the matched element that has an authored
+ *  `.class { … }` rule in the SCSS, or null when the element reuses project classes (no authored
+ *  slice rule). If no element matches exactly (text split by interpolation / entity variance),
+ *  falls back to the previous flat-regex scan so behavior never silently drops a fact. */
+function authoredRuleForText(html, text, scss) {
   const t = String(text ?? "").trim();
+  if (!t) return null;
+  const tree = buildElementTree(String(html ?? ""));
+  const exact = tree.findDeepestByText(t);
+  if (exact) {
+    for (const el of exact.chain) {
+      const match = firstAuthoredClass(el.classList, scss);
+      if (match) return match;
+    }
+    return null; // every ancestor reuses project classes → skip (never fail)
+  }
+  // Fallback (text split across interpolation/nodes): original flat-regex scan over html.
   const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const hRe = new RegExp(`<h([1-6])\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</h\\1>`, "i");
   const anyRe = new RegExp(`<([a-z][\\w-]*)\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</\\1>`, "i");
-  const m = hRe.exec(gen) || anyRe.exec(gen);
+  const m = hRe.exec(html) || anyRe.exec(html);
   if (!m) return null;
   const cls = /class=["']([^"']+)["']/.exec(m[2])?.[1];
   if (!cls) return null;
-  for (const c of cls.split(/\s+/)) {
+  return firstAuthoredClass(cls.split(/\s+/), scss);
+}
+
+/** First class in a list that has an authored `.class { … }` rule in the SCSS, else null. */
+function firstAuthoredClass(classList, scss) {
+  for (const c of classList ?? []) {
     if (!c) continue;
-    const rule = authoredRule(gen, c);
+    const rule = authoredRule(scss, c);
     if (rule) return { className: c, ruleBody: rule };
   }
   return null;
+}
+
+/** Build a lightweight element tree (tag, classList, textContent, children, parent chain) from
+ *  generated HTML, so text→element attribution is DOM-nesting aware instead of flat-regex. */
+function buildElementTree(html) {
+  const root = { tag: "#root", classList: [], children: [], parent: null, textContent: "" };
+  let cur = root;
+  const re = /<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^'">])*)>/g;
+  let m;
+  let lastIndex = 0;
+  while ((m = re.exec(html)) !== null) {
+    const between = html.slice(lastIndex, m.index);
+    if (between) appendText(cur, between);
+    const closing = m[1] === "/";
+    const tag = m[2].toLowerCase();
+    if (closing) {
+      // Close the nearest ancestor with this tag.
+      let node = cur;
+      while (node && node !== root && node.tag !== tag) node = node.parent;
+      if (node && node !== root) cur = node.parent ?? root;
+    } else {
+      if (/^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/.test(tag)) {
+        appendText(cur, m[0]); // void element: treat as text (no subtree)
+      } else {
+        const clsAttr = /class\s*=\s*["']([^"']*)["']/i.exec(m[3]);
+        const el = {
+          tag,
+          classList: (clsAttr?.[1] ?? "").split(/\s+/).filter(Boolean),
+          children: [],
+          parent: cur,
+          textContent: "",
+        };
+        cur.children.push(el);
+        cur = el;
+      }
+    }
+    lastIndex = re.lastIndex;
+  }
+  appendText(cur, html.slice(lastIndex));
+  // Propagate textContent up so every node's textContent includes descendants (used for the
+  // "deepest element whose text == text" search).
+  const hydrate = (node) => {
+    for (const child of node.children) {
+      hydrate(child);
+      node.textContent += child.textContent;
+    }
+  };
+  hydrate(root);
+  return {
+    /** Find the deepest element whose trimmed textContent equals `text`; return { el, chain }
+     *  where chain is the element + its ancestors (root-excluded), innermost first. */
+    findDeepestByText(text) {
+      const matches = [];
+      const visit = (node) => {
+        for (const child of node.children) {
+          if ((child.textContent || "").trim() === text) matches.push(child);
+          visit(child);
+        }
+      };
+      visit(root);
+      if (!matches.length) return null;
+      matches.sort((a, b) => depthOf(b) - depthOf(a)); // deepest first
+      const el = matches[0];
+      const chain = [];
+      for (let n = el; n && n !== root; n = n.parent) chain.push(n);
+      return { el, chain };
+    },
+  };
+}
+
+function depthOf(node) {
+  let d = 0;
+  for (let n = node.parent; n; n = n.parent) d++;
+  return d;
+}
+
+function appendText(node, text) {
+  if (text) node.textContent += text;
 }
 
 /** The body of the first authored `.class { … }` rule (any selector whose head contains the

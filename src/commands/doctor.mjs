@@ -65,10 +65,17 @@ function checkSwiftc() {
 
 function checkKey(cwd) {
   const { key, source } = resolveGeminiKey(cwd);
+  // A missing key is NOT a hard failure: XML/FIGML input is parsed without any key, and the
+  // screenshot path degrades to the static tier. Treat it as a warning (informational), not a
+  // blocking "fix before generating" — doctor must not gate XML-only workflows on an optional key.
+  const missing = !key;
   return {
-    ok: Boolean(key),
+    ok: !missing,
+    warn: missing,
     label: `Gemini API key: ${key ? "found" : "NOT found"}`,
-    detail: key ? `from ${source}` : "no key — transcription falls back to static tier. Add via `sliceui init --key-from <file>` or ~/.sliceui/.env.local",
+    detail: key
+      ? `from ${source}`
+      : "no key — XML/FIGML still transcribe exactly; screenshots fall back to the static tier. Add via `sliceui init --key-from <file>` or ~/.sliceui/.env.local",
   };
 }
 
@@ -102,7 +109,7 @@ function checkSkillVersion() {
 async function checkGeminiLive() {
   const { key } = resolveGeminiKey(process.cwd());
   if (!key) {
-    return { ok: false, label: "Gemini live call: skipped", detail: "no key" };
+    return { ok: false, warn: true, label: "Gemini live call: skipped", detail: "no key — XML/FIGML + static tiers unaffected" };
   }
   const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const controller = new AbortController();
@@ -152,7 +159,8 @@ export async function main(argv) {
 
   const lines = [];
   for (const c of r.checks) {
-    lines.push(`${c.ok ? (c.warn ? "⚠ " : "✅ ") : "❌ "} ${c.label}`);
+    const prefix = c.ok ? (c.warn ? "⚠ " : "✅ ") : (c.warn ? "⚠ " : "❌ ");
+    lines.push(`${prefix} ${c.label}`);
     lines.push(`   ${c.detail}`);
   }
   lines.push("");

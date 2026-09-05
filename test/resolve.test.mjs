@@ -94,6 +94,69 @@ test("resolve: caret icon resolves by NAME (fa-caret-down), not color-first fa-s
   assert.ok(!vals.includes("fa-search"), "caret must not be color-collapsed into fa-search");
 });
 
+test("resolve: eye icon nested under a Vector leaf inherits the FA name from its wrapper (not fa-search)", () => {
+  // Real FIGML web-export shape: the FA glyph name sits on the INSTANCE wrapper (color-less);
+  // the painted, colored leaf is its inner `Vector` child. The leaf must inherit the wrapper name.
+  const transcript = {
+    layout: [
+      { id: "wrap", type: "icon", description: "Icon_Font_Awesome_Free_Solid_E_eye", children: [
+        { id: "vec", type: "icon", description: "Vector", bg: "#03337b" },
+      ]},
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const icon = r.leaves.find((l) => l.id === "vec");
+  assert.ok(icon, "the Vector leaf is the resolvable styled leaf");
+  const vals = icon.resolved.map((x) => x.value);
+  assert.ok(vals.includes("fa-eye"), `eye wrapper name must resolve fa-eye, got ${JSON.stringify(vals)}`);
+  assert.ok(!vals.includes("fa-search"), "eye must NOT collapse to color-default fa-search");
+});
+
+test("resolve: pencil-alt icon nested under a Vector leaf inherits the FA name from its wrapper", () => {
+  const transcript = {
+    layout: [
+      { id: "wrap", type: "icon", description: "Icon_Font_Awesome_Free_Solid_P_pencil-alt", children: [
+        { id: "vec", type: "icon", description: "Vector", bg: "#03337b" },
+      ]},
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const icon = r.leaves.find((l) => l.id === "vec");
+  const vals = icon?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(vals.includes("fa-pencil"), `pencil wrapper name must resolve fa-pencil, got ${JSON.stringify(vals)}`);
+  assert.ok(!vals.includes("fa-search"), "pencil must NOT collapse to color-default fa-search");
+});
+
+test("resolve: ambiguous-color bare icon with NO name surfaces the family + a fallback, not a confident fa-search", () => {
+  // #03337b is search/pencil/eye alike; a bare leaf (generic "Vector") carries no glyph signal,
+  // so the resolver must NOT emit a confident single answer — it surfaces the family + a note
+  // and leaves the pick to the action context (H1: honesty over false confidence).
+  const transcript = {
+    layout: [
+      { id: "bare", type: "icon", description: "Vector", bg: "#03337b" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const icon = r.leaves.find((l) => l.id === "bare");
+  const vals = icon?.resolved?.map((x) => x.value) ?? [];
+  assert.deepEqual(vals.sort(), ["fa-eye", "fa-pencil", "fa-search"], "ambiguous color surfaces the whole fa family");
+  assert.ok(icon.fallback, "ambiguity must be flagged, not silent");
+  assert.match(icon.fallback.note, /ambiguous/i);
+});
+
+test("resolve: unambiguous-color bare icon (single family) still resolves to that glyph", () => {
+  const transcript = {
+    layout: [
+      { id: "check", type: "icon", description: "Vector", bg: "#4fbbbb" }, // single: fa-check-circle
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const icon = r.leaves.find((l) => l.id === "check");
+  const vals = icon?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(vals.includes("fa-check-circle"), `single-family color resolves its glyph, got ${JSON.stringify(vals)}`);
+  assert.equal(icon.fallback, null, "no ambiguity → no fallback");
+});
+
 test("resolve: badge with status text 'Dibatalkan' → label-custom-cancel (text beats color co-occurrence)", () => {
   const vocab = [
     ...CONVENTIONS.classVocabulary,

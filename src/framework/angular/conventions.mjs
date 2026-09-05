@@ -253,7 +253,7 @@ function extractNgDeepCorpus(allScss) {
       reusable: isReusable(key, best.family),
     });
   }
-  return corpus;
+  return collapseIdenticalCorpus(corpus);
 }
 
 /** Canonical form of a selector for dedup/matching: strip Angular `[_ngcontent-*]` attribute
@@ -273,6 +273,46 @@ function normalizeSelector(sel) {
  *  across case/whitespace differences and losing a majority vote to an outlier. */
 function semanticCanon(block) {
   return block.replace(/\s+/g, " ").replace(/#[0-9a-fA-F]{3,8}\b/g, (hex) => hex.toLowerCase());
+}
+
+/** A state pseudo-class/element that a hover/focus style idiom adds to an otherwise-identical
+ *  rule — stripped so `a:hover` and `a:focus` variants of the SAME combined block can be merged. */
+const STATE_PSEUDO = /::?(?:hover|focus|active|visited|disabled|checked|first-child|last-child|nth-child(?:\([^)]*\))?|not\([^)]*\)|before|after)\b/g;
+
+/** Strip state pseudo-classes so two entries that differ only by `:hover` vs `:focus` share a base. */
+function stripStatePseudo(selector) {
+  return String(selector).replace(STATE_PSEUDO, "").replace(/\s+/g, " ").trim();
+}
+
+/** Collapse corpus entries that are pseudo-class variants of the SAME base rule with an IDENTICAL
+ *  body — e.g. a combined `:hover,\n:focus { … }` rule whose comma-group heads were split into two
+ *  entries each carrying the full identical block. Keeping both made conventions.md list the block
+ *  twice and scssCoverage count one authored rule as two required idioms. Additive merge only:
+ *  entries whose base selector, family, OR body differ are left untouched. */
+function collapseIdenticalCorpus(corpus) {
+  const groups = new Map(); // `${family}§${base}§${canon}` → { block, source, family, selectors: Set }
+  for (const c of corpus) {
+    const base = stripStatePseudo(c.selector);
+    const key = `${c.family ?? ""}§${base}§${semanticCanon(c.block)}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = { block: c.block, source: c.source, family: c.family, selectors: new Set() };
+      groups.set(key, g);
+    }
+    g.selectors.add(c.selector);
+  }
+  const out = [];
+  for (const g of groups.values()) {
+    const selector = [...g.selectors].join(", ");
+    out.push({
+      selector,
+      block: g.block,
+      source: g.source,
+      family: g.family,
+      reusable: isReusable(selector, g.family),
+    });
+  }
+  return out;
 }
 
 /** Classify a ::ng-deep selector into the capability family it styles. This scopes the
