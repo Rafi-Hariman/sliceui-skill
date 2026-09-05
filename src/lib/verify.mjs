@@ -25,6 +25,9 @@
 import { scssCoverage } from "./fidelity.mjs";
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
 
+/** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
+const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
+
 /** Legal uii-table inputs/outputs. Anything else is red unless evidenced. */
 const LEGAL_TABLE_BINDINGS = new Set([
   "rows", "columns", "actionTitle", "actionColumn", "checkboxColumn",
@@ -50,13 +53,15 @@ const FORBIDDEN_TABLE_BINDINGS = new Set([
  */
 export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml } = {}) {
   const checks = [
+    checkScssCompiles(scss),
     checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
-    checkTextCoverage(html + " " + ts, transcript),
+    checkTextCoverage(html, transcript),
     checkTableBindings(html, rawXml),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
     checkMockRowCount(ts, conventions?.componentAnatomy, transcript),
     checkNoHashedSelectors(scss),
+    checkNoBareNgDeep(scss, conventions?.ngDeepCorpus),
     checkIconColor(ts + " " + scss, transcript),
     checkPhantomWrapper(html, transcript),
     checkNgxSelectBinding(html),
@@ -67,6 +72,8 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkGridColumns(html),
     checkNoTranslation(html, ts),
     checkInventedUtility(html, conventions?.classVocabulary),
+    checkStyleFidelity(scss + " " + html, transcript),
+    checkLoadedClass(html, conventions?.loadedClassRegistry),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -82,22 +89,58 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
   return { checks, pass: failCount === 0 && hasGroundTruth, failCount, skipCount, warnCount, hasGroundTruth };
 }
 
+// ---------- 0. scssCompiles (structural smoke — unbalanced SCSS cannot exit green) ----------
+
+function checkScssCompiles(scss) {
+  // Deterministic no-dependency syntax smoke: brace balance + no unterminated comment/string.
+  // A generated SCSS with an unclosed `{` would fail the Angular build; verify must not bless it.
+  if (!String(scss ?? "").trim()) return { name: "scssCompiles", status: "skip", detail: "no scss to check" };
+  const src = String(scss);
+  let depth = 0;
+  let inStr = null;
+  let blockComment = false;
+  let lineComment = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    const n = src[i + 1];
+    if (lineComment) { if (c === "\n") lineComment = false; continue; }
+    if (blockComment) { if (c === "*" && n === "/") { blockComment = false; i++; } continue; }
+    if (inStr) { if (c === inStr && src[i - 1] !== "\\") inStr = null; continue; }
+    if (c === "/" && n === "/") { lineComment = true; i++; continue; }
+    if (c === "/" && n === "*") { blockComment = true; i++; continue; }
+    if (c === '"' || c === "'") inStr = c;
+    else if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth < 0) { return { name: "scssCompiles", status: "fail", detail: "unbalanced SCSS: closing brace without opener" }; } }
+  }
+  if (depth !== 0) return { name: "scssCompiles", status: "fail", detail: `unbalanced SCSS: ${depth} unclosed block(s)` };
+  if (inStr) return { name: "scssCompiles", status: "fail", detail: "unterminated string in SCSS" };
+  if (blockComment) return { name: "scssCompiles", status: "fail", detail: "unterminated comment in SCSS" };
+  return { name: "scssCompiles", status: "pass", detail: "SCSS braces balanced" };
+}
+
 // ---------- 1. scssCoverage ----------
 
 function checkScssCoverage(scss, html, ngDeepCorpus = []) {
-  // Smoke test: did the LIBRARY-INTERNAL styling idioms survive verbatim into the output?
+  // Did the LIBRARY-INTERNAL styling idioms survive into the output as *live rules* — not just
+  // as a stray string somewhere? Matching is per class token but only counts a token that
+  // appears inside a non-empty CSS rule (comments stripped), so a token left in a comment, used
+  // as a variable name, or copied as an emptied rule `.x { }` does NOT satisfy the check.
   // Scoped to (a) the capability families this component renders and (b) library-internal
-  // selectors only. Matching is by LEAF TOKEN, not full selector chain — a nested block
-  // (`.ugw-pagination-container { li.page-box {…} .nav-icon {…} }`) is copied verbatim as
-  // nested, so exact-chain `includes()` would false-flag it. Token presence asks the one
-  // question that matters: is this idiom present at all, or was it dropped?
+  // selectors only (mirroring conventions.mjs's reusable test). Micro-effect selectors
+  // (`toggle-caret`, `ngx-select__toggle`) are ADVISORY: a faithful slice may drop them without
+  // breaking the dropdown, so their absence is a warn, never a fail.
   const relevant = relevantCorpus(ngDeepCorpus, html);
   if (!relevant.length) {
     return { name: "scssCoverage", status: "skip", detail: "no reusable ::ng-deep blocks for the capabilities in play" };
   }
+  const clean = stripComments(scss);
   const missing = [];
+  const advisoryMissing = [];
   for (const c of relevant) {
-    if (!anyTokenPresent(c.selector, scss)) missing.push(c.selector);
+    const present = selectorRulePresent(c.selector, clean);
+    if (present) continue;
+    if (isAdvisorySelector(c.selector)) advisoryMissing.push(c.selector);
+    else missing.push(c.selector);
   }
   if (missing.length) {
     return {
@@ -105,19 +148,46 @@ function checkScssCoverage(scss, html, ngDeepCorpus = []) {
       status: "fail",
       detail: `${missing.length}/${relevant.length} reusable ::ng-deep idioms missing`,
       missing,
+      advisoryMissing,
+    };
+  }
+  if (advisoryMissing.length) {
+    return {
+      name: "scssCoverage",
+      status: "warn",
+      detail: `${relevant.length} reusable idioms present; ${advisoryMissing.length} advisory micro-effect(s) dropped`,
+      advisoryMissing,
     };
   }
   return { name: "scssCoverage", status: "pass", detail: `${relevant.length} reusable ::ng-deep idioms present` };
 }
 
-/** Does ANY distinctive class token of the selector appear in the generated SCSS? A wrapper
- *  entry like `custom-select .ngx-select__toggle-caret` survives if its library-internal
- *  token (`ngx-select__toggle-caret`) is present, even if the wrapper class isn't copied. */
-function anyTokenPresent(selector, scss) {
-  const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
+/** A corpus selector survives if ANY of its distinctive class tokens occurs inside a live rule:
+ *  `<token>[^{}]*{ <non-empty body> }`. Works for flat and nested blocks alike because we scan
+ *  the whole (comment-stripped) SCSS for that rule shape, not for a specific chain. */
+function selectorRulePresent(selector, cleanScss) {
   const tokens = selector.split(/[^a-zA-Z0-9_-]+/).filter(Boolean);
-  return tokens.some((t) => !PSEUDO.has(t) && /[-_]/.test(t) && t.length > 1 && scss.includes(t));
+  for (const t of tokens) {
+    if (PSEUDO.has(t) || !/[-_]/.test(t) || t.length <= 1) continue;
+    // Match a class or bare token used as a selector, followed by a rule body holding content.
+    const re = new RegExp(`(?:^|[\\s>+~.,#\\[])\\.?${cssEscape(t)}(?![\\w-])[^{}]*\\{[^}]*\\S`, "i");
+    if (re.test(cleanScss)) return true;
+  }
+  return false;
 }
+
+/** Micro-effect selectors a faithful slice may omit without changing the control's function. */
+function isAdvisorySelector(selector) {
+  return /toggle-caret|^ngx-select__toggle$|caret/i.test(selector);
+}
+
+function stripComments(scss) {
+  return String(scss ?? "")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/.*$/gm, " ");
+}
+
+function cssEscape(s) { return s.replace(/[^\w-]/g, "\\$&"); }
 
 /** Which corpus blocks must THIS component copy? Family triggered by the component's own
  *  tags/classes, then filtered to library-internal (reusable) selectors only — mirroring
@@ -143,15 +213,21 @@ function relevantCorpus(ngDeepCorpus, html) {
 /** Glyph/private-use codepoints that are icon font data, never literal UI copy. */
 const GLYPH = /[-]/;
 
-function checkTextCoverage(generated, transcript) {
+function checkTextCoverage(html, transcript) {
   const critical = fidelityCriticalText(transcript);
   if (!critical.length) {
     return { name: "textCoverage", status: "skip", detail: "no transcript text to check" };
   }
+  // Scan only text that ACTUALLY renders: element inner text and placeholder/aria-label values,
+  // never TS strings/comments (a label living only in a TS comment is NOT a rendered button).
+  const rendered = renderedText(html);
+  if (!rendered.trim()) {
+    return { name: "textCoverage", status: "fail", detail: "no rendered element text found to match", missing: critical };
+  }
   // Whitespace-normalize both sides: the transcript may carry an OCR/parse artifact
   // ("Pilih  status" double space) that the agent correctly renders as one space.
   const norm = (s) => s.replace(/\s+/g, " ").trim();
-  const gen = norm(generated);
+  const gen = norm(rendered);
   const missing = [];
   for (const t of critical) {
     if (!gen.includes(norm(t))) missing.push(t);
@@ -160,11 +236,53 @@ function checkTextCoverage(generated, transcript) {
     return {
       name: "textCoverage",
       status: "fail",
-      detail: `${missing.length} fidelity-critical text(s) dropped`,
+      detail: `${missing.length} fidelity-critical text(s) not rendered`,
       missing,
     };
   }
-  return { name: "textCoverage", status: "pass", detail: `${critical.length} critical texts present` };
+  return { name: "textCoverage", status: "pass", detail: `${critical.length} critical texts rendered` };
+}
+
+/** Extract the user-visible text a browser would render from the component HTML: element inner
+ *  text (buttons, headings, labels, spans) plus placeholder/aria-label attributes. Comments are
+ *  stripped; elements under *ngIf="false" or [hidden] contribute nothing; an empty tag
+ *  (<button></button> or a self-closed void with no text) renders nothing. */
+function renderedText(html) {
+  const src = String(html ?? "")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    // Drop non-rendering conditional/hidden subtrees at the string level (their text must not satisfy).
+    .replace(/<\w+[^>]*\*ngIf="false"[\s\S]*?<\/\w+>/gi, " ")
+    .replace(/<\w+[^>]*\bhidden\b[\s\S]*?<\/\w+>/gi, " ");
+  const out = [];
+  // Attribute-borne text: placeholder/aria-label/title carry user-visible copy. ngx-select
+  // binds placeholders as [placeholder]="'Pilih …'" (a string literal binding) — extract the
+  // quoted literal too, since the control renders it.
+  for (const m of src.matchAll(/\b(?:placeholder|aria-label|title)\s*=\s*["']([^"']*)["']/gi)) {
+    if (m[1].trim()) out.push(m[1]);
+  }
+  // [placeholder]="'Pilih …'" → the control renders the inner single-quoted literal.
+  for (const m of src.matchAll(/\[(?:attr\.)?(?:placeholder|aria-label|title)\]\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+    const inner = m[1] ?? m[2] ?? "";
+    const lit = /^\s*'([^']*)'\s*$/.exec(inner) || /^\s*"([^"]*)"\s*$/.exec(inner);
+    const text = lit ? lit[1] : inner;
+    if (text.trim()) out.push(text.trim());
+  }
+  // Element inner text (button/h1-h6/label/a/span/option/th/td) — but only when the element has
+  // a closing tag with real text content (an empty/void control renders no text of its own).
+  for (const m of src.matchAll(/<(button|h[1-6]|label|a|span|option|th|td|div|strong|em)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
+    const inner = stripTags(m[2]).trim();
+    if (inner) out.push(inner);
+  }
+  return out.join(" ");
+}
+
+function stripTags(s) {
+  return String(s ?? "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Fidelity-critical text = button labels, title, and "Pilih …" placeholders. These are UI
@@ -290,6 +408,39 @@ function checkNoHashedSelectors(scss) {
   return { name: "noHashedSelectors", status: "pass", detail: "no compiled selectors in source" };
 }
 
+function checkNoBareNgDeep(scss, ngDeepCorpus = []) {
+  // A bare `::ng-deep` (without a `:host ` ancestor) pierces GLOBALLY under emulated
+  // encapsulation. BUT the project's own corpus may carry bare blocks, and a faithful slice is
+  // SUPPOSED to copy them verbatim — so we only flag a bare `::ng-deep` whose selector is NOT
+  // one the corpus already blesses (i.e. an agent-ADDED leak). Corpus-derived bare blocks are
+  // the project's pre-existing idiom; normalizing those is a corpus-level task, not a slice
+  // failure. (skip when no ::ng-deep at all.)
+  if (!/::ng-deep/.test(scss)) return { name: "noBareNgDeep", status: "skip", detail: "no ::ng-deep in generated scss" };
+  const clean = stripComments(scss); // a comment mentioning "::ng-deep" is not a rule
+  // Bare (non-:host) ::ng-deep selectors the corpus itself ships → allowed verbatim.
+  const corpusBare = new Set();
+  for (const c of ngDeepCorpus) {
+    const b = stripComments(c.block ?? "");
+    for (const m of b.matchAll(/(?<!:host\s)::ng-deep\s*([^{}]+)/g)) {
+      corpusBare.add(m[1].trim());
+    }
+  }
+  const added = [];
+  for (const m of clean.matchAll(/(?<!:host\s)::ng-deep\s*([^{}]+)\s*\{/g)) {
+    const sel = m[1].trim();
+    if (sel && !corpusBare.has(sel)) added.push(`::ng-deep ${sel}`);
+  }
+  if (added.length) {
+    return {
+      name: "noBareNgDeep",
+      status: "fail",
+      detail: `bare ::ng-deep not from the corpus (agent-added global leak) — scope \`:host ::ng-deep\`: ${added.slice(0, 3).join("; ")}`,
+      added,
+    };
+  }
+  return { name: "noBareNgDeep", status: "pass", detail: "all ::ng-deep are :host-scoped or corpus-blessed" };
+}
+
 // ---------- 4d. phantom wrapper (structure = XML, not convention) ----------
 
 function checkPhantomWrapper(html, transcript) {
@@ -369,6 +520,11 @@ function checkNoTranslation(html, ts) {
  *  scope here — they are handled by the `classVocabulary` warn check, not flagged as invented. */
 const UTILITY_SHAPE = /^(?:[mp][trblsxye]?-|[wh]-|mw-|mh-|min-|max-|(?:row-|column-)?gap-|d-|flex|justify-content-|align-(?:items|self|content)-|order-|rounded(?:-|$))/;
 
+/** Atomic utility + breakpoint-less grid classes (`col-6`, `col-12`, `col`) that MUST come from
+ *  a global build. `col-md-4`/`col-xs-12` (breakpoint-prefixed) are also gated here when a
+ *  registry is present — a BS3 build without `col-md-*` is equally broken. */
+const LOADED_UTILITY_SHAPE = /^(?:[mp][trblsxye]?-|[wh]-|mw-|mh-|min-|max-|(?:row-|column-)?gap-|d-|flex|justify-content-|align-(?:items|self|content)-|order-|rounded(?:-|$)|col(?:-(?:xs|sm|md|lg|xl|xxl))?-\d+|col$)/;
+
 /** Actionable hints for the most common invented prefixes — the fix that mirrors the team's
  *  actual idiom instead of a bare "you invented this". */
 const UTILITY_HINTS = {
@@ -404,6 +560,51 @@ function checkInventedUtility(html, classVocabulary = []) {
     return { name: "inventedUtility", status: "fail", detail: problems.join("; "), problems };
   }
   return { name: "inventedUtility", status: "pass", detail: "no invented utility classes" };
+}
+
+// ---------- 19. loadedClass (utility/grid classes must resolve in the LOADED css) ----------
+
+/** A utility/grid class the generated HTML uses must actually resolve to a rule in the project's
+ *  LOADED stylesheets (dist CSS or the angular.json styles chain) — not merely appear in the
+ *  team's vocabulary. This catches the dead class that "passes" the vocabulary model: `col-12`
+ *  in a BS3 build that only generates `.p-col-12`, or `w-100`/`mr-2`/`gap-2` in a project whose
+ *  loaded CSS has no such rule. Only fires when the registry is present (detect built it), and
+ *  only for UTILITY_SHAPE classes (semantic/component classes live in the component's own SCSS,
+ *  out of scope). */
+function checkLoadedClass(html, registry) {
+  const classes = registry?.classes;
+  if (!Array.isArray(classes) || !classes.length) {
+    return { name: "loadedClass", status: "skip", detail: "no loaded-class registry (run `sliceui init` on a built project)" };
+  }
+  const loaded = new Set(classes);
+  const source = registry?.source ?? "none";
+  // A non-compiled (scss) registry cannot see grid classes generated via @mixin make-grid-columns
+  // (col-md-4, col-xs-12 are produced, never written literally). Gating those against a scss
+  // registry would false-fail every bootstrap project. So: only gate breakpoint-prefixed grid
+  // columns when the registry is a compiled dist CSS (the ground truth of what ships).
+  const gateBreakpointGrid = source === "dist";
+  const dead = [];
+  const seen = new Set();
+  for (const m of html.matchAll(/class=["']([^"']+)["']/g)) {
+    for (const raw of m[1].split(/\s+/)) {
+      const cls = raw.trim();
+      if (!cls || seen.has(cls)) continue;
+      seen.add(cls);
+      if (!LOADED_UTILITY_SHAPE.test(cls)) continue; // semantic/component class — own SCSS
+      if (loaded.has(cls)) continue;               // resolves in loaded CSS → legal
+      if (!gateBreakpointGrid && /^col-(?:xs|sm|md|lg|xl|xxl)-\d+$/.test(cls)) continue;
+      dead.push(cls);
+    }
+  }
+  if (dead.length) {
+    return {
+      name: "loadedClass",
+      status: "fail",
+      detail: `utility/grid class(es) used but not found in loaded CSS: ${dead.slice(0, 6).join(", ")}`,
+      dead,
+    };
+  }
+  return { name: "loadedClass", status: "pass", detail: "utility/grid classes resolve in loaded CSS" };
 }
 
 // ---------- 3d. row auth (action-column icons only render when row.auth.<flag> truthy) ----------
@@ -477,19 +678,35 @@ function checkFilterRowButton(html, rawXml) {
   if (!rawXml) {
     return { name: "filterRowButton", status: "skip", detail: "no raw XML to check filter buttons against" };
   }
-  // The "Cari" search button lives in the filter group, adjacent to the fields (its XML is a
-  // <Button_FNC> whose child text is "Cari"). Count the XML's filter-area buttons.
-  const filterButtons = [...rawXml.matchAll(/<Button_FNC\b[\s\S]*?<\/Button_FNC>/gi)]
-    .filter((m) => /characters="Cari"/i.test(m[0]));
-  if (!filterButtons.length) {
-    return { name: "filterRowButton", status: "skip", detail: "no filter-area button (Cari) in XML" };
+  // The search/apply button lives in the filter group, adjacent to the fields. Its label is NOT
+  // hardcoded to this codebase's "Cari" — a slice may say "Search"/"Filter"/"Terapkan". Collect
+  // the XML's filter-action buttons (a label that names a search/filter/apply action), which keeps
+  // the check language-agnostic without sweeping in unrelated short buttons (bulk actions).
+  const FILTER_ACTION = /\b(cari|search|filter|apply|terapkan|go|jalankan|reset|ulang)\b|\bcari\s+data\b|^\s*(cari|search)\s*$/i;
+  const labels = new Set();
+  for (const b of rawXml.matchAll(/<Button_FNC\b[\s\S]*?<\/Button_FNC>/gi)) {
+    const chars = /characters="([^"]*)"/.exec(b[0])?.[1]?.trim();
+    // Short imperative that names an action on the filter (≤ 24 chars) — excludes the long
+    // object-verb bulk buttons ("Ubah massal tgl akhir bayar") that live below the filter row.
+    if (chars && chars.length <= 24 && FILTER_ACTION.test(chars)) labels.add(chars);
   }
-  // The generated HTML must render a button whose text is "Cari".
-  const hasCariButton = /<button\b[^>]*>[\s\S]*?Cari/i.test(html);
-  if (!hasCariButton) {
-    return { name: "filterRowButton", status: "fail", detail: "XML has a Cari filter button but output dropped it" };
+  if (!labels.size) {
+    return { name: "filterRowButton", status: "skip", detail: "no filter-action button in XML" };
   }
-  return { name: "filterRowButton", status: "pass", detail: "filter-row Cari button present" };
+  // Each filter-area button label must be rendered as visible element text.
+  const rendered = renderedText(html);
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+  const gen = norm(rendered);
+  const missing = [...labels].filter((l) => !gen.includes(norm(l)));
+  if (missing.length) {
+    return {
+      name: "filterRowButton",
+      status: "fail",
+      detail: `filter-action button(s) not rendered: ${missing.join(", ")}`,
+      missing,
+    };
+  }
+  return { name: "filterRowButton", status: "pass", detail: `filter-action button(s) rendered (${[...labels].join(", ")})` };
 }
 
 // ---------- 3f. button order (paired action buttons match XML left→right order) ----------
@@ -549,21 +766,33 @@ function checkGridColumns(html) {
   // the next line. The 0.11.0 output put 4 items in one filter row all at col-md-4 (16 > 12),
   // so the "Cari" button fell to a new line. Enforce the invariant deterministically instead of
   // relying on the agent reading a prose rule.
+  //
+  // Per-breakpoint summation: a grid child carries ONE span per breakpoint (`col-md-4 col-12` is
+  // md:4 + a mobile fallback col-12, NOT two concurrent columns). We sum per breakpoint bucket
+  // (bare `col-6` → "default"), and only the DIRECT children of a `.row` (nested `.row`s are
+  // their own rows, never siblings of the parent row's columns).
   const problems = [];
-  // Split into top-level <div class="row"> blocks (no nesting in these slices).
-  const rowRe = /<div[^>]*class="[^"]*\brow\b[^"]*"[\s\S]*?(?=<div[^>]*class="[^"]*\brow\b|$)/gi;
-  const rows = html.match(rowRe) || [html];
-  let rowIdx = 0;
-  for (const row of rows) {
-    rowIdx++;
-    let span = 0;
-    let count = 0;
-    for (const m of row.matchAll(/col-(?:xs|sm|md|lg|xl|xxl)-(\d+)/gi)) {
-      span += Number(m[1]);
-      count++;
+  const nodes = divTree(html);
+  for (const node of nodes) {
+    if (!isRow(node)) continue;
+    const sums = new Map();
+    const counts = new Map();
+    for (const child of node.children) {
+      if (!isCol(child)) continue;
+      const cls = classOf(child);
+      const seen = new Set();
+      for (const m of cls.matchAll(/col(?:-(xs|sm|md|lg|xl|xxl))?-(\d+)/gi)) {
+        const bp = m[1] ?? "default";
+        if (seen.has(bp)) continue; // one span per breakpoint per element
+        seen.add(bp);
+        sums.set(bp, (sums.get(bp) ?? 0) + Number(m[2]));
+        counts.set(bp, (counts.get(bp) ?? 0) + 1);
+      }
     }
-    if (span > 12) {
-      problems.push(`filter row #${rowIdx} spans ${span}/12 columns across ${count} items (a child wraps to the next line)`);
+    for (const [bp, span] of sums) {
+      if (span > 12) {
+        problems.push(`a row's ${bp === "default" ? "breakpoint-less" : bp} columns span ${span}/12 across ${counts.get(bp)} items (a child wraps)`);
+      }
     }
   }
   if (problems.length) {
@@ -571,6 +800,32 @@ function checkGridColumns(html) {
   }
   return { name: "gridColumns", status: "pass", detail: "no filter row exceeds 12 columns" };
 }
+
+// ---------- minimal div tree (gridColumns) ----------
+
+/** A {tag,attrs,children,closed} node parsed from opening/closing tags (no text needed). */
+function divTree(html) {
+  const root = { children: [], closed: true };
+  const stack = [root];
+  const re = /<\/?div\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const token = m[0];
+    const isClose = token.startsWith("</");
+    if (isClose) {
+      const top = stack[stack.length - 1];
+      if (top !== root) { top.closed = true; stack.pop(); }
+      continue;
+    }
+    const node = { tag: "div", attrs: token, children: [], closed: false };
+    stack[stack.length - 1].children.push(node);
+    if (!token.endsWith("/>")) stack.push(node);
+  }
+  return root.children;
+}
+function isRow(n) { return /\brow\b/.test(classOf(n)); }
+function isCol(n) { return /\bcol(?:-(?:xs|sm|md|lg|xl|xxl))?-\d+/.test(classOf(n)); }
+function classOf(n) { return /class=["']([^"']*)["']/.exec(n.attrs)?.[1] ?? ""; }
 
 // ---------- 4c. icon color / status-badge semantics ----------
 
@@ -625,26 +880,47 @@ function checkIconColor(generated, transcript) {
   if (!semantic.length) {
     return { name: "iconColor", status: "skip", detail: "no semantic status-icon colors in design" };
   }
-  // Collect (fa-*, assigned color) from generated SCSS: `::ng-deep .fa-X { color: #yyy }`.
-  const styledIcons = [...generated.matchAll(/fa-([a-z0-9-]+)[^{}]*\{[^}]*color:\s*(#[0-9a-fA-F]{6})/g)]
-    .map((m) => ({ icon: "fa-" + m[1], color: m[2].toLowerCase() }));
+  // Collect (fa-*, assigned color) from generated SCSS, accepting 3-hex, 6-hex, and rgb()/rgba().
+  const styledIcons = [];
+  const re = /fa-([a-z0-9-]+)[^{}]*\{[^}]*color\s*:\s*([^;!}]+)/gi;
+  for (const m of generated.matchAll(re)) {
+    const color = parseCssColor(m[2]);
+    if (color) styledIcons.push({ icon: "fa-" + m[1], color });
+  }
   if (!styledIcons.length) {
     return { name: "iconColor", status: "skip", detail: "no fa-* icon with a color in generated code" };
   }
-  // Any icon styled with a color that is NOT a design semantic color = wrong mapping
-  // (the agent gave the badge a color the design doesn't have — e.g. #f9933f for a #f44444
-  // badge). Structural neutrals (#303030/#fff/#333/#000) are allowed.
-  const neutral = new Set(["#303030", "#333333", "#333", "#000000", "#000", "#ffffff", "#fff", "#f5f5f5"]);
+  // An icon is only "matched" if it is one the design's semantic color would produce (same
+  // icon glyph family). Neutrals are structural ONLY when no design color targets that glyph;
+  // a badge whose design fill is #f44444 must not render its icon neutral (#333/#fff/#000).
+  const neutral = new Set(["#303030", "#333333", "#000000", "#ffffff", "#f5f5f5"]);
   const problems = [];
   for (const { icon, color } of styledIcons) {
     if (semantic.includes(color)) continue; // matches a design color → OK
-    if (neutral.has(color)) continue;
+    const designGlyphs = semantic.flatMap((c) => FA_ICON_COLORS[c]);
+    const targetsDesignGlyph = designGlyphs.includes(icon);
+    if (neutral.has(color) && !targetsDesignGlyph) continue; // structural neutral, no design target
     problems.push(`${icon} styled with ${color}, but design status icons are ${semantic.join(", ")}`);
   }
   if (problems.length) {
     return { name: "iconColor", status: "fail", detail: problems.join("; ") };
   }
   return { name: "iconColor", status: "pass", detail: `icons match design colors (${semantic.join(", ")})` };
+}
+
+/** Normalize a CSS color value to lowercase #rrggbb (or null when it is not a literal color). */
+function parseCssColor(v) {
+  const s = (v ?? "").trim().toLowerCase();
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(s);
+  if (hex) {
+    const h = hex[1];
+    return h.length === 3 ? `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}` : `#${h}`;
+  }
+  const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(s);
+  if (rgb) {
+    return `#${[1, 2, 3].map((i) => Number(rgb[i]).toString(16).padStart(2, "0")).join("")}`;
+  }
+  return null;
 }
 
 // ---------- 5. anatomy ----------
@@ -725,6 +1001,112 @@ function paginationTotal(transcript) {
   });
   return total;
 }
+
+// ---------- 18. styleFidelity (design colors of the page's key elements survive) ----------
+
+/** Style-fidelity check. The transcript carries the DESIGN's own color choices for the page's
+ *  key elements (title text, divider). The classic verify-green-but-localhost-wrong miss was
+ *  `.h1 { color: #555 }` when the design said `#000000` — no check compared generated SCSS values
+ *  against the transcript. This check maps two deterministic, low-ambiguity facts:
+ *    (a) title color — locate the rendered heading whose text is the transcript title, find its
+ *        class rule in generated SCSS, and compare that rule's color to the design's title color.
+ *    (b) divider color — a design divider with a non-default bg must have that color (or the
+ *        transcript's own value) reachable in the generated scss+html.
+ *  Token substitution ($x / var(--y)) is skipped, never false-flagged — without a resolved token
+ *  value we cannot judge it. */
+function checkStyleFidelity(generated, transcript) {
+  if (!transcript) return { name: "styleFidelity", status: "skip", detail: "no transcript to check style facts against" };
+  const scssHtml = String(generated ?? "");
+  if (!scssHtml.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
+
+  const title = titleNode(transcript);
+  const problems = [];
+
+  // (a) title color: rendered heading text → its class rule's color vs design.
+  if (title?.style?.color) {
+    const designColor = normHex(title.style.color);
+    const rendered = renderedTitleColor(scssHtml, title.text);
+    if (rendered) {
+      if (rendered.designToken) {
+        // SCSS variable / css-var — cannot resolve; do not judge.
+      } else if (rendered.color !== designColor) {
+        problems.push(`title "${trunc(title.text)}" styled ${rendered.color}, design says ${designColor}`);
+      }
+    }
+    // No rendered color for the title rule → inherited project style; can't compare. Not a fail.
+  }
+
+  // (b) divider color: a non-default divider bg in the design must be reachable in output.
+  const dividerColor = dividerColorOf(transcript);
+  if (dividerColor) {
+    if (!normHex(scssHtml).includes(normHex(dividerColor))) {
+      problems.push(`divider color ${dividerColor} (design) missing from generated css/html`);
+    }
+  }
+
+  if (!problems.length) {
+    const n = (title?.style?.color ? 1 : 0) + (dividerColor ? 1 : 0);
+    return n ? { name: "styleFidelity", status: "pass", detail: "title/divider design colors preserved" }
+              : { name: "styleFidelity", status: "skip", detail: "no title-color or divider-color design facts" };
+  }
+  return { name: "styleFidelity", status: "fail", detail: problems.join("; "), problems };
+}
+
+/** First text node that reads like a page title — the largest (by w) text leaf in the top
+ *  region, or simply the first styled text node with a color. */
+function titleNode(transcript) {
+  let firstStyled = null;
+  let largest = null;
+  walkNodes(transcript?.layout, (n) => {
+    if (!n || typeof n !== "object" || n.type !== "text") return;
+    const t = (n.text ?? "").trim();
+    if (!t) return;
+    if (n.style?.color && !firstStyled) firstStyled = n;
+    if (!largest || (n.w ?? 0) > (largest.w ?? 0)) largest = n;
+  });
+  return firstStyled && largest && firstStyled.id === largest.id ? firstStyled : (firstStyled ?? largest);
+}
+
+/** Find the generated rule that colors the rendered heading with the title text; return its
+ *  resolved color (or { designToken: true } when the color is a variable). */
+function renderedTitleColor(scssHtml, titleText) {
+  // Which element renders the title? Prefer <h1 class="…">…title…</h1>; fall back to any
+  // element whose inner text contains the title.
+  const t = (titleText ?? "").trim();
+  const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const hRe = new RegExp(`<h([1-6])\\b([^>]*)>[\\s\\S]{0,80}?${esc}[\\s\\S]{0,80}?</h\\1>`, "i");
+  const anyRe = new RegExp(`<([a-z][\\w-]*)\\b([^>]*)>[\\s\\S]{0,80}?${esc}[\\s\\S]{0,80}?</\\1>`, "i");
+  const m = hRe.exec(scssHtml) || anyRe.exec(scssHtml);
+  if (!m) return null;
+  const cls = /class=["']([^"']+)["']/.exec(m[2])?.[1];
+  if (!cls) return null;
+  const firstCls = cls.split(/\s+/)[0];
+  // Find the SCSS rule for this class and pull its color declaration.
+  const ruleRe = new RegExp(`\\.${cssEscape(firstCls)}\\b[^{]*\\{[^}]*color\\s*:\\s*([^;!}]+)`, "i");
+  const rule = ruleRe.exec(scssHtml);
+  if (!rule) return null;
+  const val = rule[1].trim();
+  if (/^\$|var\(|--[a-z]/i.test(val)) return { designToken: true };
+  const hex = /#[0-9a-f]{3,6}/i.exec(val)?.[0];
+  return hex ? { color: normHex(hex) } : null;
+}
+
+/** A design divider with a distinctive bg color (the hr under the title). */
+function dividerColorOf(transcript) {
+  let out = null;
+  walkNodes(transcript?.layout, (n) => {
+    if (out || !n || typeof n !== "object") return;
+    if (n.type === "divider" && n.bg && !["#000000", "#ffffff", "#333333"].includes(n.bg.toLowerCase())) {
+      out = n.bg;
+    }
+  });
+  return out;
+}
+
+function normHex(s) {
+  return String(s ?? "").replace(/#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])(?![0-9a-fA-F])/g, "#$1$1$2$2$3$3").toLowerCase();
+}
+function trunc(s) { const t = String(s ?? "").replace(/\s+/g, " ").trim(); return t.length > 24 ? t.slice(0, 24) + "…" : t; }
 
 // ---------- shared walker ----------
 

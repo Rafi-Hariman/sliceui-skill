@@ -156,7 +156,9 @@ test("verify: checkboxColumn absent when XML HAS checkbox fails", () => {
 });
 
 test("verify: invented status-label classes warn classVocabulary (not fail)", () => {
-  const scssWithInvented = GOOD_SCSS + "\n::ng-deep .label-custom-unpaid { background: #fef2f2; }\n";
+  // scoped ::ng-deep (no bare-leak noise); the invented label is still a NEW taxonomy member.
+  const scopedBase = GOOD_SCSS.replace(/^::ng-deep/gm, ":host ::ng-deep");
+  const scssWithInvented = scopedBase + "\n:host ::ng-deep .label-custom-unpaid { background: #fef2f2; }\n";
   const r = verifyComponent({
     scss: scssWithInvented, html: FAITHFUL_HTML, ts: GOOD_TS, // FAITHFUL: passes the other checks
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
@@ -181,8 +183,10 @@ test("verify: classVocabulary skips (not passes) when no vocabulary — closes a
 test("verify: an all-skip run (missing ground truth) is NOT green — closes the false-green", () => {
   // Simulate the wrong-directory case: no conventions, no transcript, no rawXml. A plain
   // table (no checkbox) so tableBindings skips instead of failing on missing XML evidence.
+  // Scoped ::ng-deep (no bare-leak noise) so the only signal left is the missing ground truth.
   const htmlNoCheckbox = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
-  const r = verifyComponent({ scss: GOOD_SCSS, html: htmlNoCheckbox, ts: GOOD_TS });
+  const scopedBase = GOOD_SCSS.replace(/^::ng-deep/gm, ":host ::ng-deep");
+  const r = verifyComponent({ scss: scopedBase, html: htmlNoCheckbox, ts: GOOD_TS });
   assert.equal(r.pass, false, "all-skip run must not be green");
   assert.equal(r.failCount, 0, "no hard fails");
   assert.ok(r.skipCount > 0, "checks skipped for missing ground truth");
@@ -605,4 +609,309 @@ test("verify: inventedUtility does not flag semantic classes (label-custom-warni
   });
   const check = r.checks.find((c) => c.name === "inventedUtility");
   assert.equal(check.status, "pass", "label-custom-warning is in vocabulary → legal");
+});
+
+// ---------- styleFidelity (check #18) ----------
+
+test("verify: styleFidelity fails when the title color drifts from the design (#555 vs #000)", () => {
+  const transcript = {
+    layout: [
+      { type: "text", text: "Ubah tagihan", w: 1117, style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "divider", bg: "#fdd835" },
+    ],
+  };
+  const driftScss = `.h1 { color: #555; font-size: 16px; font-weight: 500; }\n.content { padding: 5px 20px 20px; }`;
+  const driftHtml = `<div class="content"><h1 class="h1">Ubah tagihan</h1><hr style="border-top:1px solid #fdd835"></div>`;
+  const r = verifyComponent({
+    scss: driftScss, html: driftHtml, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "fail", `title drift #555 vs #000 must fail: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity passes when title + divider colors are preserved", () => {
+  const transcript = {
+    layout: [
+      { type: "text", text: "Ubah tagihan", w: 1117, style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "divider", bg: "#fdd835" },
+    ],
+  };
+  const goodScss = `.h1 { color: #000; font-size: 16px; font-weight: 500; }\n.content { padding: 5px 20px 20px; }`;
+  const goodHtml = `<div class="content"><h1 class="h1">Ubah tagihan</h1><hr style="border-top:1px solid #fdd835"></div>`;
+  const r = verifyComponent({
+    scss: goodScss, html: goodHtml, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "pass", `faithful colors must pass: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity skips when a variable token colors the title (cannot resolve, not a fail)", () => {
+  const transcript = {
+    layout: [{ type: "text", text: "Ubah tagihan", w: 1117, style: { color: "#000000" } }],
+  };
+  const tokenScss = `.h1 { color: $title-color; }`;
+  const tokenHtml = `<h1 class="h1">Ubah tagihan</h1>`;
+  const r = verifyComponent({
+    scss: tokenScss, html: tokenHtml, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  // no divider fact + token title → nothing assertable (skip), and never a false fail
+  assert.notEqual(check.status, "fail", "token substitution must not be false-flagged");
+});
+
+test("verify: styleFidelity skips without a transcript", () => {
+  const r = verifyComponent({ scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS, conventions: CONVENTIONS, rawXml: RAW_XML_WITH_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "skip");
+});
+
+// ---------- scssCoverage hardening (0.2) ----------
+
+test("verify: scssCoverage fails when a corpus token sits only in a comment or emptied rule", () => {
+  // ngx-select in play (FAITHFUL_HTML), corpus demands ngx-select__item_active with a real body.
+  const commentOnly = `/* ::ng-deep .ngx-select__item_active { color: #fff } */\n::ng-deep .ngx-select__choices { border-radius: 7px; }`;
+  const r = verifyComponent({
+    scss: commentOnly, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.equal(check.status, "fail", "token in a comment must NOT satisfy the live-rule check");
+});
+
+test("verify: scssCoverage treats a dropped advisory micro-effect (toggle-caret) as warn, not fail", () => {
+  // FAITHFUL_HTML renders ngx-select; a corpus that includes toggle-caret, output omits it.
+  const conv = {
+    ...CONVENTIONS,
+    ngDeepCorpus: [
+      ...CONVENTIONS.ngDeepCorpus,
+      { selector: "ngx-select__toggle-caret", family: "select", block: ":host ::ng-deep .ngx-select__toggle-caret { color: #03337b !important; }" },
+    ],
+  };
+  // GOOD_SCSS carries choices/item_active/dropdown but NOT toggle-caret → advisory warn.
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: conv, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.equal(check.status, "warn", "advisory toggle-caret drop is a warn, not a fail");
+});
+
+test("verify: scssCoverage passes when a nested corpus block's token appears in a live rule", () => {
+  // Corpus demands ugw-pagination li.page-box (table family); output nests it — live body.
+  const conv = {
+    ...CONVENTIONS,
+    ngDeepCorpus: [
+      { selector: "ugw-pagination-container li.page-box", family: "table", block: ":host ::ng-deep .ugw-pagination-container li.page-box { font-weight: bold !important; }" },
+    ],
+  };
+  const nestedScss = `:host ::ng-deep { .ugw-pagination-container { li.page-box { font-weight: bold !important; } } }`;
+  const r = verifyComponent({
+    scss: nestedScss, html: GOOD_HTML, ts: GOOD_TS,
+    conventions: conv, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.equal(check.status, "pass", "nested live rule counts as present");
+});
+
+// ---------- textCoverage rendered-only (0.3) ----------
+
+test("verify: textCoverage fails when a button label lives only in a TS comment (not rendered)", () => {
+  const transcript = { layout: [{ type: "button", text: "Cari" }] };
+  const tsComment = `// Cari — the search button label\nthis.rows = [];`;
+  const noButtonHtml = `<div class="content"><h1 class="h1">Ubah tagihan</h1></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: noButtonHtml, ts: tsComment,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "textCoverage");
+  assert.equal(check.status, "fail", "a label in a TS comment is not a rendered button");
+});
+
+test("verify: textCoverage fails when the button is behind *ngIf=false (never renders)", () => {
+  const transcript = { layout: [{ type: "button", text: "Cari" }] };
+  const hiddenHtml = `<button *ngIf="false" (click)="onSearch()">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: hiddenHtml, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "textCoverage");
+  assert.equal(check.status, "fail", "*ngIf=false button text must not satisfy textCoverage");
+});
+
+test("verify: textCoverage passes for text rendered via placeholder attribute", () => {
+  const transcript = { layout: [{ type: "text", text: "Pilih jenis tagihan" }] };
+  const phHtml = `<input class="form-control" placeholder="Pilih jenis tagihan">`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: phHtml, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "textCoverage");
+  assert.equal(check.status, "pass", "placeholder attribute text is user-visible copy");
+});
+
+// ---------- filterRowButton generic (0.4) + gridColumns col-N (0.5) ----------
+
+test("verify: filterRowButton catches a non-Cari filter action (Terapkan) when dropped", () => {
+  const xml = `<Button_FNC id="f:1"><children><Text id="t:1" characters="Terapkan" /></children></Button_FNC>`;
+  const noBtn = `<div class="row"><div class="col-md-3"></div></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: noBtn, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: xml,
+  });
+  const check = r.checks.find((c) => c.name === "filterRowButton");
+  assert.equal(check.status, "fail", "a filter-action button with a non-Cari label must be required");
+});
+
+test("verify: gridColumns fails on breakpoint-less col-6 spans exceeding 12", () => {
+  // Four col-6 = 24 → wraps; BS4 syntax, previously invisible to the infix-mandatory regex.
+  const htmlRow = `<div class="row">
+    <div class="col-6"></div><div class="col-6"></div>
+    <div class="col-6"></div><div class="col-6"></div>
+  </div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlRow, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "gridColumns");
+  assert.equal(check.status, "fail", "col-6 spans totaling 24 must fail");
+});
+
+test("verify: gridColumns passes on breakpoint-less col-3 spans totaling 12", () => {
+  const htmlRow = `<div class="row">
+    <div class="col-3"></div><div class="col-3"></div>
+    <div class="col-3"></div><div class="col-3"></div>
+  </div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlRow, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "gridColumns");
+  assert.equal(check.status, "pass", "col-3 × 4 = 12 is valid");
+});
+
+// ---------- iconColor neutral-trap + 3-hex (0.7) ----------
+
+test("verify: iconColor fails when a design-semantic badge icon is styled a neutral (#333 for #f44444)", () => {
+  const transcript = {
+    layout: [
+      { type: "icon", bg: "#f44444" },
+      { type: "text", text: "Menunggu" },
+    ],
+  };
+  const badScss = `:host ::ng-deep .fa-exclamation-circle { color: #333; }`;
+  const r = verifyComponent({
+    scss: badScss, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "iconColor");
+  assert.equal(check.status, "fail", `neutral #333 for a #f44444 badge icon must fail: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: iconColor parses 3-hex colors (no false pass on an unmatched shorthand)", () => {
+  // #f44 → #ff4444 (CSS shorthand), which is NOT the design's #f44444 badge → must still fail.
+  // This pins that the 3-hex branch of parseCssColor runs and judges (not silently skips).
+  const transcript = { layout: [{ type: "icon", bg: "#f44444" }, { type: "text", text: "Menunggu" }] };
+  const hex3 = `:host ::ng-deep .fa-exclamation-circle { color: #f44; }`;
+  const r = verifyComponent({
+    scss: hex3, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "iconColor");
+  assert.equal(check.status, "fail", "#f44 (= #ff4444) ≠ design #f44444, so the 3-hex was parsed and judged");
+});
+
+// ---------- noBareNgDeep (0.9) ----------
+
+test("verify: noBareNgDeep fails on an agent-added bare ::ng-deep not blessed by the corpus", () => {
+  // GOOD_SCSS's bare blocks ARE corpus-blessed; add a NEW bare ::ng-deep .my-invention → leak.
+  const leakScss = GOOD_SCSS + "\n::ng-deep .my-invented-override { color: red; }\n";
+  const r = verifyComponent({
+    scss: leakScss, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "noBareNgDeep");
+  assert.equal(check.status, "fail", "a bare ::ng-deep not in the corpus is a global leak");
+});
+
+test("verify: noBareNgDeep passes when corpus-blessed bare ::ng-deep is copied verbatim", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "noBareNgDeep");
+  assert.equal(check.status, "pass", "corpus-derived bare ::ng-deep is the project's own idiom");
+});
+
+// ---------- scssCompiles (0.10) ----------
+
+test("verify: scssCompiles fails on unbalanced SCSS braces", () => {
+  const broken = `:host ::ng-deep .foo { color: red; `;
+  const r = verifyComponent({
+    scss: broken, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCompiles");
+  assert.equal(check.status, "fail", "unclosed block must not exit green");
+});
+
+test("verify: scssCompiles passes on balanced SCSS", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCompiles");
+  assert.equal(check.status, "pass");
+});
+
+// ---------- loadedClass (19) ----------
+
+test("verify: loadedClass fails a utility class absent from the loaded CSS registry", () => {
+  const registry = { classes: ["mt-4", "btn-block", "col-md-4", "d-flex"], source: "dist" };
+  const htmlDead = `<button class="btn btn-primary w-100">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlDead, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, loadedClassRegistry: registry },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "loadedClass");
+  assert.equal(check.status, "fail", "w-100 not in loaded CSS → dead class");
+  assert.ok(check.dead.includes("w-100"), "w-100 flagged dead");
+});
+
+test("verify: loadedClass passes a utility class present in the registry", () => {
+  const registry = { classes: ["mt-4", "btn-block", "col-md-4", "d-flex"], source: "dist" };
+  const htmlGood = `<button class="btn btn-primary btn-block mt-4">Cari</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlGood, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, loadedClassRegistry: registry },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "loadedClass");
+  assert.equal(check.status, "pass");
+});
+
+test("verify: loadedClass skips without a registry (back-compat)", () => {
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "loadedClass");
+  assert.equal(check.status, "skip");
+});
+
+test("verify: loadedClass does NOT gate breakpoint grid columns against a scss (non-dist) registry", () => {
+  // A scss-source registry cannot see @mixin-generated col-md-4; it must not false-fail it.
+  const registry = { classes: ["mt-4"], source: "scss" };
+  const htmlGrid = `<div class="row"><div class="col-md-4 col-12"></div></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlGrid, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, loadedClassRegistry: registry },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "loadedClass");
+  // col-md-4 is breakpoint-grid (not gated on scss); col-12 IS bare and absent → gated.
+  assert.ok(!(check.dead ?? []).includes("col-md-4"), "col-md-4 must not false-fail on scss registry");
 });
