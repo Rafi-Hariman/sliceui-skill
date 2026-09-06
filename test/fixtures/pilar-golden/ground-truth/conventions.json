@@ -1,0 +1,14 @@
+{
+  "classVocabulary": [
+    { "name": "content", "family": "container", "hint": "container/panel" },
+    { "name": "h1", "family": null, "hint": "title" },
+    { "name": "btn", "family": "button", "hint": "button" },
+    { "name": "btn-primary", "family": "button", "hint": "button" },
+    { "name": "btn-block", "family": "button", "hint": "button" },
+    { "name": "control-label", "family": "label", "hint": "field label" },
+    { "name": "well", "family": null, "hint": "container/panel" }
+  ],
+  "ngDeepCorpus": [],
+  "componentAnatomy": { "well": false, "tableTag": "uii-table", "skeletonTag": "uii-table-skeleton", "pagination": true, "mockRowsFloor": 15 },
+  "naming": { "prefix": "ugw", "eventNaming": "onXxx($event)" }
+}

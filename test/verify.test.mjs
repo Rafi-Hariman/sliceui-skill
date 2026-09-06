@@ -155,6 +155,40 @@ test("verify: checkboxColumn absent when XML HAS checkbox fails", () => {
   assert.ok(check.problems.some((p) => p.includes("checkboxColumn")), "missing checkboxColumn flagged");
 });
 
+test("verify: tableBindings forbids server/advanced inputs a mock slice must not bind", () => {
+  // The catalog declares these as REAL pilar inputs; the slice POLICY forbids them.
+  for (const forbidden of ["saveStatement", "allowRightClick", "rightClickMenuActions", "serverMode"]) {
+    const html = `<uii-table [rows]="rows" [columns]="columns" [${forbidden}]="true"></uii-table>`;
+    const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+    const check = r.checks.find((c) => c.name === "tableBindings");
+    assert.equal(check.status, "fail", `[${forbidden}] must be forbidden`);
+    assert.ok(check.problems.some((p) => p.includes(forbidden)), `[${forbidden}] named in problems`);
+  }
+});
+
+test("verify: tableBindings still allows the mock-appropriate binding set", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns" [limitOptions]="true" [searchOptions]="true" [paginationOptions]="true"></uii-table>`;
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.equal(check.status, "pass", `mock bindings must pass: ${check.detail}`);
+});
+
+test("verify: pilarBindings rejects a binding name not declared by the catalog", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns" [colums]="typo"></uii-table>`;
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "pilarBindings");
+  assert.equal(check.status, "fail");
+  assert.ok(check.problems.some((p) => p.includes("[colums]")), "typo'd binding named");
+});
+
+test("verify: pilarBindings rejects a hallucinated pilar component tag", () => {
+  const html = `<uii-fancy-widget [rows]="rows"></uii-fancy-widget>`;
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "pilarBindings");
+  assert.equal(check.status, "fail");
+  assert.ok(check.problems.some((p) => p.includes("not a pilar component")), "hallucinated tag named");
+});
+
 test("verify: invented status-label classes warn classVocabulary (not fail)", () => {
   // scoped ::ng-deep (no bare-leak noise); the invented label is still a NEW taxonomy member.
   const scopedBase = GOOD_SCSS.replace(/^::ng-deep/gm, ":host ::ng-deep");

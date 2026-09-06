@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "bill-list.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    { "id": "t1", "type": "text", "text": "Daftar Tagihan", "w": 400, "h": 24, "style": { "size": 16, "weight": 500, "color": "#03337b" } },
+    { "id": "p1", "type": "text", "text": "Pilih jenis tagihan", "w": 200, "h": 16, "style": { "size": 14, "weight": 400, "color": "#303030" } },
+    { "id": "b1", "type": "button", "text": "Cari", "w": 100, "h": 40, "bg": "#03337b", "style": { "size": 14, "color": "#ffffff" } },
+    { "id": "p2", "type": "text", "text": "Menampilkan 1-10 dari 20 data", "w": 200, "h": 14, "style": { "size": 12, "weight": 400, "color": "#303030" } }
+  ],
+  "images": [],
+  "icons": []
+}

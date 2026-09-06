@@ -1,0 +1,15 @@
+<frame name="Bill List" width="1200" height="800" type="FRAME"><children>
+  <Text id="t1" name="Title" x="20" y="20" width="400" height="24" characters="Daftar Tagihan" type="TEXT"><fills><fill color="#03337b"/></fills></Text>
+  <Rectangle id="d1" name="Divider" x="20" y="52" width="1160" height="1" type="RECTANGLE"><fills><fill color="#fbc02d"/></fills></Rectangle>
+  <search_bar id="s1" name="Search" x="20" y="70" width="300" height="40" type="INSTANCE" />
+  <Text id="t2" name="Limit" x="400" y="70" width="200" height="20" characters="Tampilkan 10 data" type="TEXT" />
+  <Text id="t3" name="Footer" x="20" y="760" width="400" height="14" characters="Menampilkan 1-10 dari 20 data" type="TEXT" />
+  <Checkbox_FNC id="c1" name="Checkbox" x="0" y="0" width="20" height="20" type="INSTANCE" />
+  <Aksi id="x:1" name="Aksi" type="INSTANCE">
+    <componentProperties>
+      <edit_4879_2 type="BOOLEAN" value="true" />
+      <detail_4879_3 type="BOOLEAN" value="true" />
+      <delete_5037_1 type="BOOLEAN" value="false" />
+    </componentProperties>
+  </Aksi>
+</children></frame>
