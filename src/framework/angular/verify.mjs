@@ -24,22 +24,25 @@
 
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
 import { UII_AUTHKEY_BY_ACTION } from "./uii-profile.mjs";
+import { PILAR_COMPONENTS } from "./pilar-catalog.mjs";
+import {
+  SLICE_TABLE_INPUTS, SLICE_TABLE_OUTPUTS,
+  SLICE_FORBIDDEN_TABLE_INPUTS, SLICE_FORBIDDEN_TABLE_OUTPUTS,
+} from "./uii-slice-policy.mjs";
 import { walkNodes } from "../../lib/walk-nodes.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
 
-/** Legal uii-table inputs/outputs. Anything else is red unless evidenced. */
-const LEGAL_TABLE_BINDINGS = new Set([
-  "rows", "columns", "actionTitle", "actionColumn", "checkboxColumn",
-  "paginationOptions", "searchOptions", "selectedLimit", "limitOptions",
-]);
-const LEGAL_TABLE_OUTPUTS = new Set([
-  "editClicked", "deleteClicked", "detailClicked", "selectedRow",
-]);
-const FORBIDDEN_TABLE_BINDINGS = new Set([
-  "serverMode", "page", "pageChanged", "limitChanged", "searchChanged",
-]);
+/** Legal uii-table inputs/outputs for a MOCK slice — the curated policy subset, NOT the full
+ *  pilar API. The catalog (PILAR_COMPONENTS) is the reference the agent reads; this whitelist
+ *  is what a SliceUI-generated component may actually bind. The two are kept separate so a
+ *  server/advanced input (`saveStatement`, `rightClickMenuActions`, …) is red even though pilar
+ *  declares it. The catalog is still enforced by checkPilarBindings (name must exist). */
+const LEGAL_TABLE_BINDINGS = SLICE_TABLE_INPUTS;
+const LEGAL_TABLE_OUTPUTS = SLICE_TABLE_OUTPUTS;
+const FORBIDDEN_TABLE_INPUTS = SLICE_FORBIDDEN_TABLE_INPUTS;
+const FORBIDDEN_TABLE_OUTPUTS = SLICE_FORBIDDEN_TABLE_OUTPUTS;
 
 
 /**
@@ -58,6 +61,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
     checkTextCoverage(html, transcript),
     checkTableBindings(html, rawXml),
+    checkPilarBindings(html),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
     checkMockRowCount(html, ts, conventions?.componentAnatomy, transcript),
@@ -328,11 +332,12 @@ function checkTableBindings(html, rawXml) {
   const problems = [];
 
   for (const b of inputs) {
-    if (FORBIDDEN_TABLE_BINDINGS.has(b)) problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
+    if (FORBIDDEN_TABLE_INPUTS.has(b)) problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
     else if (!LEGAL_TABLE_BINDINGS.has(b)) problems.push(`unknown input [${b}]`);
   }
   for (const o of outputs) {
-    if (!LEGAL_TABLE_OUTPUTS.has(o)) problems.push(`unknown output (${o})`);
+    if (FORBIDDEN_TABLE_OUTPUTS.has(o)) problems.push(`forbidden output (${o}) (server-mode/sliceui is mock-only)`);
+    else if (!LEGAL_TABLE_OUTPUTS.has(o)) problems.push(`unknown output (${o})`);
   }
 
   // Checkbox column: the XML is the single source of truth. Evidence is the raw XML's
@@ -350,6 +355,47 @@ function checkTableBindings(html, rawXml) {
     return { name: "tableBindings", status: "fail", detail: problems.join("; "), problems };
   }
   return { name: "tableBindings", status: "pass", detail: "bindings legal + checkbox evidenced" };
+}
+
+// ---------- 3b. pilarBindings (catalog-enforcing, all uii-* tags) ----------
+
+/** Every `<uii-*>` element's bindings must EXIST in the catalog's declared inputs/outputs for
+ *  that component. This closes the council's circular-gate flaw from the other side: tableBindings
+ *  enforces the mock POLICY (which inputs may be bound); pilarBindings enforces the CATALOG (that
+ *  the binding is even a real pilar API). A misspelled `[colums]` or a hallucinated `(onSave)`
+ *  that no pilar component declares is red. Skeleton/loader tags are skipped (they are the
+ *  loading state, not the table). Non-uii tags (ngx-select, native html) are out of scope. */
+function checkPilarBindings(html) {
+  const catalog = new Map(PILAR_COMPONENTS.map((c) => [c.selector, c]));
+  const problems = [];
+  let checked = 0;
+  for (const m of String(html).matchAll(/<(uii-[a-z-]+)[^>]*>/gi)) {
+    const selector = m[1].toLowerCase();
+    if (selector === "uii-table-skeleton" || selector.endsWith("-loader")) continue;
+    const comp = catalog.get(selector);
+    if (!comp) {
+      // A uii-* tag not in the catalog at all (hallucinated component).
+      problems.push(`<${selector}> is not a pilar component (not in catalog)`);
+      continue;
+    }
+    checked++;
+    const tag = m[0];
+    const declaredIn = new Set(comp.inputs.map((i) => i.name));
+    const declaredOut = new Set(comp.outputs.map((o) => o.name));
+    for (const b of [...tag.matchAll(/\[(\w+)\]/g)].map((x) => x[1])) {
+      if (!declaredIn.has(b)) problems.push(`<${selector}>: [${b}] is not a declared @Input (catalog has: ${[...declaredIn].join(", ") || "none"})`);
+    }
+    for (const o of [...tag.matchAll(/\((\w+)\)\s*=/g)].map((x) => x[1])) {
+      if (!declaredOut.has(o)) problems.push(`<${selector}>: (${o}) is not a declared @Output (catalog has: ${[...declaredOut].join(", ") || "none"})`);
+    }
+  }
+  if (!checked && !problems.length) {
+    return { name: "pilarBindings", status: "skip", detail: "no pilar component tags in output" };
+  }
+  if (problems.length) {
+    return { name: "pilarBindings", status: "fail", detail: problems.join("; "), problems };
+  }
+  return { name: "pilarBindings", status: "pass", detail: `${checked} pilar component(s) bind only declared inputs/outputs` };
 }
 
 // ---------- 4. classVocabulary ----------
