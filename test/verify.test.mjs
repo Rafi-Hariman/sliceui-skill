@@ -241,6 +241,51 @@ test("verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not 
   assert.equal(check.status, "skip", "plain detail-list table → not applicable (skip), not fail");
 });
 
+test("verify: libraryTable FAILS a plain <table> in a uii-table project (no downgrade)", () => {
+  const html = `<div class="content"><table class="bill-table"><tr><td>1</td></tr></table></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, // anatomy.tableTag = "uii-table"
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "libraryTable");
+  assert.equal(check.status, "fail", "plain <table> in a uii-table project must fail");
+  assert.match(check.detail, /uii-table/);
+});
+
+test("verify: libraryTable PASSES when the project's <uii-table> is used", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "libraryTable");
+  assert.ok(check.status !== "fail", `using <uii-table> must not fail, got ${check.status}`);
+});
+
+test("verify: libraryTable SKIPS a project with no library-table convention", () => {
+  const html = `<table class="bill-table"><tr><td>1</td></tr></table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, componentAnatomy: { ...CONVENTIONS.componentAnatomy, tableTag: null } },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "libraryTable");
+  assert.equal(check.status, "skip", "no tableTag convention → skip");
+});
+
+test("verify: classVocabulary FAILS an invented btn-* class (btn-gray)", () => {
+  const html = `<div class="action-bar"><button class="btn btn-gray">Simpan</button></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, // vocab has no btn-gray
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "classVocabulary");
+  assert.equal(check.status, "fail", "invented btn-* must fail, not warn");
+  assert.ok(check.inventedButtons?.includes("btn-gray"), `must name btn-gray, got ${JSON.stringify(check.inventedButtons)}`);
+});
+
 test("verify: no-exemplar never scores pass (empty corpus → skip, not pass)", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
@@ -769,6 +814,39 @@ test("verify: styleFidelity DOM-aware — an authored .control-label with correc
   const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
   const check = r.checks.find((c) => c.name === "styleFidelity");
   assert.equal(check.status, "pass", `label authored with design values must pass, got ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity FAILS when an authored rule omits the design font-size (title renders 2x large)", () => {
+  // The execution-log fatal bug: <h1 class="h1 change-title"> with .change-title authored but
+  // missing `font-size` renders at the browser default (~2em), not the design's 16px. A missing
+  // declared value is a hard fail, NOT a silent skip or a coverage-tolerated drift.
+  const transcript = { layout: [{ type: "text", text: "Ubah skema", style: { size: 16, weight: 700, color: "#555555" } }] };
+  const html = `<h1 class="h1 change-title">Ubah skema</h1>`;
+  const scss = `.change-title { color: #555555; font-weight: 700; margin: 0; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "fail", "missing font-size must fail, not pass");
+  assert.ok(check.missing?.some((m) => m.includes("font-size")), `must name font-size, got ${JSON.stringify(check.missing)}`);
+});
+
+test("verify: styleFidelity PASSES when the title size is authored", () => {
+  const transcript = { layout: [{ type: "text", text: "Ubah skema", style: { size: 16, weight: 700, color: "#555555" } }] };
+  const html = `<h1 class="h1 change-title">Ubah skema</h1>`;
+  const scss = `.change-title { color: #555555; font-weight: 700; font-size: 16px; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "pass", `authored size must pass, got ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity does NOT flag a size inherited from an authored ancestor", () => {
+  // Inheritance-aware: .content authors font-size:16px; the title's .change-title omits it but
+  // inherits it — not "missing". Only color/weight must be authored on the title itself.
+  const transcript = { layout: [{ type: "text", text: "Ubah skema", style: { size: 16, weight: 700, color: "#555555" } }] };
+  const html = `<div class="content"><h1 class="h1 change-title">Ubah skema</h1></div>`;
+  const scss = `.content { font-size: 16px; } .change-title { color: #555555; font-weight: 700; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.ok(!check.missing?.some((m) => m.includes("font-size")), "inherited size must not be 'missing'");
 });
 
 test("verify: styleFidelity skips token-valued authored rules (cannot resolve, never false-flagged)", () => {

@@ -154,6 +154,22 @@ function resolveNode(node, corpus, vocab, inheritedName = null) {
       fallback: cls ? null : { kind: "native-plain", note: `no ${preferred} in project vocabulary — use .btn + inline style` },
     };
   }
+  // Button with NO Figma variant (real FIGML export carries `bg` + text color, not a variant):
+  // white/transparent fill + colored text → the outline/secondary action; any solid fill → primary.
+  if (node.type === "button" && node.bg) {
+    const bg = String(node.bg).toLowerCase();
+    const isOutline = bg === "#ffffff" || bg === "#fff" || bg === "";
+    const preferred = isOutline ? "btn-secondary" : "btn-primary";
+    const cls = vocab.has(preferred) ? preferred : null;
+    return {
+      id: node.id,
+      kind: "button",
+      type: "button",
+      evidence: { bg: node.bg, text: node.text ?? "" },
+      resolved: cls ? [{ kind: "class", value: cls }] : [],
+      fallback: cls ? null : { kind: "native-plain", note: `no ${preferred} in project vocabulary — use .btn + inline style` },
+    };
+  }
   return null;
 }
 

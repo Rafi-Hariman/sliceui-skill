@@ -74,6 +74,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkNoTranslation(html, ts),
     checkInventedUtility(html, conventions?.classVocabulary),
     checkStyleFidelity(scss, html, transcript, conventions),
+    checkLibraryTable(html, conventions?.componentAnatomy),
     checkLoadedClass(html, conventions?.loadedClassRegistry),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
@@ -377,6 +378,24 @@ function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []
     if (!known.has(cls) && !invented.includes(cls)) invented.push(cls);
   }
 
+  // An invented `btn-*` class is a HARD fail: buttons are core action controls, and a wrong
+  // button class (e.g. `btn-gray` when the project uses `btn-primary`/`btn-secondary`) silently
+  // breaks an action's styling/behavior. Unlike the advisory `label-custom-*` taxonomy, this must
+  // not be softened.
+  const badButtons = [];
+  for (const m of generated.matchAll(/\bbtn-([a-z0-9-]+)/gi)) {
+    const cls = m[0].toLowerCase();
+    if (!known.has(cls) && !known.has(`btn-${m[1].toLowerCase()}`) && !badButtons.includes(cls)) badButtons.push(cls);
+  }
+
+  if (badButtons.length) {
+    return {
+      name: "classVocabulary",
+      status: "fail",
+      detail: `invented button class(es): ${badButtons.join(", ")} — use the project's btn-* classes`,
+      inventedButtons: badButtons,
+    };
+  }
   if (invented.length) {
     // WARN, not fail: a new member of a deliberate taxonomy is a signal, but it must not
     // block the gate — the whole point of SliceUI is generating code the project doesn't
@@ -956,6 +975,28 @@ function checkMockRowCount(html, ts, anatomy = {}, transcript) {
   return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows ≥ ${required}` };
 }
 
+// ---------- 6b. libraryTable (no downgrade to a plain <table> in a library-table project) ----------
+
+function checkLibraryTable(html, anatomy = {}) {
+  const tableTag = anatomy?.tableTag;
+  const isLibraryTag = tableTag && /^(uii-table|ngx-datatable|mat-table)$/i.test(tableTag);
+  if (!isLibraryTag) {
+    return { name: "libraryTable", status: "skip", detail: "no library-table convention in this project" };
+  }
+  const plain = /<table\b/i.test(String(html ?? ""));
+  if (!plain) {
+    return { name: "libraryTable", status: "skip", detail: "no plain <table> in output" };
+  }
+  if (new RegExp(`<${tableTag}\\b`, "i").test(String(html ?? ""))) {
+    return { name: "libraryTable", status: "pass", detail: `uses the project's <${tableTag}> library table` };
+  }
+  return {
+    name: "libraryTable",
+    status: "fail",
+    detail: `plain <table> used where project convention is <${tableTag}> — use the library table (it wires search/limit/pagination the design relies on)`,
+  };
+}
+
 /** Count top-level elements in the mock array. Supports the patterns SliceUI actually emits:
  *  `const base = [...]`, `rows = [...]`, `private mockTagihanData: Array<any> = [...]` (and
  *  other `name = [...]` assignments). Prefers the LARGEST array — the mock data source. */
@@ -1024,6 +1065,7 @@ export function collectStyleFacts(scss, html, transcript) {
   const gen = `${String(scss ?? "")}\n${String(html ?? "")}`;
   const comparable = []; // { where, prop, design, actual, kind, className, text } — every fact with an authored target
   const problems = [];
+  const missing = []; // design values the slice authored a rule for but FAILED to declare (hard fail)
   const seen = new Set();
 
   const addFact = (where, prop, design, actual, extra = {}) => {
@@ -1039,19 +1081,32 @@ export function collectStyleFacts(scss, html, transcript) {
   for (const n of textNodes(transcript)) {
     const t = (n.text ?? "").trim();
     if (!t || GLYPH.test(t)) continue;
-    const authored = authoredRuleForText(html, t, scss); // { className, ruleBody } or null
+    const authored = authoredRuleForText(html, t, scss); // { className, ruleBody, chain, tag } or null
     if (!authored) continue; // reuse class / no authored slice rule → not comparable (skip, never fail)
     const where = `text "${trunc(t)}" (.${authored.className})`;
-    const decls = declMap(authored.ruleBody);
+    // Effective declarations = innermost-wins merge across the authored chain (element → ancestors),
+    // so a value inherited from an authored parent is NOT treated as missing.
+    const decls = effectiveDecls(authored.chain);
     const extra = { kind: "text", className: authored.className, text: t };
     if (n.style?.color) {
       const dv = normHex(n.style.color);
       const cv = resolveHex(decls.color);
-      if (cv) addFact(where, "color", dv, cv, extra);
+      if (cv) addFact(where, "color", dv, cv, extra); // token/absent → skip (never false-flagged)
     }
     if (n.style?.size) {
-      const cv = pxNum(decls["font-size"]);
-      if (cv !== null) addFact(where, "font-size", Number(n.style.size), cv, extra);
+      const size = Number(n.style.size);
+      if (/^h[1-6]$/.test(authored.tag) && decls["font-size"] === undefined) {
+        // Heading with a design size but NO authored font-size renders at the UA default (~2em),
+        // a categorically wrong, high-visibility defect (the title 2× too large). This is the ONE
+        // "missing declaration" case the string-level gate can flag reliably — non-headings inherit
+        // or default to design-consistent values, and descendant-selector styling (.table th) is
+        // invisible to a class-chain model. Full cascade "missing" detection is the render-probe's job.
+        addFact(where, "font-size", size, "missing", extra);
+        missing.push(`${where} font-size`);
+      } else {
+        const cv = pxNum(decls["font-size"]);
+        if (cv !== null) addFact(where, "font-size", size, cv, extra);
+      }
     }
     if (n.style?.weight) {
       const cv = weightNum(decls["font-weight"]);
@@ -1074,7 +1129,7 @@ export function collectStyleFacts(scss, html, transcript) {
     }
   }
 
-  return { comparable, problems };
+  return { comparable, problems, missing };
 }
 
 function checkStyleFidelity(scss, html, transcript, conventions = {}) {
@@ -1082,10 +1137,22 @@ function checkStyleFidelity(scss, html, transcript, conventions = {}) {
   const gen = `${String(scss ?? "")}\n${String(html ?? "")}`;
   if (!gen.trim()) return { name: "styleFidelity", status: "skip", detail: "no generated scss/html to check" };
 
-  const { comparable, problems } = collectStyleFacts(scss, html, transcript);
+  const { comparable, problems, missing } = collectStyleFacts(scss, html, transcript);
 
   if (!comparable.length) {
     return { name: "styleFidelity", status: "skip", detail: "no authored-rule design facts to compare (slice reuses project classes)" };
+  }
+  // A design value the slice authored a rule for but FAILED to declare is a HARD fail, not a
+  // coverage drift: omitting the title's font-size renders it at the browser default (~2em),
+  // which is categorically wrong — unlike a drift that the ≥80% tolerance is meant to absorb.
+  if (missing.length) {
+    return {
+      name: "styleFidelity",
+      status: "fail",
+      detail: `missing design value(s) in the authored rule: ${missing.slice(0, 6).join("; ")}`,
+      problems,
+      missing,
+    };
   }
   const ok = comparable.length - problems.length;
   const pct = Math.round((ok / comparable.length) * 100);
@@ -1111,27 +1178,36 @@ function textNodes(transcript) {
   return out;
 }
 
-/** Find the authored slice rule for the element that renders `text`. DOM-aware: builds a
+/** Find the authored slice rule(s) for the element that renders `text`. DOM-aware: builds a
  *  lightweight element tree of the generated HTML and returns the rule for the DEEPEST element
  *  whose textContent equals the text — so a label text inside its own classed element can never
  *  be mis-attributed to a sibling/ancestor's class (the flat-regex false-positive from the
  *  execution log: labels "Total tagihan lama (Rp)" wrongly bound to `.scheme-box`).
  *
- *  Returns { className, ruleBody } for the FIRST class of the matched element that has an authored
- *  `.class { … }` rule in the SCSS, or null when the element reuses project classes (no authored
- *  slice rule). If no element matches exactly (text split by interpolation / entity variance),
- *  falls back to the previous flat-regex scan so behavior never silently drops a fact. */
+ *  Returns { className, ruleBody, chain } where `chain` is the list of authored
+ *  `{ className, ruleBody }` rules along the element → ancestors (innermost first). `className`
+ *  and `ruleBody` are the INNERMOST authored class (back-compat); `chain` lets callers compute
+ *  effective (inheritance-aware) declarations. Returns null when the element and all its
+ *  ancestors reuse project classes (no authored slice rule). If no element matches exactly (text
+ *  split by interpolation / entity variance), falls back to the previous flat-regex scan. */
 function authoredRuleForText(html, text, scss) {
   const t = String(text ?? "").trim();
   if (!t) return null;
   const tree = buildElementTree(String(html ?? ""));
   const exact = tree.findDeepestByText(t);
   if (exact) {
+    const chain = [];
     for (const el of exact.chain) {
-      const match = firstAuthoredClass(el.classList, scss);
-      if (match) return match;
+      for (const c of el.classList) {
+        if (!c) continue;
+        const rule = authoredRule(scss, c);
+        if (rule) chain.push({ className: c, ruleBody: rule });
+      }
     }
-    return null; // every ancestor reuses project classes → skip (never fail)
+    if (!chain.length) return null; // every ancestor reuses project classes → skip (never fail)
+    // `tag` is the matched element's own tag (innermost of exact.chain), used to scope the
+    // heading-size "missing" hard-fail.
+    return { className: chain[0].className, ruleBody: chain[0].ruleBody, chain, tag: exact.el?.tag };
   }
   // Fallback (text split across interpolation/nodes): original flat-regex scan over html.
   const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1141,7 +1217,9 @@ function authoredRuleForText(html, text, scss) {
   if (!m) return null;
   const cls = /class=["']([^"']+)["']/.exec(m[2])?.[1];
   if (!cls) return null;
-  return firstAuthoredClass(cls.split(/\s+/), scss);
+  const match = firstAuthoredClass(cls.split(/\s+/), scss);
+  if (!match) return null;
+  return { ...match, chain: [match] };
 }
 
 /** First class in a list that has an authored `.class { … }` rule in the SCSS, else null. */
@@ -1152,6 +1230,20 @@ function firstAuthoredClass(classList, scss) {
     if (rule) return { className: c, ruleBody: rule };
   }
   return null;
+}
+
+/** Merge authored rule bodies along an element→ancestor chain into EFFECTIVE declarations,
+ *  innermost-first (CSS cascade: the closest element that sets a property wins). A property set by
+ *  an authored ancestor is thus "present" and inheritable, not "missing". */
+function effectiveDecls(chain) {
+  const out = {};
+  for (const { ruleBody } of chain ?? []) {
+    const d = declMap(ruleBody);
+    for (const [k, v] of Object.entries(d)) {
+      if (!(k in out)) out[k] = v; // innermost (first in chain) wins
+    }
+  }
+  return out;
 }
 
 /** Build a lightweight element tree (tag, classList, textContent, children, parent chain) from

@@ -202,3 +202,42 @@ test("resolve: button variant with no matching btn-* falls back native-plain (no
   const btn = r.leaves.find((l) => l.kind === "button");
   assert.ok(btn.fallback?.kind === "native-plain", "unknown variant → native-plain fallback");
 });
+
+test("resolve: button with no variant maps white bg → btn-secondary (outline action)", () => {
+  const vocab = [
+    ...CONVENTIONS.classVocabulary,
+    { name: "btn-secondary", family: "btn", hint: "button" },
+    { name: "btn-primary", family: "btn", hint: "button" },
+  ];
+  const transcript = {
+    layout: [{ id: "batal", type: "button", text: "Batal", bg: "#ffffff" }],
+  };
+  const r = resolveTranscript(transcript, { ...CONVENTIONS, classVocabulary: vocab });
+  const btn = r.leaves.find((l) => l.id === "batal");
+  const classes = btn?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(classes.includes("btn-secondary"), `white-bg button → btn-secondary, got ${JSON.stringify(classes)}`);
+});
+
+test("resolve: button with no variant maps solid bg → btn-primary", () => {
+  const vocab = [
+    ...CONVENTIONS.classVocabulary,
+    { name: "btn-secondary", family: "btn", hint: "button" },
+    { name: "btn-primary", family: "btn", hint: "button" },
+  ];
+  const transcript = {
+    layout: [{ id: "simpan", type: "button", text: "Simpan", bg: "#b1bccc" }],
+  };
+  const r = resolveTranscript(transcript, { ...CONVENTIONS, classVocabulary: vocab });
+  const btn = r.leaves.find((l) => l.id === "simpan");
+  const classes = btn?.resolved?.map((x) => x.value) ?? [];
+  assert.ok(classes.includes("btn-primary"), `solid-bg button → btn-primary, got ${JSON.stringify(classes)}`);
+});
+
+test("resolve: button with no variant and no btn-* in vocab falls back native-plain (not invented)", () => {
+  const transcript = {
+    layout: [{ id: "batal2", type: "button", text: "Batal", bg: "#ffffff" }],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS); // no btn-secondary/btn-primary in vocab
+  const btn = r.leaves.find((l) => l.id === "batal2");
+  assert.ok(btn.fallback?.kind === "native-plain", "no btn-* in vocab → native-plain fallback");
+});
