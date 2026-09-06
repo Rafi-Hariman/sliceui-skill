@@ -14,9 +14,8 @@ import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
 import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../framework/angular/conventions.mjs";
-import { renderUiiProfileMd, renderPilarReferenceMd, renderPilarShowcaseMd } from "../framework/angular/uii-profile.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
-import { pilarVersionStatus } from "../lib/pilar-version.mjs";
+import { loadPilar } from "../lib/pilar-loader.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -26,10 +25,15 @@ const ENV_TEMPLATE = `# SliceUI — image→code transcription key
 GEMINI_API_KEY=
 `;
 
-export function initProject(rootDir, { keyFrom = null, frameworkId = null, profile = null } = {}) {
+export async function initProject(rootDir, { keyFrom = null, frameworkId = null, profile = null } = {}) {
   const root = resolve(rootDir);
   const created = [];
   const warnings = [];
+
+  // pilar is present only when the private catalogs are installed (internal/UII build). In the
+  // public npm tarball the pilar files are stripped → loadPilar() returns null, and the UII-only
+  // docs/drift-guard below degrade to a no-op (never crash, never leak org source).
+  const pilar = await loadPilar();
 
   // --- 1. .sliceui/ + images/ + xml/ + transcript/ ---
   const sliceuiDir = join(root, ".sliceui");
@@ -108,7 +112,7 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
 
   // --- 5. detect + conventions (persist all 3 artifacts, so the agent can read them right after init) ---
   // --framework / --profile force detection; null = auto-detect.
-  const ctx = detectProject(root, { frameworkId, profile });
+  const ctx = await detectProject(root, { frameworkId, profile });
   const ctxPath = join(sliceuiDir, "project-context.json");
   writeFileSync(ctxPath, JSON.stringify(ctx, null, 2) + "\n");
   created.push(".sliceui/project-context.json");
@@ -147,17 +151,17 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
   // (fingerprinted by detect); a generic project never receives the org grammar on disk.
   // pilar-reference.md — the FULL pilar API reference (components + typing), also UII-only.
   // pilar-showcase.md — the FULL pilar showcase (every doc-* working example), also UII-only.
-  if (ctx.profile === "uii") {
+  if (ctx.profile === "uii" && pilar) {
     const uiiProfilePath = join(sliceuiDir, "uii-profile.md");
-    writeFileSync(uiiProfilePath, renderUiiProfileMd());
+    writeFileSync(uiiProfilePath, pilar.renderUiiProfileMd());
     created.push(".sliceui/uii-profile.md");
 
     const pilarRefPath = join(sliceuiDir, "pilar-reference.md");
-    writeFileSync(pilarRefPath, renderPilarReferenceMd());
+    writeFileSync(pilarRefPath, pilar.renderPilarReferenceMd());
     created.push(".sliceui/pilar-reference.md");
 
     const pilarShowcasePath = join(sliceuiDir, "pilar-showcase.md");
-    writeFileSync(pilarShowcasePath, renderPilarShowcaseMd());
+    writeFileSync(pilarShowcasePath, pilar.renderPilarShowcaseMd());
     created.push(".sliceui/pilar-showcase.md");
   }
 
@@ -174,8 +178,8 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
   // project's installed pilar differs, surface the regeneration command — a stale snapshot
   // generates against the wrong API and nothing else fails until runtime.
   const skewWarnings = [];
-  if (ctx.profile === "uii") {
-    const st = pilarVersionStatus(root, ctx.deps ?? {});
+  if (ctx.profile === "uii" && pilar) {
+    const st = pilar.pilarVersionStatus(root, ctx.deps ?? {});
     if (st.skew && st.message) skewWarnings.push(st.message);
   }
 
@@ -249,7 +253,7 @@ async function confirmOrPick(argv, args) {
 
   // 3) interactive: detect first to know what we'd confirm.
   const { detectProject } = await import("./detect.mjs");
-  const pre = detectProject(process.cwd(), { profile: args.profile === "auto" ? null : args.profile });
+  const pre = await detectProject(process.cwd(), { profile: args.profile === "auto" ? null : args.profile });
   const label = pre.framework?.label ?? "unknown";
   const id = pre.framework?.id;
   const forced = pre.framework?.forced;
@@ -289,7 +293,7 @@ export async function main(argv) {
   const { frameworkId, profile } = await confirmOrPick(argv, args);
   const profileArg = profile === "auto" ? null : profile;
 
-  const result = initProject(process.cwd(), { keyFrom: args.keyFrom, frameworkId, profile: profileArg });
+  const result = await initProject(process.cwd(), { keyFrom: args.keyFrom, frameworkId, profile: profileArg });
 
   const safe = { ...result, framework: result.framework, profile: result.profile };
   console.log(JSON.stringify(safe, null, 2));

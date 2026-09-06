@@ -50,9 +50,9 @@ function makeBmp(path, width, height) {
   writeFileSync(path, buf);
 }
 
-test("E2E: detect → transcribe → codegen prompt carries Angular 13 idioms", () => {
+test("E2E: detect → transcribe → codegen prompt carries Angular 13 idioms", async () => {
   // 1. detect
-  const ctx = detectProject(FIX);
+  const ctx = await detectProject(FIX);
   assert.equal(ctx.framework.id, "angular");
   assert.equal(ctx.framework.versionMajor, 13);
   assert.equal(ctx.prefix, "app");

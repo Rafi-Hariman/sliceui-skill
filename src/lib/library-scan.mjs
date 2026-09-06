@@ -9,7 +9,7 @@ import fg from "fast-glob";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CATEGORIES, registryEntries, withUiiEntries } from "./library-registry.mjs";
-import { UII_REGISTRY_ENTRIES } from "../framework/angular/uii-profile.mjs";
+import { loadPilar } from "./pilar-loader.mjs";
 import { importSources } from "./ts-ast.mjs";
 
 const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui/**", "**/build/**"];
@@ -20,7 +20,7 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui
  * @param {Record<string,string>} [deps] — merged package.json dependencies+devDependencies
  * @returns {{ capabilities: Record<string,object>, libraries: { inUse: string[] } }}
  */
-export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
+export async function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
   const tsFiles = fg.sync(["**/*.ts"], { cwd: root, ignore: SKIP, absolute: true });
   const htmlFiles = fg.sync(["**/*.html"], { cwd: root, ignore: SKIP, absolute: true });
   const scssFiles = fg.sync(["**/*.scss"], { cwd: root, ignore: SKIP, absolute: true });
@@ -29,13 +29,20 @@ export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
   const allHtml = htmlFiles.map((f) => { try { return { path: f, src: readFileSync(f, "utf8") }; } catch { return { path: f, src: "" }; } });
   const allScss = scssFiles.map((f) => { try { return { path: f, src: readFileSync(f, "utf8") }; } catch { return { path: f, src: "" }; } });
 
+  // The UII registry entries live in uii-profile.mjs (which imports the private pilar catalog). In
+  // the public tarball that module is stripped, so resolve it lazily — present only in an
+  // internal/UII install. includeUii + pilar-absent ⇒ base registry only (correct: a public install
+  // cannot be a UII project — pilar isn't installable from npmjs).
+  const pilar = includeUii ? await loadPilar() : null;
+  const uiiRegistry = pilar?.registryEntries ?? {};
+
   const combined = stripComments([...allTs, ...allHtml].map((x) => x.src).join("\n"));
   // "in use" = actually referenced in source OR installed via package.json. The latter lets a
   // freshly-scaffolded project (deps present, no usage yet) still report its libraries.
   // Active entries = the generic base + the UII profile's org entries ONLY when includeUii.
   const activeEntries = [];
   for (const cat of CATEGORIES) {
-    for (const entry of includeUii ? withUiiEntries(cat, UII_REGISTRY_ENTRIES[cat]) : registryEntries(cat)) {
+    for (const entry of includeUii ? withUiiEntries(cat, uiiRegistry[cat]) : registryEntries(cat)) {
       if (!activeEntries.some((e) => e.name === entry.name)) activeEntries.push(entry);
     }
   }
@@ -49,7 +56,7 @@ export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
-    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii });
+    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii, uiiRegistry });
   }
 
   return { capabilities, libraries: { inUse } };
@@ -62,9 +69,9 @@ export function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
  *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
  *    3. null — fall back to plain HTML with a note.
  */
-function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true } = {}) {
+function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true, uiiRegistry = {} } = {}) {
   const libs = includeUii
-    ? withUiiEntries(category, UII_REGISTRY_ENTRIES[category])
+    ? withUiiEntries(category, uiiRegistry[category])
     : registryEntries(category);
   // Prefer the library whose PACKAGE is actually imported — that's the authoritative
   // signal for which npm package provides the component. A generic template tag like

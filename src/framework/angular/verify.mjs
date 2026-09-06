@@ -23,26 +23,10 @@
 //  17. inventedUtility — no atomic utility class (w-100/mr-2/gap-2/rounded-xl) the project never uses
 
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
-import { UII_AUTHKEY_BY_ACTION } from "./uii-profile.mjs";
-import { PILAR_COMPONENTS } from "./pilar-catalog.mjs";
-import {
-  SLICE_TABLE_INPUTS, SLICE_TABLE_OUTPUTS,
-  SLICE_FORBIDDEN_TABLE_INPUTS, SLICE_FORBIDDEN_TABLE_OUTPUTS,
-} from "./uii-slice-policy.mjs";
 import { walkNodes } from "../../lib/walk-nodes.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
-
-/** Legal uii-table inputs/outputs for a MOCK slice — the curated policy subset, NOT the full
- *  pilar API. The catalog (PILAR_COMPONENTS) is the reference the agent reads; this whitelist
- *  is what a SliceUI-generated component may actually bind. The two are kept separate so a
- *  server/advanced input (`saveStatement`, `rightClickMenuActions`, …) is red even though pilar
- *  declares it. The catalog is still enforced by checkPilarBindings (name must exist). */
-const LEGAL_TABLE_BINDINGS = SLICE_TABLE_INPUTS;
-const LEGAL_TABLE_OUTPUTS = SLICE_TABLE_OUTPUTS;
-const FORBIDDEN_TABLE_INPUTS = SLICE_FORBIDDEN_TABLE_INPUTS;
-const FORBIDDEN_TABLE_OUTPUTS = SLICE_FORBIDDEN_TABLE_OUTPUTS;
 
 
 /**
@@ -53,15 +37,19 @@ const FORBIDDEN_TABLE_OUTPUTS = SLICE_FORBIDDEN_TABLE_OUTPUTS;
  * @param {object} [args.conventions] — extractConventions() output (or conventions.json)
  * @param {object} [args.transcript] — the transcript JSON object
  * @param {string} [args.rawXml] — the source FIGML XML (checkbox evidence)
+ * @param {object|null} [args.pilar] — pilar feature data (from loadPilar()); null when pilar is
+ *   stripped from the install. The uii-table binding-policy / catalog / row-auth checks only run
+ *   when pilar is present; a null pilar degrades them to `skip` so a non-UII (public) install
+ *   never crashes and never needs the private pilar modules.
  * @returns {{ checks: Array, pass: boolean, failCount: number, skipCount: number, warnCount: number }}
  */
-export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml } = {}) {
+export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null } = {}) {
   const checks = [
     checkScssCompiles(scss),
     checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
     checkTextCoverage(html, transcript),
-    checkTableBindings(html, rawXml),
-    checkPilarBindings(html),
+    checkTableBindings(html, rawXml, pilar),
+    checkPilarBindings(html, pilar),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
     checkMockRowCount(html, ts, conventions?.componentAnatomy, transcript),
@@ -70,7 +58,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkIconColor(ts + " " + scss, transcript),
     checkPhantomWrapper(html, transcript),
     checkNgxSelectBinding(html),
-    checkRowAuth(html, ts, rawXml),
+    checkRowAuth(html, ts, rawXml, pilar),
     checkFilterRowButton(html, rawXml),
     checkButtonOrder(html, scss, rawXml),
     checkTableOptions(html, rawXml),
@@ -319,7 +307,13 @@ function fidelityCriticalText(transcript) {
 
 // ---------- 3. tableBindings ----------
 
-function checkTableBindings(html, rawXml) {
+function checkTableBindings(html, rawXml, pilar = null) {
+  // The uii-table binding-policy is pilar feature data. Without pilar (public install), this
+  // check has no whitelist to judge against → skip (never crash, never leak).
+  if (!pilar) {
+    return { name: "tableBindings", status: "skip", detail: "no uii-table binding policy (pilar not present in this install)" };
+  }
+  const { forbiddenTableInputs, forbiddenTableOutputs, legalTableInputs, legalTableOutputs } = pilar;
   // Exclude the skeleton: `<uii-table-skeleton>` must not match the table component.
   const tableTag = /<(uii-table|ngx-datatable|mat-table)(?!-skeleton)\b[\s\S]*?>/i.exec(html);
   if (!tableTag) {
@@ -332,12 +326,12 @@ function checkTableBindings(html, rawXml) {
   const problems = [];
 
   for (const b of inputs) {
-    if (FORBIDDEN_TABLE_INPUTS.has(b)) problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
-    else if (!LEGAL_TABLE_BINDINGS.has(b)) problems.push(`unknown input [${b}]`);
+    if (forbiddenTableInputs.has(b)) problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
+    else if (!legalTableInputs.has(b)) problems.push(`unknown input [${b}]`);
   }
   for (const o of outputs) {
-    if (FORBIDDEN_TABLE_OUTPUTS.has(o)) problems.push(`forbidden output (${o}) (server-mode/sliceui is mock-only)`);
-    else if (!LEGAL_TABLE_OUTPUTS.has(o)) problems.push(`unknown output (${o})`);
+    if (forbiddenTableOutputs.has(o)) problems.push(`forbidden output (${o}) (server-mode/sliceui is mock-only)`);
+    else if (!legalTableOutputs.has(o)) problems.push(`unknown output (${o})`);
   }
 
   // Checkbox column: the XML is the single source of truth. Evidence is the raw XML's
@@ -365,8 +359,13 @@ function checkTableBindings(html, rawXml) {
  *  the binding is even a real pilar API). A misspelled `[colums]` or a hallucinated `(onSave)`
  *  that no pilar component declares is red. Skeleton/loader tags are skipped (they are the
  *  loading state, not the table). Non-uii tags (ngx-select, native html) are out of scope. */
-function checkPilarBindings(html) {
-  const catalog = new Map(PILAR_COMPONENTS.map((c) => [c.selector, c]));
+function checkPilarBindings(html, pilar = null) {
+  // The pilar catalog is private feature data; without it (public install) there is nothing to
+  // judge uii-* bindings against → skip. No pilar components should exist in a generic slice anyway.
+  if (!pilar) {
+    return { name: "pilarBindings", status: "skip", detail: "no pilar catalog (pilar not present in this install)" };
+  }
+  const catalog = new Map(pilar.pilarComponents.map((c) => [c.selector, c]));
   const problems = [];
   let checked = 0;
   for (const m of String(html).matchAll(/<(uii-[a-z-]+)[^>]*>/gi)) {
@@ -678,14 +677,19 @@ function checkLoadedClass(html, registry) {
 
 // ---------- 3d. row auth (action-column icons only render when row.auth.<flag> truthy) ----------
 
-function checkRowAuth(html, ts, rawXml) {
+function checkRowAuth(html, ts, rawXml, pilar = null) {
+  // The XML action→authKey grammar is pilar feature data; without it (public install) there is no
+  // mapping to derive required auth flags → skip.
+  if (!pilar) {
+    return { name: "rowAuth", status: "skip", detail: "no pilar action→authKey grammar (pilar not present in this install)" };
+  }
   if (!/\[actionColumn\]/.test(html)) {
     return { name: "rowAuth", status: "skip", detail: "no [actionColumn] (action column not emitted)" };
   }
   if (!rawXml || !/<Aksi\b/i.test(rawXml)) {
     return { name: "rowAuth", status: "skip", detail: "no <Aksi> action-node evidence in raw XML" };
   }
-  const required = requiredAuthKeysFromXml(rawXml);
+  const required = requiredAuthKeysFromXml(rawXml, pilar.authKeyByAction);
   if (!required.length) {
     return { name: "rowAuth", status: "skip", detail: "<Aksi> present but no enabled action booleans (nothing to require)" };
   }
@@ -703,7 +707,7 @@ function checkRowAuth(html, ts, rawXml) {
   return { name: "rowAuth", status: "pass", detail: `action-column auth flags present (${required.join(", ")})`, required };
 }
 
-function requiredAuthKeysFromXml(rawXml) {
+function requiredAuthKeysFromXml(rawXml, authKeyByAction) {
   const keys = new Set();
   for (const block of rawXml.matchAll(/<Aksi\b[\s\S]*?<\/Aksi>/gi)) {
     const props = block[0].match(/<componentProperties\b[\s\S]*?<\/componentProperties>/i);
@@ -712,7 +716,7 @@ function requiredAuthKeysFromXml(rawXml) {
       const name = prop[1];
       const attrs = prop[2];
       if (/type="BOOLEAN"/.test(attrs) && /value="true"/.test(attrs)) {
-        const key = normalizeFigmaAction(name);
+        const key = normalizeFigmaAction(name, authKeyByAction);
         if (key) keys.add(key);
       }
     }
@@ -720,9 +724,9 @@ function requiredAuthKeysFromXml(rawXml) {
   return [...keys];
 }
 
-function normalizeFigmaAction(rawName) {
+function normalizeFigmaAction(rawName, authKeyByAction) {
   const base = String(rawName).toLowerCase().replace(/_\d+(_\d+)?$/, "").replace(/^_+|_+$/g, "");
-  return UII_AUTHKEY_BY_ACTION[base] ?? null;
+  return authKeyByAction[base] ?? null;
 }
 
 /** Scan the WHOLE ts string (not just `[…]` bodies — auth is often attached inside a `.map()`

@@ -16,9 +16,9 @@ function scaffold() {
   return dir;
 }
 
-test("init runs the referee codebase-head without crashing and returns warnings", () => {
+test("init runs the referee codebase-head without crashing and returns warnings", async () => {
   const dir = scaffold();
-  const r = initProject(dir);
+  const r = await initProject(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(r.ok, true);
   // The referee head is chained in; even a clean project returns a warnings array (env template + detection notes),
@@ -27,9 +27,9 @@ test("init runs the referee codebase-head without crashing and returns warnings"
   assert.ok(!r.warnings.some((w) => w.includes("referee:")), "clean project surfaces no referee red-count");
 });
 
-test("init --framework forces the target framework (Jalur B)", () => {
+test("init --framework forces the target framework (Jalur B)", async () => {
   const dir = scaffold(); // scaffold has @angular/core, but we force react
-  const r = initProject(dir, { frameworkId: "react-tsx" });
+  const r = await initProject(dir, { frameworkId: "react-tsx" });
   const ctx = JSON.parse(readFileSync(join(dir, ".sliceui", "project-context.json"), "utf8"));
   rmSync(dir, { recursive: true, force: true });
   assert.equal(r.ok, true);
@@ -37,13 +37,13 @@ test("init --framework forces the target framework (Jalur B)", () => {
   assert.equal(ctx.framework.id, "react-tsx", "project-context carries forced framework");
 });
 
-test("init --profile generic overrides a UII fingerprint (Jalur B)", () => {
+test("init --profile generic overrides a UII fingerprint (Jalur B)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-init-"));
   writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "uii-gateway-portal", version: "1.0.0", dependencies: { "@angular/core": "^13" } }));
   mkdirSync(join(dir, "src", "app"), { recursive: true });
   writeFileSync(join(dir, "src", "app", "a.html"), "<div>hi</div>");
 
-  const r = initProject(dir, { profile: "generic" });
+  const r = await initProject(dir, { profile: "generic" });
   const ctx = JSON.parse(readFileSync(join(dir, ".sliceui", "project-context.json"), "utf8"));
   const hasUiiProfile = existsSync(join(dir, ".sliceui", "uii-profile.md"));
   rmSync(dir, { recursive: true, force: true });
@@ -54,9 +54,9 @@ test("init --profile generic overrides a UII fingerprint (Jalur B)", () => {
   assert.ok(!hasUiiProfile, "uii-profile not written for overridden generic");
 });
 
-test("init writes loadedClassRegistry into conventions.json (verify gate wiring)", () => {
+test("init writes loadedClassRegistry into conventions.json (verify gate wiring)", async () => {
   const dir = scaffold();
-  initProject(dir);
+  await initProject(dir);
   const convPath = join(dir, ".sliceui", "conventions.json");
   assert.ok(existsSync(convPath), "conventions.json written");
   const conv = JSON.parse(readFileSync(convPath, "utf8"));
@@ -68,10 +68,10 @@ test("init writes loadedClassRegistry into conventions.json (verify gate wiring)
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("init is idempotent and does not crash on a re-run (referee head runs twice)", () => {
+test("init is idempotent and does not crash on a re-run (referee head runs twice)", async () => {
   const dir = scaffold();
-  initProject(dir);
-  const r2 = initProject(dir); // re-run on the same dir
+  await initProject(dir);
+  const r2 = await initProject(dir); // re-run on the same dir
   rmSync(dir, { recursive: true, force: true });
   assert.equal(r2.ok, true);
 });

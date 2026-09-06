@@ -15,7 +15,7 @@ import { extractConventions } from "../framework/angular/conventions.mjs";
 import { detectAngularDetails } from "../framework/angular/detect-angular.mjs";
 import { walkFiles, readJsonSafe, readFileSyncSafe, toRel, extractTsconfigPaths } from "../lib/detect-utils.mjs";
 
-export function detectProject(rootDir, { frameworkId = null, profile = null } = {}) {
+export async function detectProject(rootDir, { frameworkId = null, profile = null } = {}) {
   const warnings = [];
   const root = resolve(rootDir);
 
@@ -88,7 +88,7 @@ export function detectProject(rootDir, { frameworkId = null, profile = null } = 
   // Library-aware: capabilities map (category → library + real usage sample).
   // deps feeds the "installed but not yet used" signal so a fresh scaffold still resolves
   // its libraries (e.g. pilar → uii-table) before any component imports them.
-  const { capabilities, libraries } = scanLibraryUsage(root, deps, { includeUii: isUii });
+  const { capabilities, libraries } = await scanLibraryUsage(root, deps, { includeUii: isUii });
   const uiLibrary = detectUiLibrary(deps, libraries.inUse);
 
   // Non-silent nulls: a null capability must surface a note, never quietly fall back.
@@ -409,9 +409,9 @@ function detectStyleExt(root, fwId) {
   return "css";
 }
 
-export function main(argv) {
+export async function main(argv) {
   const root = cwd();
-  const ctx = detectProject(root);
+  const ctx = await detectProject(root);
   const outDir = join(root, ".sliceui");
   mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, "project-context.json");

@@ -23,6 +23,20 @@ const CONVENTIONS = {
   naming: { prefix: "ugw", eventNaming: "onXxx($event)" },
 };
 
+// Pilar fixture mirroring loadPilar()'s shape, for the uii-table checks. In the repo (and any
+// internal/UII build) these come from the real pilar catalogs via loadPilar(); tests inject a
+// minimal stand-in so verify's uii-table checks run without importing the private catalogs.
+const PILAR_FIXTURE = {
+  legalTableInputs: new Set(["rows", "columns", "actionTitle", "actionColumn", "checkboxColumn", "paginationOptions", "searchOptions", "limitOptions", "emptyTableMsg", "footerInfo", "radioColumn"]),
+  legalTableOutputs: new Set(["editClicked", "deleteClicked", "detailClicked", "selectedRow", "switchChanged", "rowsChanged"]),
+  forbiddenTableInputs: new Set(["serverMode", "page", "selectedLimit", "saveStatement", "forceLimitOptions", "alignedComponent", "allowRightClick", "rightClickMenuActions"]),
+  forbiddenTableOutputs: new Set(["pageChanged", "limitChanged", "searchChanged"]),
+  pilarComponents: [
+    { selector: "uii-table", inputs: [{ name: "rows" }, { name: "columns" }, { name: "checkboxColumn" }, { name: "actionColumn" }, { name: "actionTitle" }, { name: "saveStatement" }, { name: "allowRightClick" }, { name: "serverMode" }], outputs: [{ name: "editClicked" }, { name: "deleteClicked" }, { name: "detailClicked" }] },
+  ],
+  authKeyByAction: { edit: "canUpdate", detail: "canRead", delete: "canDelete", print: "canPrint", verify: "canVerify", validate: "canValidate" },
+};
+
 const TRANSCRIPT = {
   layout: [
     { type: "text", text: "Ubah tagihan" },
@@ -137,7 +151,7 @@ test("verify: textCoverage fails when the Cari button is dropped", () => {
 test("verify: checkboxColumn without XML evidence fails", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
-    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
   });
   const check = r.checks.find((c) => c.name === "tableBindings");
   assert.equal(check.status, "fail");
@@ -148,7 +162,7 @@ test("verify: checkboxColumn absent when XML HAS checkbox fails", () => {
   const htmlNoCheckbox = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
   const r = verifyComponent({
     scss: GOOD_SCSS, html: htmlNoCheckbox, ts: GOOD_TS,
-    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX, pilar: PILAR_FIXTURE,
   });
   const check = r.checks.find((c) => c.name === "tableBindings");
   assert.equal(check.status, "fail");
@@ -159,7 +173,7 @@ test("verify: tableBindings forbids server/advanced inputs a mock slice must not
   // The catalog declares these as REAL pilar inputs; the slice POLICY forbids them.
   for (const forbidden of ["saveStatement", "allowRightClick", "rightClickMenuActions", "serverMode"]) {
     const html = `<uii-table [rows]="rows" [columns]="columns" [${forbidden}]="true"></uii-table>`;
-    const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+    const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE });
     const check = r.checks.find((c) => c.name === "tableBindings");
     assert.equal(check.status, "fail", `[${forbidden}] must be forbidden`);
     assert.ok(check.problems.some((p) => p.includes(forbidden)), `[${forbidden}] named in problems`);
@@ -168,14 +182,14 @@ test("verify: tableBindings forbids server/advanced inputs a mock slice must not
 
 test("verify: tableBindings still allows the mock-appropriate binding set", () => {
   const html = `<uii-table [rows]="rows" [columns]="columns" [limitOptions]="true" [searchOptions]="true" [paginationOptions]="true"></uii-table>`;
-  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE });
   const check = r.checks.find((c) => c.name === "tableBindings");
   assert.equal(check.status, "pass", `mock bindings must pass: ${check.detail}`);
 });
 
 test("verify: pilarBindings rejects a binding name not declared by the catalog", () => {
   const html = `<uii-table [rows]="rows" [columns]="columns" [colums]="typo"></uii-table>`;
-  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE });
   const check = r.checks.find((c) => c.name === "pilarBindings");
   assert.equal(check.status, "fail");
   assert.ok(check.problems.some((p) => p.includes("[colums]")), "typo'd binding named");
@@ -183,7 +197,7 @@ test("verify: pilarBindings rejects a binding name not declared by the catalog",
 
 test("verify: pilarBindings rejects a hallucinated pilar component tag", () => {
   const html = `<uii-fancy-widget [rows]="rows"></uii-fancy-widget>`;
-  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX });
+  const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE });
   const check = r.checks.find((c) => c.name === "pilarBindings");
   assert.equal(check.status, "fail");
   assert.ok(check.problems.some((p) => p.includes("not a pilar component")), "hallucinated tag named");
@@ -409,7 +423,7 @@ test("verify: ngxSelectBinding skips when no <ngx-select> present", () => {
 test("verify: rowAuth passes when actionColumn rows carry the required auth flag", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: ACTION_HTML, ts: GOOD_TS_AUTH,
-    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI, pilar: PILAR_FIXTURE,
   });
   const check = r.checks.find((c) => c.name === "rowAuth");
   assert.equal(check.status, "pass");
@@ -419,7 +433,7 @@ test("verify: rowAuth passes when actionColumn rows carry the required auth flag
 test("verify: rowAuth fails when actionColumn rows lack the auth flag (edit→canUpdate)", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: ACTION_HTML, ts: BAD_TS,
-    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI, pilar: PILAR_FIXTURE,
   });
   const check = r.checks.find((c) => c.name === "rowAuth");
   assert.equal(check.status, "fail");

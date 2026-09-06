@@ -5,8 +5,9 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { verifyComponent } from "../framework/angular/verify.mjs";
+import { loadPilar } from "../lib/pilar-loader.mjs";
 
-export function main(argv) {
+export async function main(argv) {
   const dir = argv[0] ? resolve(argv[0]) : process.cwd();
   const name = argv[1] ?? null; // optional component basename (e.g. "history-agreement")
 
@@ -34,7 +35,10 @@ export function main(argv) {
     return 2;
   }
 
-  const result = verifyComponent({ scss, html, ts, conventions, transcript, rawXml });
+  // pilar is present only when the private catalogs are installed (internal/UII build); a public
+  // npm install has them stripped → loadPilar() returns null and the pilar checks skip gracefully.
+  const pilar = await loadPilar();
+  const result = verifyComponent({ scss, html, ts, conventions, transcript, rawXml, pilar });
 
   console.log("SliceUI verify — generated component fidelity + conventions\n");
   for (const c of result.checks) {

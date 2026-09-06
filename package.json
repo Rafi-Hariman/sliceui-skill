@@ -1,7 +1,7 @@
 {
   "name": "sliceui-skill",
   "version": "0.15.0",
-  "description": "Agent skill + CLI: convert UI designs (Figma XML or screenshots) into idiomatic component code. Angular-first (v13, incl. @uiigateway/pilar); React/Vue/Svelte/Next/Tailwind detection + syntax rules are experimental and not verify-gated.",
+  "description": "Agent skill + CLI: convert UI designs (Figma XML or screenshots) into idiomatic component code. Angular-first (v13); React/Vue/Svelte/Next/Tailwind detection + syntax rules are experimental and not verify-gated.",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -9,6 +9,10 @@
   },
   "files": [
     "src/",
+    "!src/framework/angular/pilar-*.mjs",
+    "!src/framework/angular/uii-profile.mjs",
+    "!src/framework/angular/uii-slice-policy.mjs",
+    "!src/lib/pilar-version.mjs",
     "skill/",
     "README.md",
     "LICENSE"

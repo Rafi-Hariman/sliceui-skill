@@ -57,25 +57,25 @@ test("version status: no pilar dep → not present, silent (generic project)", (
   assert.equal(st.message, null);
 });
 
-test("init surfaces the skew warning for a UII project with mismatched pilar", () => {
+test("init surfaces the skew warning for a UII project with mismatched pilar", async () => {
   const { base, root } = tmpRoot("portal-uii-gateway");
   writeFileSync(join(root, "package.json"), JSON.stringify({
     name: "x", dependencies: { "@angular/core": "^13", pilar: "^3.9.0" },
   }));
   writeFileSync(join(root, "src", "app", "a.html"), "<div>hi</div>");
-  const r = initProject(root);
+  const r = await initProject(root);
   rmSync(base, { recursive: true, force: true });
   assert.equal(r.profile, "uii");
   assert.ok(r.warnings.some((w) => /extract-pilar\.mjs/.test(w)), `skew warning in init result: ${JSON.stringify(r.warnings)}`);
 });
 
-test("init is silent on skew when versions match", () => {
+test("init is silent on skew when versions match", async () => {
   const { base, root } = tmpRoot("portal-uii-gateway");
   writeFileSync(join(root, "package.json"), JSON.stringify({
     name: "x", dependencies: { "@angular/core": "^13", pilar: `^${PILAR_VERSION}` },
   }));
   writeFileSync(join(root, "src", "app", "a.html"), "<div>hi</div>");
-  const r = initProject(root);
+  const r = await initProject(root);
   rmSync(base, { recursive: true, force: true });
   assert.ok(!r.warnings.some((w) => /extract-pilar\.mjs/.test(w)), "no skew warning when versions match");
 });

@@ -1,6 +1,6 @@
 ---
 name: sliceui
-description: "SliceUI — convert a UI screenshot/design image into idiomatic component code. PRIMARY: Angular 13 (incl. @uiigateway/pilar), verify-gated. EXPERIMENTAL: React, Vue, Svelte, Next.js, Tailwind, Bootstrap, HTML (syntax rules work; conventions/verify not yet). Use when asked to build/generate/slice a UI component, section, or page from an image or screenshot, especially when the model cannot view images directly."
+description: "SliceUI — convert a UI screenshot/design image into idiomatic component code. PRIMARY: Angular 13, verify-gated. EXPERIMENTAL: React, Vue, Svelte, Next.js, Tailwind, Bootstrap, HTML (syntax rules work; conventions/verify not yet). Use when asked to build/generate/slice a UI component, section, or page from an image or screenshot, especially when the model cannot view images directly."
 tools: Read, Glob, Bash, Write, Edit
 requires: sliceui >= 0.1.0
 ---

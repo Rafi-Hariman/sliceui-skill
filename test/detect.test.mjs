@@ -7,8 +7,8 @@ import { detectProject } from "../src/commands/detect.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures");
 
-test("detects Angular 13 module project", () => {
-  const ctx = detectProject(join(FIX, "angular13"));
+test("detects Angular 13 module project", async () => {
+  const ctx = await detectProject(join(FIX, "angular13"));
   assert.equal(ctx.detected, true);
   assert.equal(ctx.framework.id, "angular");
   assert.equal(ctx.framework.versionMajor, 13);
@@ -26,23 +26,23 @@ test("detects Angular 13 module project", () => {
   assert.ok(ctx.sampleComponents.some((s) => s.selector === "app-hero"));
 });
 
-test("handles a monorepo by picking the first project + warning", () => {
-  const ctx = detectProject(join(FIX, "monorepo"));
+test("handles a monorepo by picking the first project + warning", async () => {
+  const ctx = await detectProject(join(FIX, "monorepo"));
   assert.equal(ctx.detected, true);
   assert.equal(ctx.framework.id, "angular");
   assert.equal(ctx.prefix, "one");
   assert.ok(ctx.detectionWarnings.some((w) => w.includes("Monorepo")));
 });
 
-test("handles no-package gracefully", () => {
-  const ctx = detectProject(join(FIX, "no-package"));
+test("handles no-package gracefully", async () => {
+  const ctx = await detectProject(join(FIX, "no-package"));
   assert.equal(ctx.detected, false);
   assert.equal(ctx.framework.id, "unknown");
   assert.ok(ctx.detectionWarnings.length > 0);
 });
 
-test("project-context v4: provenance, tokens, conventions, module structure, staleness", () => {
-  const ctx = detectProject(join(FIX, "angular13"));
+test("project-context v4: provenance, tokens, conventions, module structure, staleness", async () => {
+  const ctx = await detectProject(join(FIX, "angular13"));
   assert.equal(ctx.version, 4);
   // provenance present for key claims
   assert.equal(ctx.provenance.prefix, "sourceCode", "prefix derived from source, not config");
@@ -63,8 +63,8 @@ test("project-context v4: provenance, tokens, conventions, module structure, sta
   assert.ok(ctx.inputHash, "inputHash present");
 });
 
-test("non-silent null: capability with no library carries a note + warning", () => {
-  const ctx = detectProject(join(FIX, "angular13"));
+test("non-silent null: capability with no library carries a note + warning", async () => {
+  const ctx = await detectProject(join(FIX, "angular13"));
   // fixture has no modal/toast/etc → those are null and must carry a note
   const nullCaps = Object.entries(ctx.capabilities).filter(([, c]) => c.library === null);
   assert.ok(nullCaps.length > 0, "some capability is null");
@@ -74,10 +74,10 @@ test("non-silent null: capability with no library carries a note + warning", () 
   assert.ok(ctx.detectionWarnings.some((w) => w.includes("native HTML")), "warning emitted for null capability");
 });
 
-test("prefix: feature components beat the root selector (ugw-root vs app-*)", () => {
+test("prefix: feature components beat the root selector (ugw-root vs app-*)", async () => {
   // The root component is the app shell (ugw-root); sliceui generates feature components,
   // which use app-*. Majority among features must win, not the root selector.
-  const ctx = detectProject(join(FIX, "angular13-rootprefix"));
+  const ctx = await detectProject(join(FIX, "angular13-rootprefix"));
   assert.equal(ctx.prefix, "app", "feature prefix wins over root selector");
   assert.equal(ctx.provenance.prefix, "sourceCode");
   assert.ok(ctx.prefixNote.includes("ugw"), "note explains the root/feature split");

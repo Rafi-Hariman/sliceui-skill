@@ -27,9 +27,9 @@ export class TableComponent {}`);
   return dir;
 }
 
-test("detects ngx-select-ex and captures a local usage sample", () => {
+test("detects ngx-select-ex and captures a local usage sample", async () => {
   const dir = makeProject(true, false);
-  const { capabilities, libraries } = scanLibraryUsage(dir);
+  const { capabilities, libraries } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.ok(libraries.inUse.includes("ngx-select-ex"), "ngx-select-ex in use");
   assert.ok(capabilities.select.library === "ngx-select-ex", "select → ngx-select-ex");
@@ -37,22 +37,22 @@ test("detects ngx-select-ex and captures a local usage sample", () => {
   assert.equal(capabilities.select.source, "local", "sample from local, not registry");
 });
 
-test("detects ngx-datatable for table category", () => {
+test("detects ngx-datatable for table category", async () => {
   const dir = makeProject(false, true);
-  const { capabilities } = scanLibraryUsage(dir);
+  const { capabilities } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.library, "ngx-datatable");
 });
 
-test("returns library:null when a category has no matching library", () => {
+test("returns library:null when a category has no matching library", async () => {
   const dir = makeProject(false, false);
-  const { capabilities } = scanLibraryUsage(dir);
+  const { capabilities } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.select.library, null, "no select library → null");
   assert.equal(capabilities.table.library, null, "no table library → null");
 });
 
-test("bare <ngx-select> tag with no import → ngx-select (local), not ngx-select-ex", () => {
+test("bare <ngx-select> tag with no import → ngx-select (local), not ngx-select-ex", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   const app = join(dir, "src", "app");
   mkdirSync(app, { recursive: true });
@@ -61,7 +61,7 @@ test("bare <ngx-select> tag with no import → ngx-select (local), not ngx-selec
 @Component({ selector: "ugw-c", templateUrl: "./c.component.html" })
 export class CComponent {}`);
   writeFileSync(join(app, "c.component.html"), `<ngx-select [items]="items" [(ngModel)]="selected"></ngx-select>`);
-  const { capabilities, libraries } = scanLibraryUsage(dir);
+  const { capabilities, libraries } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.ok(capabilities.select.library.includes("ngx-select"), "select resolves to ngx-select local");
   assert.ok(!capabilities.select.library.includes("ngx-select-ex"), "NOT attributed to ngx-select-ex");
@@ -70,7 +70,7 @@ export class CComponent {}`);
   assert.ok(capabilities.select.sampleHtml.includes("<ngx-select"), "real template usage captured as sampleHtml");
 });
 
-test("@danielmoncada/angular-datetime-picker detected for date category", () => {
+test("@danielmoncada/angular-datetime-picker detected for date category", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   const app = join(dir, "src", "app");
   mkdirSync(app, { recursive: true });
@@ -79,13 +79,13 @@ import { OwlDateTimeModule, OwlNativeDateTimeModule } from "@danielmoncada/angul
 @Component({ selector: "ugw-d", templateUrl: "./d.component.html" })
 export class DComponent {}`);
   writeFileSync(join(app, "d.component.html"), `<input [owlDateTime]="dt" /><owl-date-time #dt [pickerType]="'calendar'"></owl-date-time>`);
-  const { capabilities } = scanLibraryUsage(dir);
+  const { capabilities } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.date.library, "@danielmoncada/angular-datetime-picker");
   assert.ok(!capabilities.date.sampleHtml.includes("ng-pick-datetime"), "sample is local, not ng-pick-datetime");
 });
 
-test("commented-out import does not trigger a library", () => {
+test("commented-out import does not trigger a library", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   const app = join(dir, "src", "app");
   mkdirSync(app, { recursive: true });
@@ -94,13 +94,13 @@ test("commented-out import does not trigger a library", () => {
 @Component({ selector: "ugw-c" })
 export class CComponent {}`);
   writeFileSync(join(app, "c.component.html"), `<input type="text">`);
-  const { capabilities, libraries } = scanLibraryUsage(dir);
+  const { capabilities, libraries } = await scanLibraryUsage(dir);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.date.library, null, "commented ng-pick-datetime ignored");
   assert.ok(!libraries.inUse.includes("ng-pick-datetime"), "ng-pick-datetime not in use");
 });
 
-test("package.json deps resolve capabilities even with no usage (fresh scaffold)", () => {
+test("package.json deps resolve capabilities even with no usage (fresh scaffold)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   mkdirSync(join(dir, "src"), { recursive: true });
   writeFileSync(join(dir, "package.json"), JSON.stringify({
@@ -111,7 +111,7 @@ test("package.json deps resolve capabilities even with no usage (fresh scaffold)
       "@uiigateway/core": "^4.1.0",
     },
   }));
-  const { capabilities, libraries } = scanLibraryUsage(dir, { pilar: "^3.3.18", "ngx-select-ex": "8.0.1", "@swimlane/ngx-datatable": "^15.0.2", "@uiigateway/core": "^4.1.0" });
+  const { capabilities, libraries } = await scanLibraryUsage(dir, { pilar: "^3.3.18", "ngx-select-ex": "8.0.1", "@swimlane/ngx-datatable": "^15.0.2", "@uiigateway/core": "^4.1.0" });
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.library, "pilar (uii-table)", "table → pilar uii-table from package.json");
   assert.equal(capabilities.select.library, "ngx-select-ex", "select → ngx-select-ex from package.json");
@@ -124,7 +124,7 @@ test("package.json deps resolve capabilities even with no usage (fresh scaffold)
   assert.ok(libraries.inUse.includes("@uiigateway/core (layout)"), "core layout marked in use");
 });
 
-test("local usage wins over an installed package (import-first)", () => {
+test("local usage wins over an installed package (import-first)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   const app = join(dir, "src", "app");
   mkdirSync(app, { recursive: true });
@@ -134,12 +134,12 @@ import { NgxDatatableModule } from "@swimlane/ngx-datatable";
 @Component({ selector: "ugw-t", templateUrl: "./t.component.html" })
 export class TComponent {}`);
   writeFileSync(join(app, "t.component.html"), `<ngx-datatable [rows]="rows" [columns]="columns"></ngx-datatable>`);
-  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18", "@swimlane/ngx-datatable": "^15.0.2" });
+  const { capabilities } = await scanLibraryUsage(dir, { pilar: "^3.3.18", "@swimlane/ngx-datatable": "^15.0.2" });
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.library, "ngx-datatable", "real ngx-datatable usage beats installed pilar");
 });
 
-test("package-name matching captures a local sample even when the entry has a display label", () => {
+test("package-name matching captures a local sample even when the entry has a display label", async () => {
   // entry.name is "pilar (uii-table)" but the import says "pilar" — the local scan must
   // match on entry.package, not entry.name, and must read the template via regex.
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
@@ -150,14 +150,14 @@ import { TableModule } from "pilar";
 @Component({ selector: "ugw-p", templateUrl: "./p.component.html" })
 export class PComponent {}`);
   writeFileSync(join(app, "p.component.html"), `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true"></uii-table>`);
-  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18" });
+  const { capabilities } = await scanLibraryUsage(dir, { pilar: "^3.3.18" });
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.library, "pilar (uii-table)", "pilar resolves to uii-table");
   assert.equal(capabilities.table.source, "local", "local template sample captured");
   assert.ok(capabilities.table.sampleHtml.includes("<uii-table"), "real <uii-table> usage is the sample");
 });
 
-test("sampleScss: local sample carries the component's stylesheet", () => {
+test("sampleScss: local sample carries the component's stylesheet", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sliceui-libscan-"));
   const app = join(dir, "src", "app");
   mkdirSync(app, { recursive: true });
@@ -167,7 +167,7 @@ import { TableModule } from "pilar";
 export class TComponent {}`);
   writeFileSync(join(app, "t.component.html"), `<uii-table [rows]="rows" [columns]="columns"></uii-table>`);
   writeFileSync(join(app, "t.component.scss"), `:host ::ng-deep .ugw-pagination-container li.page-box {\n  border-bottom: 1px solid;\n}\n::ng-deep .ngx-select__item_active { color: #fff; }\n`);
-  const { capabilities } = scanLibraryUsage(dir, { pilar: "^3.3.18" });
+  const { capabilities } = await scanLibraryUsage(dir, { pilar: "^3.3.18" });
   rmSync(dir, { recursive: true, force: true });
   assert.equal(capabilities.table.source, "local");
   assert.ok(capabilities.table.sampleScss.includes("li.page-box"), "sampleScss carries the ::ng-deep block");
