@@ -132,6 +132,27 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 `sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent. **The codebase head also runs automatically at `sliceui init`** (surfacing the corruption map at setup time), and the full run is a mandatory pre-generate step in the skill: if anything is red, the artifacts are refreshed before codegen.
 
+### 6. pilar catalog + showcase (UII projects only)
+
+For projects that fingerprint as UII, `sliceui init` writes three reference files:
+
+- `.sliceui/pilar-reference.md` — the **full** pilar API reference: every `uii-*` component with exact `@Input`/`@Output` typing and real template shape, plus models, services, directives, pipes, and feature modules.
+- `.sliceui/pilar-showcase.md` — the org's complete **working examples** (every `doc-*` showcase with real markup/TypeScript/SCSS).
+- `.sliceui/uii-profile.md` — the table action→authKey→icon truth table.
+
+Both are generated from **checked-in catalogs** (`src/framework/angular/pilar-catalog.mjs` + `pilar-showcase.mjs`), so the end-user never needs the private `pilar` repo. When pilar changes, a maintainer re-runs:
+
+```bash
+node scripts/extract-pilar.mjs <path-to-pilar>          # emits src/framework/angular/pilar-catalog.mjs
+node scripts/extract-pilar-showcase.mjs <path-to-pilar> # emits src/framework/angular/pilar-showcase.mjs
+```
+
+The `verify` gate's legal `uii-table` binding set and the action→authKey→icon truth table are derived from `pilar-catalog.mjs`, so they can't drift from the source. A generic (non-UII) project never receives any of these.
+
+**⚠ Publish guard.** The catalogs embed the org's private pilar source. `prepublishOnly` runs `scripts/guard-publish.mjs`: publishing is refused unless the target registry is `npm.uii.ac.id` (the org's private registry) — a plain `npm publish` to npmjs exits non-zero with the reason. This is a hard constraint while the catalogs ship in `files: ["src/"]`.
+
+**Drift guard.** `sliceui init` and `sliceui doctor` compare the project's installed pilar version against the catalog's `PILAR_VERSION` snapshot and warn loudly on skew (both directions), carrying the exact regeneration command.
+
 ## Requirements
 
 - Node ≥ 20 (Node 18 is EOL).

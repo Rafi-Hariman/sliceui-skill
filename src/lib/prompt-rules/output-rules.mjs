@@ -48,6 +48,21 @@ FRAMEWORK: ${fwLabel}
 ${rules}`);
   }
 
+  // --- pilar catalog pointer (UII only) ---
+  // The full pilar API reference + showcase live on disk (written by `sliceui init`). We point
+  // at them, NOT inline them — pilar-reference.md (~54KB) + pilar-showcase.md (~184KB) would
+  // blow the context if read whole. The agent must read targeted: Index → Grep → Read offset/limit.
+  if (pc.profile === "uii") {
+    blocks.push(`## UII pilar components (org-private library)
+
+This project fingerprints as UII (pilar / @uiigateway/*). Before emitting any \`uii-*\` tag, read
+\`.sliceui/pilar-reference.md\` (exact @Input/@Output typing) and \`.sliceui/pilar-showcase.md\`
+(working examples). **Read TARGETED, never full-file**: read the Index of pilar-showcase.md first,
+then Grep for the component you're writing and Read only that section (offset/limit). Full-file
+reads of either reference are a mistake — they consume most of the context. For \`uii-table\`,
+the action→authKey→icon truth table is in \`.sliceui/uii-profile.md\`.`);
+  }
+
   // --- critical output rules ---
   blocks.push(`CRITICAL OUTPUT RULES:
 1. Write real files into the project (use the componentDir and naming conventions from project_context).

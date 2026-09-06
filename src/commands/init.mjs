@@ -14,8 +14,9 @@ import { homedir } from "node:os";
 import { detectProject } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
 import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../framework/angular/conventions.mjs";
-import { renderUiiProfileMd } from "../framework/angular/uii-profile.mjs";
+import { renderUiiProfileMd, renderPilarReferenceMd, renderPilarShowcaseMd } from "../framework/angular/uii-profile.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
+import { pilarVersionStatus } from "../lib/pilar-version.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -144,10 +145,20 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
 
   // uii-profile.md — the org's action→authKey→icon grammar. Written ONLY for UII projects
   // (fingerprinted by detect); a generic project never receives the org grammar on disk.
+  // pilar-reference.md — the FULL pilar API reference (components + typing), also UII-only.
+  // pilar-showcase.md — the FULL pilar showcase (every doc-* working example), also UII-only.
   if (ctx.profile === "uii") {
     const uiiProfilePath = join(sliceuiDir, "uii-profile.md");
     writeFileSync(uiiProfilePath, renderUiiProfileMd());
     created.push(".sliceui/uii-profile.md");
+
+    const pilarRefPath = join(sliceuiDir, "pilar-reference.md");
+    writeFileSync(pilarRefPath, renderPilarReferenceMd());
+    created.push(".sliceui/pilar-reference.md");
+
+    const pilarShowcasePath = join(sliceuiDir, "pilar-showcase.md");
+    writeFileSync(pilarShowcasePath, renderPilarShowcaseMd());
+    created.push(".sliceui/pilar-showcase.md");
   }
 
   // Referee (codebase head): validate the conventions just extracted against real occurrences
@@ -159,6 +170,15 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
     ? [`referee: ${redCount} ground-truth claim(s) fail/stale — run \`sliceui referee\` for the corruption map.`]
     : [];
 
+  // Drift guard (UII only): the pilar catalogs are a snapshot at PILAR_VERSION. When the
+  // project's installed pilar differs, surface the regeneration command — a stale snapshot
+  // generates against the wrong API and nothing else fails until runtime.
+  const skewWarnings = [];
+  if (ctx.profile === "uii") {
+    const st = pilarVersionStatus(root, ctx.deps ?? {});
+    if (st.skew && st.message) skewWarnings.push(st.message);
+  }
+
   return {
     ok: true,
     root,
@@ -169,7 +189,7 @@ export function initProject(rootDir, { keyFrom = null, frameworkId = null, profi
     profile: ctx.profile ?? "generic",
     detected: ctx.detected,
     componentDir: ctx.componentDir,
-    warnings: [...warnings, ...ctx.detectionWarnings, ...refereeWarnings],
+    warnings: [...warnings, ...ctx.detectionWarnings, ...refereeWarnings, ...skewWarnings],
   };
 }
 

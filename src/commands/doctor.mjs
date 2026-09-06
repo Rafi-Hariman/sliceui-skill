@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { resolveGeminiKey } from "../lib/env.mjs";
+import { pilarDoctorCheck } from "../lib/pilar-version.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "..", "package.json"), "utf8"));
@@ -137,6 +138,16 @@ async function checkGeminiLive() {
   }
 }
 
+/** Pilar catalog drift — only meaningful when the project depends on pilar (UII). */
+function checkPilarCatalog(cwd) {
+  let deps = {};
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
+    deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  } catch { /* no package.json → generic, reported by the check itself */ }
+  return pilarDoctorCheck(cwd, deps);
+}
+
 export async function runDoctor(cwd) {
   const checks = [
     checkNode(),
@@ -147,6 +158,7 @@ export async function runDoctor(cwd) {
     checkSkillDir(),
     checkSkillVersion(),
     await checkGeminiLive(),
+    checkPilarCatalog(cwd),
   ];
   const hardFails = checks.filter((c) => !c.ok && !c.warn);
   const warns = checks.filter((c) => c.warn);

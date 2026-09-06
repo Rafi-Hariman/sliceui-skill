@@ -84,6 +84,14 @@ Then read `capabilities.<category>` from `project-context.json` — it names the
 
 If `.sliceui/conventions.json` is missing, **stop and run `sliceui init`** — you cannot generate adaptive code without it.
 
+**UII projects only** — if `.sliceui/pilar-reference.md` exists (a UII fingerprint), consult it before emitting any `uii-*` tag: it carries the exact `@Input`/`@Output` typing and real template shape for every pilar component, plus the models/services/directives/pipes/modules. `.sliceui/uii-profile.md` holds the table action→authKey→icon truth table. `.sliceui/pilar-showcase.md` holds the org's complete working examples (every `doc-*` showcase with real markup/TypeScript/SCSS) — mirror the wiring of the entry for the component you're emitting.
+
+> **⚠ Context economy — read TARGETED, never full-file.** `pilar-reference.md` (~54KB) + `pilar-showcase.md` (~184KB) ≈ 60k tokens if read whole — that would consume most of your context. Instead:
+> 1. Read ONLY the **Index** of `pilar-showcase.md` (first ~40 lines) to learn what exists.
+> 2. `Grep` the file for the component you're writing (`uii-pagination`, `### Basic`) and read just that section via `Read` with `offset`/`limit`.
+> 3. In `pilar-reference.md`, read only the `### \`<uii-your-component>\`` block (Grep the line number first).
+> Never `cat`/full-Read either file.
+
 ### Step 3 — Transcribe the input
 
 ```bash
@@ -221,7 +229,7 @@ Copy-first; invent only where the project has no prior art. Colors come from the
 
 14. **Bulk action buttons are always rendered.** A row of bulk/action buttons in the XML ("Ubah massal tgl akhir bayar", "Ubah status bayar", …) is rendered unconditionally. Do NOT gate them behind `*ngIf` row-selection state or a loading flag — that hides buttons the design always shows.
 
-> **UII-profile gate:** the org's pilar/`@uiigateway` grammar (action→authKey→icon, uii-table auth semantics) lives in `.sliceui/uii-profile.md`, written by `sliceui init` ONLY for projects that fingerprint as UII. If that file is absent, the project is not UII — emit the generic `capabilities.<category>` wiring instead, never pilar/uii idiom.
+> **UII-profile gate:** the org's pilar/`@uiigateway` grammar (action→authKey→icon, uii-table auth semantics) lives in `.sliceui/uii-profile.md`; the FULL pilar API reference (every `uii-*` component with exact `@Input`/`@Output` typing + template shape, plus models/services/directives/pipes/modules) lives in `.sliceui/pilar-reference.md`; and the complete working examples live in `.sliceui/pilar-showcase.md`. All three are written by `sliceui init` ONLY for projects that fingerprint as UII. If `.sliceui/pilar-reference.md` is absent, the project is not UII — emit the generic `capabilities.<category>` wiring instead, never pilar/uii idiom. When it IS present, read it (and the matching showcase entry) before writing any `uii-*` tag so binding names and types are exact.
 11. **Literal text, no translation — ALWAYS.** Emit the transcript's exact strings directly as content, in HTML and TS alike. Do **NOT** grep `id-lang.ts`/`en-lang.ts`, do NOT add dictionary keys, do NOT wrap in a `| translate` pipe — even though this codebase's own templates use `{{ '…' | translate }}`. **The `sampleHtml`/`conventions.md` you read will contain `| translate`; that is the ONE idiom you must NOT copy.** Slicing is mock/placeholder code, not production i18n — literal text is a deliberate, correct deviation from the codebase.
 
 ## Quality Check
