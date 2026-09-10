@@ -8,8 +8,9 @@ import { verifyComponent } from "../framework/angular/verify.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 
 export async function main(argv) {
-  const dir = argv[0] ? resolve(argv[0]) : process.cwd();
-  const name = argv[1] ?? null; // optional component basename (e.g. "history-agreement")
+  const opts = parseArgs(argv);
+  const dir = opts.dir ? resolve(opts.dir) : process.cwd();
+  const name = opts.name; // optional component basename (e.g. "history-agreement")
 
   // Ground truth lives in the nearest project root's `.sliceui/` (walk up from the component
   // dir), NOT process.cwd() — verifying a subdirectory of a monorepo must still find it.
@@ -25,8 +26,11 @@ export async function main(argv) {
       conventions = { ...conventions, loadedClassRegistry: pctx.loadedClassRegistry };
     }
   }
-  const transcript = readTranscript(root, name);
-  const rawXml = readRawXml(root, name);
+  // Ground truth pairing: explicit --xml/--transcript flags win; else pair by component name;
+  // else LOUD warn (never silently fall back to the wrong design's file — Report #1 §6.2).
+  const pairing = pairGroundTruth(root, name, opts);
+  const transcript = opts.transcript ? readJsonSafe(resolve(opts.transcript)) : pairing.transcript;
+  const rawXml = opts.xml ? readFileSyncSafe(resolve(opts.xml)) : pairing.rawXml;
 
   if (!html && !scss && !ts) {
     console.error(`no component files found in ${dir}`);
@@ -58,8 +62,59 @@ export async function main(argv) {
   } else if (!conventions) {
     console.log("⚠ no .sliceui/conventions.json — run `sliceui init` first (convention checks may skip).");
   }
+  for (const w of pairing.warnings) console.log(w);
 
   return result.pass ? 0 : 1;
+}
+
+/** Parse `verify [dir] [name] [--xml F] [--transcript F]`. Flags may appear anywhere. */
+function parseArgs(argv) {
+  const out = { dir: null, name: null, xml: null, transcript: null };
+  const positional = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--xml" && argv[i + 1]) { out.xml = argv[++i]; }
+    else if (a.startsWith("--xml=")) { out.xml = a.slice("--xml=".length); }
+    else if (a === "--transcript" && argv[i + 1]) { out.transcript = argv[++i]; }
+    else if (a.startsWith("--transcript=")) { out.transcript = a.slice("--transcript=".length); }
+    else if (!a.startsWith("--")) { positional.push(a); }
+  }
+  out.dir = positional[0] ?? null;
+  out.name = positional[1] ?? null;
+  return out;
+}
+
+/** Resolve transcript + rawXml by name; emit a loud warning (not a silent wrong-design fallback)
+ *  when a component name is given but matches no ground-truth file and no --flag was passed. */
+function pairGroundTruth(root, name, opts) {
+  const warnings = [];
+  let transcript = null;
+  let rawXml = null;
+
+  const tdir = join(root, ".sliceui", "transcript");
+  const xdir = join(root, ".sliceui", "xml");
+  const tCandidates = existsSync(tdir) ? readdirSync(tdir).filter((f) => f.endsWith(".transcript.json") && !f.endsWith(".meta.json")) : [];
+  const xCandidates = existsSync(xdir) ? readdirSync(xdir).filter((f) => /\.(xml|figml)$/i.test(f)) : [];
+
+  const tMatch = name ? tCandidates.find((f) => f.startsWith(`${name}.`)) : null;
+  const xMatch = name ? xCandidates.find((f) => f.startsWith(`${name}.`)) : null;
+
+  if (tMatch) transcript = readJsonSafe(join(tdir, tMatch));
+  if (xMatch) rawXml = readFileSyncSafe(join(xdir, xMatch));
+
+  // Warn when name is given but no ground-truth file matches AND no explicit flag was supplied.
+  if (name && !opts.transcript && !tMatch && tCandidates.length) {
+    warnings.push(`⚠ no transcript matches component "${name}" (have: ${tCandidates.join(", ")}) — pass --transcript <file> or rename to pair.`);
+  }
+  if (name && !opts.xml && !xMatch && xCandidates.length) {
+    warnings.push(`⚠ no XML matches component "${name}" (have: ${xCandidates.join(", ")}) — pass --xml <file> or rename to pair.`);
+  }
+
+  // No name at all → first candidate is the only sensible default (single-design project).
+  if (!transcript && tCandidates.length) transcript = readJsonSafe(join(tdir, tCandidates[0]));
+  if (!rawXml && xCandidates.length) rawXml = readFileSyncSafe(join(xdir, xCandidates[0]));
+
+  return { transcript, rawXml, warnings };
 }
 
 /** Read a component's html/scss/ts from a directory (or explicit basename). */
@@ -82,33 +137,6 @@ function nearestProjectRoot(startDir) {
     if (up === d) return process.cwd();
     d = up;
   }
-}
-
-/** Read the transcript paired to this component: prefer the one whose meta.image / filename
- *  names the component (stamp-and-pair), else the first `.transcript.json`. */
-function readTranscript(cwdDir, name = null) {
-  const tdir = join(cwdDir, ".sliceui", "transcript");
-  if (!existsSync(tdir)) return null;
-  const candidates = readdirSync(tdir).filter((f) => f.endsWith(".transcript.json") && !f.endsWith(".meta.json"));
-  if (!candidates.length) return null;
-  if (name) {
-    const stem = candidates.find((f) => f.startsWith(`${name}.`));
-    if (stem) return readJsonSafe(join(tdir, stem));
-  }
-  return readJsonSafe(join(tdir, candidates[0]));
-}
-
-/** Read the raw XML/figml paired to this component (prefer a filename that names it). */
-function readRawXml(cwdDir, name = null) {
-  const xdir = join(cwdDir, ".sliceui", "xml");
-  if (!existsSync(xdir)) return null;
-  const candidates = readdirSync(xdir).filter((f) => /\.(xml|figml)$/i.test(f));
-  if (!candidates.length) return null;
-  if (name) {
-    const stem = candidates.find((f) => f.startsWith(`${name}.`));
-    if (stem) return readFileSyncSafe(join(xdir, stem));
-  }
-  return readFileSyncSafe(join(xdir, candidates[0]));
 }
 
 function readFileSyncSafe(p) {

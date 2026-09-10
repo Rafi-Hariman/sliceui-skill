@@ -72,7 +72,10 @@ the action→authKey→icon truth table is in \`.sliceui/uii-profile.md\`.`);
 5. For icons: a comment /* icon: {description} */ as placeholder.
 6. Match colors from the transcript exactly using hex values — unless project tokens exist for them (then use the tokens).
 7. Self-contained component — not a full app. No html/body/main entry points.
-8. After writing, run the project's build or type-check if available and fix errors you introduced.`);
+8. After writing, run the project's build or type-check if available and fix errors you introduced.
+9. Reproduce the transcript's LAYOUT exactly: \`r:N\` → \`border-radius: Npx\`; \`r:tl/tr/br/bl\` → per-corner \`border-radius: tl tr br bl\`; \`border:color\` (or \`border:Wxcolor\`) → \`border: [Wpx] solid color\` (a stroke is NOT the fill \`bg\`); \`pad:t/r/b/l\` → padding; \`gap:N\` → real gap; \`justify:space-between\` → flex \`justify-content: space-between\` (NOT a \`gap:497px\`-style literal).
+10. A node marked \`[HIDDEN]\` / \`"hidden": true\` must NOT render visible — it carries design state (a required asterisk, a hidden section, an auth-only action icon). Reproduce its MEANING, not its visibility.
+11. Mock data is capped: a paginated table (\`uii-table\`/\`ngx-datatable\`/\`mat-table\`) renders EXACTLY 15 mock rows — no more, no fewer — regardless of any "dari N data" total in the transcript. A plain detail table renders only the rows the design shows.`);
 
   // --- instructions ---
   if (instructions?.trim()) {

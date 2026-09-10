@@ -53,10 +53,16 @@ export function renderTranscript(t) {
       const bg = n.bg ? ` bg:${n.bg}` : "";
       const axis = n.axis ? ` (${n.axis})` : "";
       const table = n.table ? ` [TABLE]` : "";
+      const hidden = n.hidden ? ` [HIDDEN]` : "";
       const radius = n.radius ? ` r:${n.radius}` : "";
+      // Asymmetric per-corner radius: r:tl/tr/br/bl (report §5.1 — table header top-only etc.)
+      const corners = n.cornerRadius ? ` r:${n.cornerRadius.tl}/${n.cornerRadius.tr}/${n.cornerRadius.br}/${n.cornerRadius.bl}` : "";
       const gap = n.gap ? ` gap:${n.gap}` : "";
+      const justify = n.justify ? ` justify:${n.justify}` : "";
       const padStr = n.padding ? ` pad:${n.padding.top}/${n.padding.right}/${n.padding.bottom}/${n.padding.left}` : "";
       const align = n.align ? ` align:${n.align}` : "";
+      // Stroke/border is distinct from fill bg: border:#hex or border:w#hex.
+      const border = n.border ? (n.border.width ? ` border:${n.border.width}x${n.border.color}` : ` border:${n.border.color}`) : "";
       let text = "";
       if (n.type === "text" || n.type === "button") {
         text = n.text ? ` "${n.text}"` : "";
@@ -64,7 +70,7 @@ export function renderTranscript(t) {
         text = n.description ? ` (${n.description})` : "";
       }
       const style = n.style ? styleSummary(n.style) : "";
-      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${radius}${gap}${padStr}${align}${text}${style}`);
+      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${hidden}${radius}${corners}${gap}${justify}${padStr}${align}${border}${text}${style}`);
       if (n.children?.length) walk(n.children, depth + 1);
     }
   };

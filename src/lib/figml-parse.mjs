@@ -81,8 +81,10 @@ function rootDim(xml, attr) {
 }
 
 // Metadata wrappers to skip entirely (no visual contribution).
+// NOTE: "strokes" is NOT here — a node's stroke is its border (distinct from fill), consumed
+// like <fills> into the parent attrs so fill vs stroke stay separate (report §5.1/§7.3).
 const SKIP_TAGS = new Set([
-  "strokes", "constraints", "fontName", "letterSpacing", "fill",
+  "constraints", "fontName", "letterSpacing", "fill",
   "lineHeight", "overrides", "override", "overriddenFields", "overriddenField",
   "mainComponent", "componentProperties", "variantProperties", "textStyles",
 ]);
@@ -108,24 +110,30 @@ function walkNodes(nodes, ox, oy) {
     const childFills = kids.find((k) => k && k.fills);
     const effectiveAttrs = childFills ? { ...attrs, fills: childFills.fills } : attrs;
     const visualKids = childFills ? kids.filter((k) => k !== childFills) : kids;
+    // A node's own strokes (<strokes><stroke/>) describe its BORDER, not a child node —
+    // consume it like fills so borderOf() can read it without emitting a spurious node.
+    const childStrokes = kids.find((k) => k && k.strokes);
+    const effectiveAttrs2 = childStrokes ? { ...effectiveAttrs, strokes: childStrokes.strokes } : effectiveAttrs;
+    const visualKids2 = childStrokes ? visualKids.filter((k) => k !== childStrokes) : visualKids;
     // A child <variantProperties Type="primary|secondary|…"/> is the component's variant —
     // a design fact the agent needs (button primary vs secondary), not a node to transcribe.
     // Consume it into the parent attrs and drop it from the child walk.
     const childVariant = kids.find((k) => k && k.variantProperties);
-    const effectiveAttrs2 = childVariant ? { ...effectiveAttrs, variantType: childVariant[":@"]?.Type ?? null } : effectiveAttrs;
-    const visualKids2 = childVariant ? visualKids.filter((k) => k !== childVariant) : visualKids;
-    const mapped = mapNode(tag, effectiveAttrs2, visualKids2, ox, oy);
+    const effectiveAttrs3 = childVariant ? { ...effectiveAttrs2, variantType: childVariant[":@"]?.Type ?? null } : effectiveAttrs2;
+    const visualKids3 = childVariant ? visualKids2.filter((k) => k !== childVariant) : visualKids2;
+    const mapped = mapNode(tag, effectiveAttrs3, visualKids3, ox, oy);
     if (mapped) out.push(mapped);
   }
   return out;
 }
 
 function mapNode(tag, attrs, kids, ox, oy) {
-  const type = attrs.type || classifyByTag(tag);
+  let type = attrs.type || classifyByTag(tag);
   if (["BOOLEAN", "VARIANT", "INSTANCE_SWAP"].includes(type)) return null;
-  // A layer marked not-visible in Figma contributes nothing to the render —
-  // drop it before transcription so generators don't emit hidden nodes.
-  if (attrs.visible === "false") return null;
+  // FIGML exports a bare group container as `type="GROUP"` (e.g. a `<Group>` wrapping a nested
+  // table). It is a structural frame, NOT a node to drop — falling through to `default` here
+  // would silently discard the whole subtree (report §6.1: the "Rincian komponen" table vanished).
+  if (type === "GROUP") type = "FRAME";
 
   const x = ox + num(attrs.x);
   const y = oy + num(attrs.y);
@@ -134,12 +142,23 @@ function mapNode(tag, attrs, kids, ox, oy) {
   const name = attrs.name || tag;
   const color = colorOf(attrs);
 
+  // Shared box properties (per-corner radius, border/stroke, flex distribution) — computed
+  // once so every box type (rectangle/frame/instance) surfaces them consistently.
+  const radius = num(attrs.cornerRadius) || undefined; // uniform radius (back-compat)
+  const corners = perCornerRadius(attrs);              // { tl,tr,br,bl } only when asymmetric
+  const border = borderOf(attrs);                      // { color, width? } — fill vs stroke distinct
+  const justify = justifyContentOf(attrs);             // "space-between" | null
+
   const base = {
     id: idOf(attrs.id, name),
     x: Math.round(x),
     y: Math.round(y),
     w: Math.round(w),
     h: Math.round(h),
+    // A node hidden in the design is SURFACED, not dropped: `hidden:true` carries the design
+    // state (required asterisk, hidden section, auth-only action icon) so the agent never
+    // renders it visible. (report §6.2/§7.1)
+    ...(isHidden(attrs) ? { hidden: true } : {}),
   };
 
   switch (type) {
@@ -161,12 +180,17 @@ function mapNode(tag, attrs, kids, ox, oy) {
       return {
         ...base,
         type: w > 1 && h > 1 ? "image" : "divider",
-        radius: num(attrs.cornerRadius) || undefined,
+        radius,
+        ...(corners ? { cornerRadius: corners } : {}),
         bg: colorOf(attrs) ?? undefined,
+        ...(border ? { border } : {}),
       };
 
     case "LINE":
-      return { ...base, type: "divider", bg: color ?? undefined };
+      // A LINE carries its visible color as a STROKE, not a fill — surface the stroke color as
+      // `bg` so divider-color fidelity (dividerColorOf reads n.bg) doesn't drop it (report §5.1:
+      // "border #e0e5ed padahal stroke asli #bdbdbd").
+      return { ...base, type: "divider", bg: border?.color ?? color ?? undefined };
 
     case "VECTOR":
       // Carry the vector's fill color — a status/action icon's color is the design effect
@@ -179,10 +203,14 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...base,
         type: "group",
         axis,
-        radius: num(attrs.cornerRadius) || undefined,
+        radius,
+        ...(corners ? { cornerRadius: corners } : {}),
         ...(paddingOf(attrs) ? { padding: paddingOf(attrs) } : {}),
-        ...(num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
+        // gap is literal spacing only in PACKED auto-layout; SPACE_BETWEEN is a flex
+        // distribution — emit `justify` instead of a bogus `gap:497` (report §5.2/§7.4).
+        ...(justify ? { justify } : num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
         bg: colorOf(attrs) ?? undefined,
+        ...(border ? { border } : {}),
       };
       const childNodes = walkNodes(kids, x, y);
       if (childNodes.length) node.children = childNodes;
@@ -196,10 +224,12 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...base,
         type: cls.type,
         axis,
-        radius: num(attrs.cornerRadius) || undefined,
+        radius,
+        ...(corners ? { cornerRadius: corners } : {}),
         ...(paddingOf(attrs) ? { padding: paddingOf(attrs) } : {}),
-        ...(num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
+        ...(justify ? { justify } : num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
         bg: colorOf(attrs) ?? undefined,
+        ...(border ? { border } : {}),
       };
       const childNodes = walkNodes(kids, x, y);
       const label = childNodes.length ? firstText(childNodes) : "";
@@ -236,7 +266,7 @@ function classifyByTag(tag) {
   if (/Rectangle/i.test(t)) return "RECTANGLE";
   if (/Line/i.test(t)) return "LINE";
   if (/Vector|Icon/i.test(t)) return "VECTOR";
-  if (/Frame/i.test(t)) return "FRAME";
+  if (/Frame|Group/i.test(t)) return "FRAME";
   return "INSTANCE";
 }
 
@@ -263,16 +293,77 @@ function colorOf(attrsOrNode) {
   return null;
 }
 
+/** A node hidden in the design (visible=false / opacity 0). Tolerates the encodings FIGML
+ *  exports actually use: "false"/"FALSE"/"0", or opacity="0". Surfaced as `hidden:true`. */
+function isHidden(attrs) {
+  const v = attrs.visible;
+  if (v != null && (String(v).toLowerCase() === "false" || String(v) === "0")) return true;
+  if (attrs.opacity != null && Number(attrs.opacity) === 0) return true;
+  return false;
+}
+
+/** Per-corner radius `{ tl, tr, br, bl }` — emitted ONLY when asymmetric. Symmetric corners are
+ *  covered by the uniform `radius` (cornerRadius), so a symmetric node carries no `cornerRadius`
+ *  field (no transcript bloat). Absent per-corner attrs default to the uniform radius. */
+function perCornerRadius(attrs) {
+  const u = num(attrs.cornerRadius);
+  const hasCorner = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"].some((k) => attrs[k] != null);
+  if (!u && !hasCorner) return null;
+  const tl = attrs.topLeftRadius != null ? num(attrs.topLeftRadius) : u;
+  const tr = attrs.topRightRadius != null ? num(attrs.topRightRadius) : u;
+  const br = attrs.bottomRightRadius != null ? num(attrs.bottomRightRadius) : u;
+  const bl = attrs.bottomLeftRadius != null ? num(attrs.bottomLeftRadius) : u;
+  if (tl === tr && tr === br && br === bl) return null; // symmetric → uniform radius covers it
+  return { tl, tr, br, bl };
+}
+
+/** A node's stroke/border color (distinct from its fill `bg`). Reads a child <strokes><stroke/>,
+ *  or a flat stroke attribute. `strokeWeight` lives on the NODE (FIGML puts it on the shape, not
+ *  inside <stroke>); a `visible="false"` stroke is skipped (an invisible stroke is not a border). */
+function borderOf(attrs) {
+  if (attrs.stroke) {
+    const color = String(attrs.stroke).toLowerCase();
+    const w = num(attrs.strokeWeight);
+    return w > 0 ? { color, width: w } : { color };
+  }
+  const strokes = attrs.strokes;
+  let arr;
+  if (Array.isArray(strokes)) arr = strokes;
+  else if (strokes && Array.isArray(strokes.strokes)) arr = strokes.strokes;
+  else if (strokes && typeof strokes === "object") arr = [strokes];
+  else arr = [];
+  const w = num(attrs.strokeWeight); // node-level, not stroke-level
+  for (const s of arr) {
+    const sat = s && (s[":@"] || s);
+    if (!sat || !sat.color) continue;
+    if (sat.visible != null && String(sat.visible).toLowerCase() === "false") continue; // invisible stroke
+    const color = String(sat.color).toLowerCase();
+    return w > 0 ? { color, width: w } : { color };
+  }
+  return null;
+}
+
+/** SPACE_BETWEEN auto-layout → "space-between" (a flex distribution, NOT a literal gap). Only
+ *  this value matters for the gap-artifact fix; other alignment modes stay on `gap`. */
+function justifyContentOf(attrs) {
+  const v = attrs.primaryAxisAlignItems ?? attrs.justifyContent ?? attrs.justify;
+  if (!v) return null;
+  return String(v).replace(/[_\s-]/g, "").toLowerCase() === "spacebetween" ? "space-between" : null;
+}
+
 /** Detect a table: a group whose children are ≥3 full-width rows, flush-stacked vertically.
  *  Marks the container `table: true` so the generator maps it to capabilities.table
  *  (e.g. pilar's uii-table) instead of raw divs. FIGML exports tables as generic frame
- *  groups (not INSTANCE nodes), so the name-based classifyInstance can't catch them. */
+ *  groups (not INSTANCE nodes), so the name-based classifyInstance can't catch them.
+ *  Rows are `group` (FRAME) OR `image` (a full-width RECTANGLE header/footer band) — the
+ *  nested-table case (report §6.1, design-6) where a header rectangle tops a stack of row
+ *  frames, so a group-only filter would miss it. */
 function markTables(nodes) {
   for (const node of nodes) {
     if (node.children?.length) markTables(node.children);
     if (node.type !== "group" || !node.children?.length) continue;
     if (!(node.w > 0 && node.h > 0)) continue; // skip zero-size layout-grid metadata
-    const rows = node.children.filter((c) => c.type === "group");
+    const rows = node.children.filter((c) => c.type === "group" || c.type === "image");
     if (isTableRows(rows)) node.table = true;
   }
 }

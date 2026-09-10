@@ -22,7 +22,7 @@ const PARSER = new XMLParser({
 
 // Same skip/drop sets as figml-parse.mjs — a node in these lists is intentionally not transcribed.
 const SKIP_TAGS = new Set([
-  "strokes", "constraints", "fontName", "letterSpacing", "fill",
+  "constraints", "fontName", "letterSpacing", "fill",
   "lineHeight", "overrides", "override", "overriddenFields", "overriddenField",
   "mainComponent", "componentProperties", "variantProperties", "textStyles",
 ]);
@@ -31,8 +31,8 @@ const DROP_TYPES = new Set(["BOOLEAN", "VARIANT", "INSTANCE_SWAP"]);
 /** Visual attribute kinds we score, per node category. */
 const ATTRS = {
   text: ["text", "fontSize", "fontWeight", "color", "lineHeight", "letterSpacing"],
-  box: ["bg", "axis", "radius", "padding", "gap"], // frame/instance
-  shape: ["bg", "radius"], // rectangle/line
+  box: ["bg", "axis", "radius", "cornerRadius", "border", "padding", "gap", "justify"], // frame/instance
+  shape: ["bg", "radius", "cornerRadius", "border"], // rectangle/line
 };
 
 /**
@@ -96,7 +96,8 @@ function extractGroundTruth(xml) {
       }
       const attrs = node[":@"] || {};
       if (attrs.visible === "false") continue;
-      const type = attrs.type || classifyByTag(tag);
+      let type = attrs.type || classifyByTag(tag);
+      if (type === "GROUP") type = "FRAME"; // bare group container = structural frame (mirrors parser)
       if (DROP_TYPES.has(type)) continue;
 
       const id = normalizeId(attrs.id);
@@ -126,13 +127,20 @@ function attrsForRaw(type, tag, attrs, kids) {
     if (hasFill(attrs)) present.push("bg");
     if (attrs.layoutMode) present.push("axis");
     if (num(attrs.cornerRadius)) present.push("radius");
+    if (hasAsymmetricRadius(attrs)) present.push("cornerRadius");
+    if (hasBorder(attrs)) present.push("border");
     if (hasPadding(attrs)) present.push("padding");
-    if (num(attrs.itemSpacing)) present.push("gap");
+    // SPACE_BETWEEN → `justify`, not a literal `gap` (mirrors the parser — the two must never
+    // disagree on what to expect, or a faithful parse gets scored as a dropped `gap`).
+    if (isSpaceBetween(attrs)) present.push("justify");
+    else if (num(attrs.itemSpacing)) present.push("gap");
     return present;
   }
   if (type === "RECTANGLE" || type === "LINE") {
     if (hasFill(attrs)) present.push("bg");
     if (num(attrs.cornerRadius)) present.push("radius");
+    if (hasAsymmetricRadius(attrs)) present.push("cornerRadius");
+    if (hasBorder(attrs)) present.push("border");
     return present;
   }
   return present;
@@ -161,8 +169,11 @@ function preservedFor(node, attr) {
     case "bg": return Boolean(node.bg);
     case "axis": return Boolean(node.axis);
     case "radius": return Boolean(node.radius);
+    case "cornerRadius": return Boolean(node.cornerRadius);
+    case "border": return Boolean(node.border);
     case "padding": return Boolean(node.padding);
     case "gap": return Boolean(node.gap);
+    case "justify": return node.justify === "space-between";
     default: return false;
   }
 }
@@ -194,7 +205,7 @@ function classifyByTag(tag) {
   if (/Rectangle/i.test(t)) return "RECTANGLE";
   if (/Line/i.test(t)) return "LINE";
   if (/Vector|Icon/i.test(t)) return "VECTOR";
-  if (/Frame/i.test(t)) return "FRAME";
+  if (/Frame|Group/i.test(t)) return "FRAME";
   return "INSTANCE";
 }
 
@@ -220,6 +231,28 @@ function colorOf(attrsOrNode) {
 function hasPadding(attrs) {
   return ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "horizontalPadding", "verticalPadding"]
     .some((k) => num(attrs[k]) > 0);
+}
+
+/** Per-corner radius is scored as `cornerRadius` only when asymmetric (else `radius` covers it). */
+function isSpaceBetween(attrs) {
+  const v = attrs.primaryAxisAlignItems ?? attrs.justifyContent ?? attrs.justify;
+  return Boolean(v) && String(v).replace(/[_\s-]/g, "").toLowerCase() === "spacebetween";
+}
+
+function hasAsymmetricRadius(attrs) {
+  const u = num(attrs.cornerRadius);
+  const cs = ["topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"].map((k) => attrs[k] != null ? num(attrs[k]) : u);
+  return cs.some((c) => c !== cs[0]);
+}
+
+/** A node carries a stroke/border when it has a flat stroke attr or a <strokes> child. */
+function hasBorder(attrs) {
+  if (attrs.stroke) return true;
+  const strokes = attrs.strokes;
+  if (Array.isArray(strokes)) return strokes.length > 0;
+  if (strokes && Array.isArray(strokes.strokes)) return strokes.strokes.length > 0;
+  if (strokes && typeof strokes === "object") return true;
+  return false;
 }
 
 /** Read a numeric child-element attr: <lineHeight unit="PIXELS" value="20"/> etc. */

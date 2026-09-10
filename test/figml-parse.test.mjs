@@ -133,14 +133,12 @@ test("v3: colored divider rectangle keeps its fill (bg:#fbc02d)", () => {
   assert.equal(rect.bg, "#fbc02d", "yellow divider fill captured");
 });
 
-test("v3: hidden layer (visible=false) is dropped from the transcript", () => {
+test("v3: hidden layer (visible=false) is surfaced as hidden:true, not dropped", () => {
   const r = parseFigml(FILLS_FIXTURE, "f.xml");
   const detail = r.transcript.layout[2];
-  const desc = [];
-  const walk = (ns) => { for (const n of ns) { desc.push(n.name || n.id || n.type); if (n.children) walk(n.children); } };
-  walk(detail.children);
-  assert.ok(!desc.some((d) => /edit|f:8/i.test(d)), "hidden edit icon should not be transcribed");
-  assert.equal(detail.children.filter((c) => c.type === "icon").length, 0, "no icon node under detail header");
+  const hidden = detail.children.find((c) => c.id === "f_8" || /edit/i.test(c.id || ""));
+  assert.ok(hidden, "hidden edit frame is transcribed (not dropped)");
+  assert.equal(hidden.hidden, true, "hidden:true surfaced on the node");
 });
 
 test("v3: fills/fill metadata wrappers are NOT emitted as nodes", () => {
@@ -306,4 +304,154 @@ test("defect #3: VECTOR icon carries its fill color", () => {
   const icon = r.transcript.layout[0].children[0];
   assert.equal(icon.type, "icon");
   assert.equal(icon.bg, "#f44444", "icon fill color preserved");
+});
+
+// --- layout fidelity: per-corner radius, stroke/border, space-between ---
+
+const LAYOUT_FIDELITY_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="lf:1" name="Page" x="0" y="0" width="900" height="400" type="FRAME">
+  <children>
+    <Frame id="lf:2" name="Table" cornerRadius="4" x="20" y="20" width="860" height="200" type="FRAME">
+      <children>
+        <Rectangle id="lf:3" name="header" strokeWeight="1" topLeftRadius="4" topRightRadius="4" bottomLeftRadius="0" bottomRightRadius="0" x="20" y="20" width="860" height="40" type="RECTANGLE">
+          <fills><fill color="#eef6ff" /></fills>
+          <strokes><stroke color="#bdbdbd" /></strokes>
+        </Rectangle>
+        <Frame id="lf:4" name="toolbar" primaryAxisAlignItems="SPACE_BETWEEN" itemSpacing="497" x="20" y="60" width="860" height="40" layoutMode="HORIZONTAL" type="FRAME">
+          <children>
+            <Text id="lf:5" name="t" x="0" y="0" width="100" height="20" fontSize="14" characters="Tampilkan data" type="TEXT">
+              <fills><fill color="#000000" /></fills>
+            </Text>
+          </children>
+        </Frame>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("layout: per-corner radius + stroke/border + space-between preserved", () => {
+  const r = parseFigml(LAYOUT_FIDELITY_FIXTURE, "lf.xml");
+  assert.equal(r.ok, true, r.message);
+  const header = r.transcript.layout[0].children[0];
+  // Asymmetric radius → cornerRadius {tl,tr,br,bl}; uniform radius is a separate number.
+  assert.deepEqual(header.cornerRadius, { tl: 4, tr: 4, br: 0, bl: 0 }, "asymmetric per-corner radius captured");
+  assert.equal(header.radius, undefined, "no uniform cornerRadius on the header (per-corner only)");
+  // Stroke is a border, distinct from the fill bg.
+  assert.deepEqual(header.border, { color: "#bdbdbd", width: 1 }, "stroke → border {color,width}");
+  assert.equal(header.bg, "#eef6ff", "fill stays as bg, not confused with stroke");
+  const toolbar = r.transcript.layout[0].children[1];
+  assert.equal(toolbar.justify, "space-between", "SPACE_BETWEEN → justify:space-between");
+  assert.equal(toolbar.gap, undefined, "wide itemSpacing is NOT emitted as a literal gap when space-between");
+});
+
+// --- design-6 real-format regressions: GROUP subtree, node-level strokeWeight, LINE stroke ---
+
+const GROUP_TABLE_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="g1:1" name="Page" x="0" y="0" width="800" height="400" type="FRAME">
+  <children>
+    <Frame id="g1:2" name="content" x="0" y="0" width="800" height="300" type="FRAME">
+      <children>
+        <Group id="g1:3" name="Group_1222" x="0" y="0" width="760" height="180" type="GROUP">
+          <children>
+            <Frame id="g1:4" name="Frame_1654" cornerRadius="4" x="0" y="0" width="760" height="180" layoutMode="VERTICAL" type="FRAME">
+              <children>
+                <Rectangle id="g1:5" name="header" topLeftRadius="4" topRightRadius="4" bottomLeftRadius="0" bottomRightRadius="0" x="0" y="0" width="760" height="60" type="RECTANGLE">
+                  <fills><fill color="#ffffff" /></fills>
+                </Rectangle>
+                <Rectangle id="g1:5b" name="row" x="0" y="60" width="760" height="40" type="RECTANGLE">
+                  <fills><fill color="#f5f5f5" /></fills>
+                </Rectangle>
+                <Rectangle id="g1:5c" name="row" x="0" y="100" width="760" height="40" type="RECTANGLE">
+                  <fills><fill color="#ffffff" /></fills>
+                </Rectangle>
+                <Rectangle id="g1:5d" name="row" x="0" y="140" width="760" height="40" type="RECTANGLE">
+                  <fills><fill color="#f5f5f5" /></fills>
+                </Rectangle>
+                <Line id="g1:6" name="Line_1" x="0" y="60" width="760" height="0" type="LINE">
+                  <strokes><stroke blendMode="NORMAL" color="#bdbdbd" /></strokes>
+                </Line>
+              </children>
+              <strokes><stroke blendMode="NORMAL" color="#bdbdbd" /></strokes>
+            </Frame>
+          </children>
+        </Group>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("design-6: a bare GROUP container is traversed, not dropped (nested table preserved)", () => {
+  const r = parseFigml(GROUP_TABLE_FIXTURE, "g1.xml");
+  assert.equal(r.ok, true, r.message);
+  const ids = [];
+  const walk = (ns) => { for (const n of ns) { ids.push(n.id); if (n.children) walk(n.children); } };
+  walk(r.transcript.layout);
+  assert.ok(ids.includes("g1_4"), "Frame_1654 inside the GROUP is preserved");
+  assert.ok(ids.includes("g1_5"), "header rectangle preserved");
+  assert.ok(ids.includes("g1_6"), "Line divider preserved");
+});
+
+test("design-6: GROUP-wrapped frame still detected as a table", () => {
+  const r = parseFigml(GROUP_TABLE_FIXTURE, "g1.xml");
+  const walk = (ns, out = []) => { for (const n of ns) { if (n.table) out.push(n.id); if (n.children) walk(n.children, out); } return out; };
+  const tables = walk(r.transcript.layout);
+  assert.ok(tables.length >= 1, "the nested frame is flagged as a table");
+});
+
+test("design-6: LINE divider takes its visible stroke color as bg", () => {
+  const r = parseFigml(GROUP_TABLE_FIXTURE, "g1.xml");
+  const walk = (ns, out = []) => { for (const n of ns) { if (n.type === "divider") out.push(n); if (n.children) walk(n.children, out); } return out; };
+  const dividers = walk(r.transcript.layout);
+  const line = dividers.find((d) => d.id === "g1_6");
+  assert.equal(line.bg, "#bdbdbd", "LINE stroke #bdbdbd surfaced as divider bg");
+});
+
+const NODE_STROKE_WEIGHT_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="sw:1" name="Page" x="0" y="0" width="400" height="200" type="FRAME">
+  <children>
+    <Rectangle id="sw:2" name="box" strokeWeight="2" strokeAlign="INSIDE" x="10" y="10" width="100" height="100" type="RECTANGLE">
+      <fills><fill color="#ffffff" /></fills>
+      <strokes><stroke blendMode="NORMAL" color="#bdbdbd" /></strokes>
+    </Rectangle>
+    <Rectangle id="sw:3" name="ghost" strokeWeight="2" strokeAlign="INSIDE" x="120" y="10" width="100" height="100" type="RECTANGLE">
+      <fills><fill color="#ffffff" /></fills>
+      <strokes><stroke visible="false" blendMode="NORMAL" color="#979797" /></strokes>
+    </Rectangle>
+  </children>
+</frame>`;
+
+test("design-6: node-level strokeWeight + visible stroke captured; invisible stroke skipped", () => {
+  const r = parseFigml(NODE_STROKE_WEIGHT_FIXTURE, "sw.xml");
+  assert.equal(r.ok, true, r.message);
+  const box = r.transcript.layout[0];
+  assert.deepEqual(box.border, { color: "#bdbdbd", width: 2 }, "stroke → border {color,width} (width from node-level strokeWeight)");
+  const ghost = r.transcript.layout[1];
+  assert.equal(ghost.border, undefined, "invisible stroke is not a border");
+});
+
+// --- design-2/3/7 real-format: SPACE_BETWEEN + wide itemSpacing is a flex distribution ---
+
+const SPACE_BETWEEN_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="sb:1" name="Page" x="0" y="0" width="1209" height="100" type="FRAME">
+  <children>
+    <Frame id="sb:2" name="toolbar" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="SPACE_BETWEEN" itemSpacing="497" x="0" y="0" width="1209" height="41" layoutMode="HORIZONTAL" type="FRAME">
+      <children>
+        <Text id="sb:3" name="a" x="0" y="0" width="100" height="20" fontSize="14" characters="kiri" type="TEXT">
+          <fills><fill color="#000000" /></fills>
+        </Text>
+      </children>
+    </Frame>
+  </children>
+</frame>`;
+
+test("design-2/3/7: SPACE_BETWEEN + wide itemSpacing → justify, NOT gap:497", () => {
+  const r = parseFigml(SPACE_BETWEEN_FIXTURE, "sb.xml");
+  assert.equal(r.ok, true, r.message);
+  const toolbar = r.transcript.layout[0];
+  assert.equal(toolbar.justify, "space-between", "primaryAxisAlignItems SPACE_BETWEEN → justify:space-between");
+  assert.equal(toolbar.gap, undefined, "wide itemSpacing (497) is NOT emitted as a literal gap");
 });

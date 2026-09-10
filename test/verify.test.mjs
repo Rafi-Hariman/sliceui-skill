@@ -112,8 +112,7 @@ const FAITHFUL_HTML = `
 const GOOD_TS = `const base = [
   { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
   { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
-  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
-  { nim: "16" }, { nim: "17" }, { nim: "18" }, { nim: "19" }, { nim: "20" },
+  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" }
 ];
 this.rows = base.map((r, i) => ({ ...r, nomor: i + 1 }));`;
 
@@ -250,7 +249,7 @@ test("verify: anatomy fails when table present but skeleton missing", () => {
   assert.equal(check.status, "fail");
 });
 
-test("verify: mockRowCount fails when rows < transcript total (20)", () => {
+test("verify: mockRowCount fails when a paginated table has fewer than 15 rows", () => {
   const tsFewRows = `const base = [{ nim: "1" }, { nim: "2" }, { nim: "3" }];`;
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: tsFewRows,
@@ -259,7 +258,25 @@ test("verify: mockRowCount fails when rows < transcript total (20)", () => {
   const check = r.checks.find((c) => c.name === "mockRowCount");
   assert.equal(check.status, "fail");
   assert.equal(check.rows, 3);
-  assert.equal(check.required, 20, "required = max(floor 15, transcript 20) = 20");
+  assert.equal(check.required, 15, "required = the fixed mock cap (15), regardless of transcript total");
+});
+
+test("verify: mockRowCount fails when a paginated table has MORE than 15 rows", () => {
+  // "dari 20 data" must NOT drive 20 rows — the cap is exactly 15. 16+ is a fail too.
+  const tsManyRows = `const base = [
+  { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
+  { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
+  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
+  { nim: "16" }
+];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: tsManyRows,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "fail");
+  assert.equal(check.rows, 16);
+  assert.equal(check.required, 15, "required = 15; 16 mock rows is a fail (cap, not just a floor)");
 });
 
 test("verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not applicable)", () => {
@@ -332,6 +349,66 @@ test("verify: classVocabulary FAILS an invented btn-* class (btn-gray)", () => {
   const check = r.checks.find((c) => c.name === "classVocabulary");
   assert.equal(check.status, "fail", "invented btn-* must fail, not warn");
   assert.ok(check.inventedButtons?.includes("btn-gray"), `must name btn-gray, got ${JSON.stringify(check.inventedButtons)}`);
+});
+
+test("verify: classVocabulary does NOT flag framework btn-primary (Report #2 §4.2)", () => {
+  // A UII/BS project's vocabulary has no btn-* (only ugw-* shell classes), but the library's
+  // global CSS defines .btn.btn-primary. It must not be "invented".
+  const vocab = CONVENTIONS.classVocabulary; // no btn-*
+  const html = `<button class="btn btn-primary">Simpan</button>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, classVocabulary: vocab },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "classVocabulary");
+  assert.notEqual(check.status, "fail", `btn-primary must not fail: ${JSON.stringify(check.detail)}`);
+  assert.ok(!check.inventedButtons?.includes("btn-primary"), "btn-primary not invented");
+});
+
+test("verify: libraryTable SKIPS a plain detail table with NO pagination evidence (Report #1 §6.3)", () => {
+  const html = `<div class="content"><table class="bill-table"><tr><td>1</td></tr></table></div>`;
+  const noPaginationTranscript = { layout: [{ type: "text", text: "Detail tagihan yang sudah tergenerate" }] };
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, // tableTag = uii-table
+    transcript: noPaginationTranscript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "libraryTable");
+  assert.equal(check.status, "skip", "plain detail table with no search/limit/pagination → skip, not fail");
+});
+
+test("verify: pilarInjection warns when uii-* present but pilar not injected (Report #2 §4.6)", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+    // pilar NOT injected
+  });
+  const check = r.checks.find((c) => c.name === "pilarInjection");
+  assert.equal(check.status, "warn", "uii-* without pilar must warn, not silently skip");
+  assert.match(check.detail, /not injected/i);
+});
+
+test("verify: pilarInjection skips when pilar IS injected", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "pilarInjection");
+  assert.equal(check.status, "skip", "pilar present → no warning");
+});
+
+test("verify: tableBindings warns on (rowsChanged) binding (Report #1 §6.1 footgun)", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns" (rowsChanged)="onRowsChanged($event)"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.equal(check.status, "warn", "(rowsChanged) is a footgun → warn");
+  assert.match(check.detail, /rowsChanged/);
 });
 
 test("verify: no-exemplar never scores pass (empty corpus → skip, not pass)", () => {
@@ -904,6 +981,54 @@ test("verify: styleFidelity skips token-valued authored rules (cannot resolve, n
   const r = verifyComponent({ scss: tokenScss, html: tokenHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
   const check = r.checks.find((c) => c.name === "styleFidelity");
   assert.notEqual(check.status, "fail", "token color must not be false-flagged");
+});
+
+test("verify: styleFidelity does NOT mis-attribute library-internal text (column header) to an authored h1", () => {
+  // EXPERIENCE-REPORT-2 §4.1: "Tarif" is a uii-table column header (columns[].name) that never
+  // appears in the authored HTML. The old substring fallback bound it to <h1>Tambah tarif
+  // manual</h1> and demanded contradictory values on .h1. It must be SKIPPED, never attributed.
+  const transcript = {
+    layout: [
+      { type: "text", text: "Tambah tarif manual", style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "text", text: "Tarif", style: { size: 14, weight: 600, color: "#303030" } }, // table column header
+    ],
+  };
+  const html = `<h1 class="h1">Tambah tarif manual</h1><uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const scss = `.h1 { color: #000000; font-size: 16px; font-weight: 500; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.notEqual(check.status, "fail", `library column header must skip, not false-fail: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity does NOT mis-attribute a pagination label ('data') to a button", () => {
+  // EXPERIENCE-REPORT-2 §4.1: "data" is the uii-table limit label ("Tampilkan 10 data"), not the
+  // "Get data" button. The substring fallback bound it to .get-data-btn and demanded 400/555 on
+  // a button that must be 700/white. It must be skipped.
+  const transcript = {
+    layout: [
+      { type: "button", text: "Get data", style: { size: 14, weight: 700, color: "#ffffff" } },
+      { type: "text", text: "data", style: { size: 14, weight: 400, color: "#555555" } }, // pagination label
+    ],
+  };
+  const html = `<button class="get-data-btn">Get data</button><uii-table [rows]="rows" [columns]="columns" [limitOptions]="true"></uii-table>`;
+  const scss = `.get-data-btn { color: #ffffff; font-weight: 700; font-size: 14px; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.notEqual(check.status, "fail", `pagination label must skip, not false-fail: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity skips hidden transcript nodes (not renderable, not a style fact)", () => {
+  const transcript = {
+    layout: [
+      { type: "text", text: "Ubah tagihan", style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "text", text: "Asterisk", hidden: true, style: { size: 14, weight: 700, color: "#f44444" } }, // hidden
+    ],
+  };
+  const html = `<h1 class="h1">Ubah tagihan</h1>`;
+  const scss = `.h1 { color: #000000; font-size: 16px; font-weight: 500; }`;
+  const r = verifyComponent({ scss, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.notEqual(check.status, "fail", `hidden node text must not false-fail: ${JSON.stringify(check.detail)}`);
 });
 
 // ---------- scssCoverage hardening (0.2) ----------

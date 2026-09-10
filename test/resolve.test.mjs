@@ -241,3 +241,37 @@ test("resolve: button with no variant and no btn-* in vocab falls back native-pl
   const btn = r.leaves.find((l) => l.id === "batal2");
   assert.ok(btn.fallback?.kind === "native-plain", "no btn-* in vocab → native-plain fallback");
 });
+
+test("resolve: Icon_primary / Icon_white names are generic (no false glyph), contextual fallback", () => {
+  // Report #1 §7.7 / #2 §4.7: "Icon_primary" is a primary-action icon with no FA name in the
+  // XML. It must NOT masquerade as a glyph signal, and its fallback note must point the agent at
+  // the action context (never a confident guess).
+  const transcript = {
+    layout: [
+      { id: "get-data", type: "icon", bg: "#ffffff", description: "Icon_primary" },
+      { id: "white-glyph", type: "icon", bg: "#3e82f3", description: "Icon_white" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "get-data");
+  assert.ok(leaf, "Icon_primary icon is resolved (not dropped)");
+  assert.ok(leaf.fallback, "no FA name → fallback present");
+  assert.match(leaf.fallback.note, /infer from the action context/i, "note points at action context");
+});
+
+test("resolve: badge 'Aktif' bg #eef6ff is detected as a badge", () => {
+  // Report #1 §6.6: "Aktif" badge (blue #eef6ff) must be recognized so it resolves to a
+  // label-custom-* class, not a silent native-plain (which caused .label-aktif duplication).
+  const transcript = {
+    layout: [
+      { id: "aktif", type: "group", bg: "#eef6ff", children: [
+        { id: "c", type: "icon", bg: "#3e82f3" },
+        { id: "t", type: "text", text: "Aktif" },
+      ]},
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const status = r.statusTable.find((s) => s.id === "aktif");
+  assert.ok(status, "badge #eef6ff is recognized as a badge");
+  assert.equal(status.evidence.statusText, "Aktif", "status text extracted");
+});

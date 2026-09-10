@@ -416,18 +416,17 @@ function extractAnatomy(allHtml, allScss) {
   const tableTag = pick(/<(uii-table|ngx-datatable|mat-table)\b/i, html) ?? null;
   const skeletonTag = pick(/<(uii-table-skeleton|ngx-datatable-skeleton)\b/i, html) ?? null;
 
-  // Pagination total: "Menampilkan 1-10 dari 20 data" → 20. Floor defaults to 15 (the
-  // minimum to activate paged-table pagination); the transcript's own total, when higher,
-  // wins at verify time.
+  // Mock-data cap: a paginated library table always renders EXACTLY 15 mock rows (enough to
+  // activate pagination). The transcript's "dari N data" total is deliberately NOT used to
+  // raise the count — the agent caps at 15, never emits 513 literal rows (report §6.5). The
+  // pagination total still sets `pagination = true` (so the table is treated as paged), but
+  // does not change the floor.
   let pagination = null;
-  let mockRowsFloor = 15;
+  const mockRowsFloor = 15;
   const pm = /(?:Menampilkan|Showing)\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+(\d+)\s+data/i.exec(html);
   if (pm) {
     const total = Number(pm[1]);
-    if (Number.isFinite(total) && total > 0) {
-      pagination = true;
-      mockRowsFloor = Math.max(15, total);
-    }
+    if (Number.isFinite(total) && total > 0) pagination = true;
   }
   if (pagination === null) pagination = /<uii-pagination\b|ugw-pagination/i.test(html);
 
@@ -516,7 +515,7 @@ export function renderConventionsMd(conventions, frameworkLabel = "") {
   }
   if (a.skeletonTag) L.push(`- Loading state: render \`<${a.skeletonTag} *ngIf="isLoading">\` before the table.`);
   if (a.tableTag) L.push(`- Table: use \`<${a.tableTag}>\` with \`[rows]\` + \`[columns]\`, wired client-side only (mock).`);
-  if (a.pagination) L.push(`- Pagination: the table paginates itself from \`rows\` — provide enough mock rows to activate it (the transcript's total, or \`${a.mockRowsFloor}\` minimum).`);
+  if (a.pagination) L.push(`- Pagination: the table paginates itself from \`rows\` — provide exactly \`${a.mockRowsFloor}\` mock rows (no more, no fewer) to activate it.`);
   L.push("");
 
   // --- reusable classes ---

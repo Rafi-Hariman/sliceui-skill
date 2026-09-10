@@ -124,19 +124,19 @@ export function refereeArtifacts(root, ctx, xml, xmlFilename, transcript = null,
     });
   }
 
-  // mockRowsFloor — a sane positive MINIMUM (the codebase's own pages). It is a FLOOR, not the
-  // slice total: verify computes max(floor, transcript total) per-slice. A 15 floor with a
-  // transcript saying 20 is CORRECT (the slice needs 20, verify handles it), not corruption.
+  // mockRowsFloor — a sane positive CAP (the paginated-table mock count). It is exactly 15: a
+  // paginated table renders 15 mock rows, no more, no fewer. The transcript's "dari N data"
+  // total is deliberately NOT used (report §6.5 — 513 literal rows is non-idiomatic), so it is
+  // not corruption for the floor to stay 15 while a transcript says 20.
   if (anatomy.mockRowsFloor != null) {
-    const transcriptTotal = paginationTotal(transcript);
     const sane = Number.isFinite(anatomy.mockRowsFloor) && anatomy.mockRowsFloor > 0;
     findings.push({
       head: "codebase",
       artifact: "conventions.componentAnatomy.mockRowsFloor",
-      claim: "mockRowsFloor is a sane positive floor",
-      evidencePath: transcript ? "transcript" : "src/**/*.html",
+      claim: "mockRowsFloor is a sane positive mock-row cap",
+      evidencePath: "src/**/*.html",
       status: sane ? "pass" : "fail",
-      detail: `floor=${anatomy.mockRowsFloor} (transcript total ${transcriptTotal} handled by verify as max(floor, total))`,
+      detail: `cap=${anatomy.mockRowsFloor} (a paginated table renders exactly this many mock rows)`,
     });
   }
 
@@ -219,21 +219,6 @@ function classifyComponentMode(ts) {
     return "mock data";
   }
   return "static/simple";
-}
-
-/** "Menampilkan 1-10 dari 20 data" → 20; 0 when absent. */
-function paginationTotal(transcript) {
-  let total = 0;
-  const walk = (nodes) => {
-    for (const n of nodes ?? []) {
-      if (!n || typeof n !== "object") continue;
-      const m = /(?:Menampilkan|Showing)\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+(\d+)\s+data/i.exec(n.text ?? "");
-      if (m) total = Math.max(total, Number(m[1]));
-      if (n.children) walk(n.children);
-    }
-  };
-  walk(transcript?.layout);
-  return total;
 }
 
 /** Read the raw XML from .sliceui/xml/ (first .xml/.figml) when not supplied. */

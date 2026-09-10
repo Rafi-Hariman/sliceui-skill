@@ -17,7 +17,8 @@ export class BillListComponent {
 
   selectedType: string = "";
 
-  // mock data — 20 rows matching the transcript's "Menampilkan 1-10 dari 20 data"
+  // mock data — exactly 15 rows (the paginated-table cap; the transcript's "dari 20 data"
+  // does NOT raise the count)
   rows = [
     { number: 1, nim: "20000001", name: "Mahasiswa 1", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
     { number: 2, nim: "20000002", name: "Mahasiswa 2", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
@@ -33,12 +34,7 @@ export class BillListComponent {
     { number: 12, nim: "20000012", name: "Mahasiswa 12", status: "Lunas", auth: { canUpdate: true, canRead: true, canDelete: false } },
     { number: 13, nim: "20000013", name: "Mahasiswa 13", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
     { number: 14, nim: "20000014", name: "Mahasiswa 14", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 15, nim: "20000015", name: "Mahasiswa 15", status: "Lunas", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 16, nim: "20000016", name: "Mahasiswa 16", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 17, nim: "20000017", name: "Mahasiswa 17", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 18, nim: "20000018", name: "Mahasiswa 18", status: "Lunas", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 19, nim: "20000019", name: "Mahasiswa 19", status: "Belum bayar", auth: { canUpdate: true, canRead: true, canDelete: false } },
-    { number: 20, nim: "20000020", name: "Mahasiswa 20", status: "Lunas", auth: { canUpdate: true, canRead: true, canDelete: false } },
+    { number: 15, nim: "20000015", name: "Mahasiswa 15", status: "Lunas", auth: { canUpdate: true, canRead: true, canDelete: false } }
   ];
 
   onEdit(row: any): void {

@@ -9,7 +9,7 @@
 //   3. tableBindings — legal binding set, checkbox evidenced by RAW XML (not transcript)
 //   4. classVocabulary — reuse the project's classes; invented status labels are warn
 //   5. anatomy       — table present ⇒ skeleton loading state present
-//   6. mockRowCount  — rows ≥ max(conventions floor, transcript pagination total)
+//   6. mockRowCount  — paginated table renders exactly `mockRowsFloor` (default 15) mock rows
 //   7. noHashedSelectors — reject compiled [_ngcontent-*] leaked into source
 //   8. iconColor     — status-icon color must be a design color (no invented mapping)
 //   9. phantomWrapper — no structural wrapper beyond the XML
@@ -66,8 +66,9 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkNoTranslation(html, ts),
     checkInventedUtility(html, conventions?.classVocabulary),
     checkStyleFidelity(scss, html, transcript, conventions),
-    checkLibraryTable(html, conventions?.componentAnatomy),
+    checkLibraryTable(html, conventions?.componentAnatomy, transcript, rawXml),
     checkLoadedClass(html, conventions?.loadedClassRegistry),
+    checkPilarInjection(scss, html, ts, pilar),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -289,6 +290,7 @@ function fidelityCriticalText(transcript) {
   const title = [];
   const placeholders = new Set();
   walkNodes(transcript?.layout, (n) => {
+    if (n?.hidden) return; // hidden node's text is not rendered — never required
     const t = (n.text ?? "").trim();
     if (!t || GLYPH.test(t)) return;
     if (n.type === "button") buttons.add(t);
@@ -297,6 +299,7 @@ function fidelityCriticalText(transcript) {
   // Title: first text leaf (largest/first in document order) — a faithful label for the page.
   let firstText = null;
   walkNodes(transcript?.layout, (n) => {
+    if (n?.hidden) return; // a hidden node is not the visible page title
     const t = (n.text ?? "").trim();
     if (firstText === null && t && !GLYPH.test(t) && n.type === "text") firstText = t;
   });
@@ -347,6 +350,12 @@ function checkTableBindings(html, rawXml, pilar = null) {
 
   if (problems.length) {
     return { name: "tableBindings", status: "fail", detail: problems.join("; "), problems };
+  }
+  // `(rowsChanged)` is a legal output but a footgun: reassigning `rows = $event` in its handler
+  // re-triggers the table's preprocessRows → ngOnChanges → rowsChanged loop (browser hang). Warn
+  // but do not fail — the binding itself is not illegal (Report #1 §6.1).
+  if (outputs.includes("rowsChanged")) {
+    return { name: "tableBindings", status: "warn", detail: "bindings legal + checkbox evidenced; (rowsChanged) bound — reassigning `rows` in its handler re-triggers the table (infinite loop). Read-only use or drop the binding." };
   }
   return { name: "tableBindings", status: "pass", detail: "bindings legal + checkbox evidenced" };
 }
@@ -399,6 +408,18 @@ function checkPilarBindings(html, pilar = null) {
 
 // ---------- 4. classVocabulary ----------
 
+/** Bootstrap/framework button namespace that is ALWAYS legal in a UI-library project, even when
+ *  the project's own `classVocabulary` carries no `btn-*` member. A UII/BS project loads these
+ *  from the library's global CSS (`.btn.btn-primary` = the org's primary action), so flagging them
+ *  "invented" would force the agent to hand-roll a WORSE local class (Report #2 §4.2). */
+const FRAMEWORK_BUTTONS = new Set([
+  "btn", "btn-primary", "btn-secondary", "btn-default", "btn-success", "btn-danger",
+  "btn-warning", "btn-info", "btn-light", "btn-dark", "btn-link", "btn-block",
+  "btn-sm", "btn-lg", "btn-outline-primary", "btn-outline-secondary", "btn-outline-default",
+  "btn-outline-success", "btn-outline-danger", "btn-outline-warning", "btn-outline-info",
+  "btn-outline-light", "btn-outline-dark",
+]);
+
 function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []) {
   // Known reusable classes = HTML class="…" vocabulary ∪ the SCSS label taxonomy
   // (::ng-deep .label-custom-* blocks). The label taxonomy lives in SCSS + TS string
@@ -430,6 +451,10 @@ function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []
   const badButtons = [];
   for (const m of generated.matchAll(/\bbtn-([a-z0-9-]+)/gi)) {
     const cls = m[0].toLowerCase();
+    // A framework button (btn-primary etc.) is legal even when the project's own vocabulary
+    // carries no btn-* — the library's global CSS defines it. Only a NON-framework, non-vocab
+    // btn-* (e.g. btn-gray) is "invented".
+    if (FRAMEWORK_BUTTONS.has(cls)) continue;
     if (!known.has(cls) && !known.has(`btn-${m[1].toLowerCase()}`) && !badButtons.includes(cls)) badButtons.push(cls);
   }
 
@@ -911,6 +936,8 @@ const FA_ICON_COLORS = {
   "#f9933f": ["fa-exclamation-triangle", "fa-exclamation"],
   "#4fbbbb": ["fa-check-circle"],
   "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
+  "#004c88": ["fa-info-circle"], // banner info icon (Report #1 §6.4)
+  "#3e82f3": ["fa-check-circle"], // "Aktif" badge glyph (Report #1 §6.6)
 };
 
 function checkIconColor(generated, transcript) {
@@ -999,35 +1026,36 @@ function checkMockRowCount(html, ts, anatomy = {}, transcript) {
   if (rows === null) {
     return { name: "mockRowCount", status: "skip", detail: "could not determine mock row count" };
   }
-  const target = paginationTotal(transcript);
   // The mock-row floor exists to activate PAGINATED LIBRARY tables. A plain HTML <table> detail
   // list (not a uii-table/ngx-datatable/mat-table, no pagination footer) is a different design —
   // demanding 15 rows there would force the agent to invent content the design doesn't show.
   // Honest "not applicable" (H3) instead of a false positive.
-  if (!isLibraryTable(html) && target === 0) {
+  if (!isLibraryTable(html)) {
     return {
       name: "mockRowCount",
       status: "skip",
-      detail: "no paginated library table (uii-table/ngx-datatable/mat-table) and no pagination evidence — mock-row floor not applicable (plain/detail list)",
+      detail: "no paginated library table (uii-table/ngx-datatable/mat-table) — mock-row floor not applicable (plain/detail list)",
     };
   }
-  const floor = anatomy?.mockRowsFloor ?? 15;
-  const required = Math.max(floor, target);
-  if (rows < required) {
+  // Cap, not a floor: a paginated table renders EXACTLY 15 mock rows. The transcript's
+  // "dari N data" total must NOT raise the count (report §6.5 — 513 literal rows is a
+  // non-idiomatic file). More than 15 is a fail just like fewer than 15.
+  const required = anatomy?.mockRowsFloor ?? 15;
+  if (rows !== required) {
     return {
       name: "mockRowCount",
       status: "fail",
-      detail: `${rows} mock rows < required ${required} (floor ${floor}${target > floor ? `, transcript total ${target}` : ""})`,
+      detail: `${rows} mock rows != required ${required} (a paginated table renders exactly ${required} mock rows — no more, no fewer)`,
       rows,
       required,
     };
   }
-  return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows ≥ ${required}` };
+  return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows = ${required}` };
 }
 
 // ---------- 6b. libraryTable (no downgrade to a plain <table> in a library-table project) ----------
 
-function checkLibraryTable(html, anatomy = {}) {
+function checkLibraryTable(html, anatomy = {}, transcript = null, rawXml = null) {
   const tableTag = anatomy?.tableTag;
   const isLibraryTag = tableTag && /^(uii-table|ngx-datatable|mat-table)$/i.test(tableTag);
   if (!isLibraryTag) {
@@ -1040,10 +1068,41 @@ function checkLibraryTable(html, anatomy = {}) {
   if (new RegExp(`<${tableTag}\\b`, "i").test(String(html ?? ""))) {
     return { name: "libraryTable", status: "pass", detail: `uses the project's <${tableTag}> library table` };
   }
+  // A plain <table> is a real downgrade ONLY when the design evidences a PAGED list — search bar
+  // ("Tampilkan N data" / <search_bar>), a pagination footer ("Menampilkan … dari N data"), or
+  // limit options. A plain matrix/read-only detail/placeholder table (rowspan/colspan, no
+  // search/limit/pagination) is a legitimate native table, not a downgrade (Report #1 §6.3).
+  const hasPagedEvidence = /(?:Menampilkan|Showing)\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+\d+\s+data/i.test(String(transcript ? JSON.stringify(transcript) : ""))
+    || /Tampilkan\s+\d+\s+data/i.test(String(transcript ? JSON.stringify(transcript) : ""))
+    || /<search_bar\b/i.test(String(rawXml ?? ""))
+    || /<uii-pagination\b|ugw-pagination/i.test(String(rawXml ?? ""));
+  if (!hasPagedEvidence) {
+    return { name: "libraryTable", status: "skip", detail: "plain <table> is a detail/matrix/placeholder table (no search/limit/pagination evidence) — native is legitimate" };
+  }
   return {
     name: "libraryTable",
     status: "fail",
-    detail: `plain <table> used where project convention is <${tableTag}> — use the library table (it wires search/limit/pagination the design relies on)`,
+    detail: `plain <table> used where the design shows a paged list — use <${tableTag}> (it wires search/limit/pagination the design relies on)`,
+  };
+}
+
+// ---------- 6c. pilar-injection (a uii-* slice must not silently skip the pilar checks) ----------
+
+/** The pilar feature data (catalog + binding policy) gates the uii-table binding / row-auth checks.
+ *  It is injected by the CLI (`loadPilar()`) but is `null` when `verifyComponent` is used as a
+ *  library directly. A `uii-*` slice verified WITHOUT pilar would silently skip those checks and
+ *  could read "green" — the false-confidence machine from the other side. Emit a warn (not a fail,
+ *  since a non-UII install legitimately lacks pilar) so a direct-library caller KNOWS the wiring
+ *  checks did not run (Report #2 §4.6). */
+function checkPilarInjection(scss, html, ts, pilar) {
+  const usesUii = /<(uii-[a-z-]+)\b/i.test(String(html ?? "")) || /@uiigateway/i.test(String(ts ?? ""));
+  if (pilar || !usesUii) {
+    return { name: "pilarInjection", status: "skip", detail: pilar ? "pilar present" : "no uii-* usage" };
+  }
+  return {
+    name: "pilarInjection",
+    status: "warn",
+    detail: "uii-* component present but pilar catalog is NOT injected — tableBindings/pilarBindings/rowAuth were skipped. Inject loadPilar() for a UII project.",
   };
 }
 
@@ -1075,16 +1134,6 @@ function countArrayElements(body) {
     else if (c === "," && depth === 0) count++;
   }
   return count;
-}
-
-/** "Menampilkan 1-10 dari 20 data" → 20 (the total the transcript evidences). */
-function paginationTotal(transcript) {
-  let total = 0;
-  walkNodes(transcript?.layout, (n) => {
-    const m = /(?:Menampilkan|Showing)\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+(\d+)\s+data/i.exec(n.text ?? "");
-    if (m) total = Math.max(total, Number(m[1]));
-  });
-  return total;
 }
 
 // ---------- 18. styleFidelity (value coverage: design values survive in the authored slice) ----------
@@ -1221,6 +1270,7 @@ function textNodes(transcript) {
   const out = [];
   walkNodes(transcript?.layout, (n) => {
     if (!n || typeof n !== "object" || n.type !== "text") return;
+    if (n.hidden) return; // hidden node is not visible — its style is not a renderable fact
     const t = (n.text ?? "").trim();
     if (!t || GLYPH.test(t)) return;
     if (n.style?.color || n.style?.size || n.style?.weight) out.push(n);
@@ -1238,48 +1288,34 @@ function textNodes(transcript) {
  *  `{ className, ruleBody }` rules along the element → ancestors (innermost first). `className`
  *  and `ruleBody` are the INNERMOST authored class (back-compat); `chain` lets callers compute
  *  effective (inheritance-aware) declarations. Returns null when the element and all its
- *  ancestors reuse project classes (no authored slice rule). If no element matches exactly (text
- *  split by interpolation / entity variance), falls back to the previous flat-regex scan. */
+ *  ancestors reuse project classes (no authored slice rule).
+ *
+ *  IMPORTANT — no substring fallback. When `findDeepestByText` (exact textContent match) misses,
+ *  the text is NOT authored in the generated HTML — it lives inside a library component
+ *  (a `uii-table` column header `columns[].name`, a pagination "Tampilkan N data" label, a
+ *  `ngx-select` option). A case-insensitive substring scan would mis-attribute such text to a
+ *  DIFFERENT authored element ("Tarif" → `<h1>Tambah tarif manual</h1>`, "data" → `Get data`
+ *  button), then demand two contradictory style values on one class. That is a ghost fact, not a
+ *  fidelity check: if the text is not exactly in the authored HTML, we cannot judge its style →
+ *  return null (skip, never fail). This is the fix for EXPERIENCE-REPORT-2 §4.1. */
 function authoredRuleForText(html, text, scss) {
   const t = String(text ?? "").trim();
   if (!t) return null;
   const tree = buildElementTree(String(html ?? ""));
   const exact = tree.findDeepestByText(t);
-  if (exact) {
-    const chain = [];
-    for (const el of exact.chain) {
-      for (const c of el.classList) {
-        if (!c) continue;
-        const rule = authoredRule(scss, c);
-        if (rule) chain.push({ className: c, ruleBody: rule });
-      }
+  if (!exact) return null; // not in the authored HTML → library-internal → skip, never attribute
+  const chain = [];
+  for (const el of exact.chain) {
+    for (const c of el.classList) {
+      if (!c) continue;
+      const rule = authoredRule(scss, c);
+      if (rule) chain.push({ className: c, ruleBody: rule });
     }
-    if (!chain.length) return null; // every ancestor reuses project classes → skip (never fail)
-    // `tag` is the matched element's own tag (innermost of exact.chain), used to scope the
-    // heading-size "missing" hard-fail.
-    return { className: chain[0].className, ruleBody: chain[0].ruleBody, chain, tag: exact.el?.tag };
   }
-  // Fallback (text split across interpolation/nodes): original flat-regex scan over html.
-  const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const hRe = new RegExp(`<h([1-6])\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</h\\1>`, "i");
-  const anyRe = new RegExp(`<([a-z][\\w-]*)\\b([^>]*)>[\\s\\S]{0,120}?${esc}[\\s\\S]{0,120}?</\\1>`, "i");
-  const m = hRe.exec(html) || anyRe.exec(html);
-  if (!m) return null;
-  const cls = /class=["']([^"']+)["']/.exec(m[2])?.[1];
-  if (!cls) return null;
-  const match = firstAuthoredClass(cls.split(/\s+/), scss);
-  if (!match) return null;
-  return { ...match, chain: [match] };
-}
-
-/** First class in a list that has an authored `.class { … }` rule in the SCSS, else null. */
-function firstAuthoredClass(classList, scss) {
-  for (const c of classList ?? []) {
-    if (!c) continue;
-    const rule = authoredRule(scss, c);
-    if (rule) return { className: c, ruleBody: rule };
-  }
-  return null;
+  if (!chain.length) return null; // every ancestor reuses project classes → skip (never fail)
+  // `tag` is the matched element's own tag (innermost of exact.chain), used to scope the
+  // heading-size "missing" hard-fail.
+  return { className: chain[0].className, ruleBody: chain[0].ruleBody, chain, tag: exact.el?.tag };
 }
 
 /** Merge authored rule bodies along an element→ancestor chain into EFFECTIVE declarations,

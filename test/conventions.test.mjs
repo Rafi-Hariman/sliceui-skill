@@ -50,8 +50,9 @@ test("componentAnatomy: well + skeleton + table + pagination floor", () => {
   assert.equal(a.tableTag, "uii-table", "table tag detected");
   assert.equal(a.skeletonTag, "uii-table-skeleton", "skeleton tag detected");
   assert.equal(a.pagination, true, "pagination text detected");
-  // "Menampilkan 1-10 dari 20 data" → floor max(15, 20) = 20.
-  assert.equal(a.mockRowsFloor, 20, "mockRowsFloor derived from pagination total (20)");
+  // "Menampilkan 1-10 dari 20 data" still sets pagination=true, but the mock-row CAP stays 15
+  // (the transcript total no longer raises the count — report §6.5).
+  assert.equal(a.mockRowsFloor, 15, "mockRowsFloor is a fixed cap of 15 (not the pagination total)");
 });
 
 test("naming: prefix + dominant event handler", () => {

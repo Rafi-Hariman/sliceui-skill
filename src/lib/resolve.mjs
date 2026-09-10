@@ -15,12 +15,14 @@ const FA_ICON_COLORS = {
   "#f9933f": ["fa-exclamation-triangle", "fa-exclamation"],
   "#4fbbbb": ["fa-check-circle"],
   "#03337b": ["fa-search", "fa-pencil", "fa-eye"],
+  "#004c88": ["fa-info-circle"], // banner info icon (Report #1 §6.4)
+  "#3e82f3": ["fa-check-circle"], // "Aktif" badge glyph (Report #1 §6.6)
 };
 
 /** Figma web export names the painted shape inside an icon instance generically ("Vector"),
  *  while the FA glyph name sits on the INSTANCE wrapper one level up. These generic names carry
  *  no glyph signal and must not shadow an inherited icon-instance name. */
-const GENERIC_ICON_NAME = /^(vector|icon|shape|group|frame|path|ellipse|rectangle|line|text|union|component|frame_?\d*)$/i;
+const GENERIC_ICON_NAME = /^(vector|icon|shape|group|frame|path|ellipse|rectangle|line|text|union|component|frame_?\d*|icon_(primary|secondary|white|default))$/i;
 
 /**
  * @param {object} transcript — parsed transcript (layout nodes)
@@ -135,7 +137,7 @@ function resolveNode(node, corpus, vocab, inheritedName = null) {
       type: "icon",
       evidence: { color: node.bg, name },
       resolved: [],
-      fallback: { kind: "native-plain", note: "icon glyph not resolvable from name/color — use the project's icon set" },
+      fallback: { kind: "native-plain", note: `icon glyph not resolvable from name (${name || "none"}) / color (${node.bg}) — infer from the action context (e.g. Icon_primary on a "Get data" button → fa-cloud-download), never a confident guess` },
     };
   }
   // Button: variant (from XML componentProperties/variantProperties) → project btn class.
@@ -286,8 +288,9 @@ function labelFromCooccurrenceCandidates(corpus, fa) {
 function isBadgeBg(bg) {
   // Exact badge backgrounds seen in the corpus/design — NOT generic #ffffff or pastel.
   // (Badge = small pill with a tinted bg + a colored icon, not a white card.)
+  // #eef6ff = the "Aktif" badge (Report #1 §6.6) — included so it resolves to label-custom-*.
   const b = bg.toLowerCase();
-  return b === "#fef2f2" || b === "#fef7ec" || b === "#dcf5ef" || b === "#f6cacb";
+  return b === "#fef2f2" || b === "#fef7ec" || b === "#dcf5ef" || b === "#f6cacb" || b === "#eef6ff";
 }
 
 function findIconChild(node) {

@@ -214,6 +214,30 @@ export function renderPilarReferenceMd() {
   L.push(`> ${UII_AUTH_NOTE}`);
   L.push("");
 
+  // --- table column cell types (the wiring the agent otherwise reverse-engineers) ---
+  L.push("## Table column `type` → rendered cell");
+  L.push("");
+  L.push("A `TableColumn` (`{ prop, name, type?, inputType?, format?, … }`) renders differently by");
+  L.push("`type`. This is the exact switch from the pilar table cell template — read it before");
+  L.push("emitting a `columns[]` so input cells are wired correctly, not guessed from the XML.");
+  L.push("");
+  L.push("| `column.type` | Rendered cell | Key props |");
+  L.push("|---|---|---|");
+  L.push("| *(absent / `'text'`)* | `{{ row[prop] }}` plain text | — |");
+  L.push("| `'number'` | `{{ row[prop] \\| number:'1.0-2' }}` (formatted number) | `format` |");
+  L.push("| `'input-number'` | `<input [type]=\"inputType\" class=\"table-input-number\">` bound to `row[prop]` | `inputType`, `inputMin`, `inputMaxLength`, `textUppercase`/`textLowercase`, `disabled` |");
+  L.push("| `'input-text'` | `<input [type]=\"inputType\" class=\"table-input-text\">` bound to `row[prop]` | same as input-number |");
+  L.push("| `'input-select'` | `<select class=\"table-select\" [(ngModel)]=\"row[prop]\">` | options from `format`/data |");
+  L.push("| `'input-radio'` | radio group in `.gateway-rcb` | — |");
+  L.push("| `'input-checkbox'` | checkbox in `.gateway-rcb` | — |");
+  L.push("");
+  L.push("Other column facts (from `TableColumn`):");
+  L.push("- `prop: 'number'` → the auto-index column: the table writes `row.number = startPage + i`");
+  L.push("  itself, and the header is not sortable — declare it, do NOT render `row.number` manually.");
+  L.push("- `'header-type': 'html'` → the column HEADER is rendered via `[innerHTML]` (HTML in `name`).");
+  L.push("- `hide_in_mobile: true` → column hidden below the mobile breakpoint.");
+  L.push("");
+
   // --- components ---
   L.push("## Components");
   L.push("");
