@@ -81,6 +81,7 @@ Any coding agent — even one that cannot see images — slices a design into co
 - **init:** scaffold `.sliceui/{images,xml,transcript}/`, config, `.env.local`, gitignore; runs detect → project-context + conventions; runs referee codebase head → corruption map at setup.
 - **transcribe:** FIGML parse (tier 0, exact) or Gemini/static/OCR fallback; writes `transcript.md/json + .meta.json`; stamps the input path for staleness checks.
 - **resolve:** styled leaf → `resolved[]` idiom candidates keyed on design evidence (color, icon, Figma name).
+- **handoff (companion skill `/sliceui-handoff`):** agent-written, codebase-verified — the skill's agent reads `.sliceui/` artifacts AND scans real components, then writes ONE compact `.sliceui/handoff.md` for a CLI-less web agent (attach + the design image). Adaptive per framework (styling-system section uses the target framework's own mechanism, not Angular boilerplate); restates the invariants as direct rules since that agent has no `verify` gate; inlines the org grammar only when `ctx.profile === "uii"`. Not a CLI command — a skill shipped by `sliceui install` alongside the main one.
 - **referee:** pre-generate ground-truth validation against design + codebase; red → refresh artifacts before codegen.
 - **verify:** post-generate blocking gate (fidelity + conventions + structure); exit 0 required. v0.14/0.15 added headless render probes (CSS-cascade check + real Angular mount) in CI.
 - **doctor:** environment diagnosis; missing Gemini key = warning (XML/static tiers need none).

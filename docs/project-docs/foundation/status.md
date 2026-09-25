@@ -46,7 +46,8 @@ Does not duplicate the changelog (releases) or phase trackers (per-phase task st
 - **v0.15.0 released** (2026-09-05/06 lineage): verify gate catching real render defects; headless render probes (cascade + Angular mount) in CI; resolve keyed by Figma name not just color; public package stripped of org-private source.
 - **Pilar integration complete:** 47-component catalog + showcase (generated, extractor-regenerated), policy gate, typecheck, mount, version drift guard, publish guard.
 - **Docs:** SDD doc set created 2026-09-10 (this doc set) — first `docs/project-docs/` in the repo.
-- **In flight (uncommitted):** modifications across verify/resolve/referee/fidelity/figml-parse + 5 test files + skill/SKILL.md + angular conventions/uii-profile — described in `docs/SLICEUI-EXPERIENCE-REPORT-2.md` as the false-positive-gate fixes.
+- **In flight (uncommitted):** modifications across verify/resolve/referee/fidelity/figml-parse + 5 test files + skill/SKILL.md + angular conventions/uii-profile — described in `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` as the false-positive-gate fixes.
+- **Pending plan:** `docs/phases/REMEDIATION-PLAN-2026-09-11.md` (F1–F14, DRAFT) — not yet fully landed.
 
 ## 8. Recent Accomplishments
 
@@ -65,7 +66,10 @@ Does not duplicate the changelog (releases) or phase trackers (per-phase task st
 
 ## 10. Key Metrics
 
-- Test suite: 28 files, ~183 tests (green as of reorg completion; re-verify after in-flight work lands).
+- Test suite: 36 files, 362 tests — 359 pass / 3 skip (skips are environment-gated: pilar mount + catalog roundtrip need `PILAR_CHECKOUT`). Measured 2026-09-24 on the working tree; the pre-change baseline was 305 pass / 3 skip / 0 fail.
+- Verify checks: 30 (was 25). Added 2026-09-24: `alignmentViaDeepCss`, `requiredMarker`, `containerPadding`, `inventedLayout`, `deadCode`.
+- Field-data fixture: `test/fixtures/mahasiswa-tarif/raw.xml` — the real "Tambah mahasiswa tarif" export, exercised end-to-end by `test/mahasiswa-tarif.test.mjs` (parse → resolve → verify).
+- Fixing plan (P0) landed 2026-09-24: `--profile`/`--json-report` instrumentation (`fs-trace`), `verify` owning-module read scoped (no root traversal), `detect` freshness gate, `spec` corpus pruning. See `docs/SLICEUI-FIXING-PLAN-REVISED.md`.
 - XML-tier fidelity: ~90%+ attribute fidelity (README claim, `sliceui fidelity` measured 100% on the two field executions in `docs/`).
 - Field cost per slice: ~36 min for one component, ~80% consumed by gate friction + library reverse-engineering (experience report 2) — the improvement target.
 
@@ -100,7 +104,7 @@ This doc is updated at every release and at major state changes; no stale "in fl
 
 - `foundation/changelog.md` — release history
 - `foundation/phases/` — per-phase trackers
-- `docs/SLICEUI-EXPERIENCE-REPORT-2.md` — field evidence behind the friction risk
+- `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` — field evidence behind the friction risk
 
 ## Open Questions
 

@@ -22,12 +22,12 @@ const FA_ICON_COLORS = {
 /** Figma web export names the painted shape inside an icon instance generically ("Vector"),
  *  while the FA glyph name sits on the INSTANCE wrapper one level up. These generic names carry
  *  no glyph signal and must not shadow an inherited icon-instance name. */
-const GENERIC_ICON_NAME = /^(vector|icon|shape|group|frame|path|ellipse|rectangle|line|text|union|component|frame_?\d*|icon_(primary|secondary|white|default))$/i;
+const GENERIC_ICON_NAME = /^(vector|icon|shape|group|frame|path|ellipse|rectangle|line|text|union|component|glyph|frame_?\d*|icon_(primary|secondary|white|default))$/i;
 
 /**
  * @param {object} transcript — parsed transcript (layout nodes)
  * @param {object} conventions — extractConventions() output (ngDeepCorpus, classVocabulary, componentAnatomy)
- * @returns {{ leaves: Array<{id,type,evidence,resolved,fallback}>, statusTable: Array }}
+ * @returns {{ leaves: Array<{id,type,evidence,resolved,fallback}>, statusTable: Array, groups: Array }}
  */
 export function resolveTranscript(transcript, conventions = {}) {
   const corpus = conventions.ngDeepCorpus ?? [];
@@ -38,20 +38,46 @@ export function resolveTranscript(transcript, conventions = {}) {
   // DFS threading the nearest meaningful icon-instance name down to styled leaves. Real FIGML
   // web export nests the FA glyph name on an INSTANCE wrapper while the painted, color-bearing
   // leaf is its inner `Vector` child (generic name) — so the leaf must inherit the wrapper's name.
-  const walk = (nodes, inheritedName) => {
+  // glyphName threads the same way: an empty-TEXT glyph under a named wrapper inherits it.
+  // variantName threads too, but ONLY across icon nodes: a Figma variant on an icon instance is
+  // the glyph itself ("sync", "check-circle"), while a variant on a FIELD ("dropdown", "Active")
+  // is a component variant, not a glyph — inheriting that onto a nested caret would corrupt it.
+  const walk = (nodes, inheritedName, inheritedGlyph, inheritedVariant) => {
     for (const node of nodes ?? []) {
       if (!node || typeof node !== "object") continue;
       const own = meaningfulIconName(node.description);
       const eff = own ?? inheritedName;
-      const r = resolveNode(node, corpus, vocab, eff);
+      // A generic glyphName ("glyph", "Vector") carries no FA signal — the inherited wrapper
+      // name is the real glyph identity, so it wins over a generic own name.
+      const effGlyph = meaningfulIconName(node.glyphName) ?? inheritedGlyph;
+      const effVariant = (node.type === "icon" ? meaningfulIconName(node.variantName) : null) ?? inheritedVariant;
+      const r = resolveNode(node, corpus, vocab, eff, effGlyph, effVariant);
       if (r) leaves.push(r);
       if (r?.kind === "status") statusTable.push(r);
-      walk(node.children, eff);
+      walk(node.children, eff, effGlyph, effVariant);
     }
   };
-  walk(transcript?.layout, null);
+  walk(transcript?.layout, null, null, null);
 
-  return { leaves, statusTable };
+  return { leaves, statusTable, groups: groupLeaves(leaves) };
+}
+
+/** Dedup identical leaves (a 10-row table repeats the same status/icon 10×; the 2026-09-10 run
+ *  produced a 1,659-line resolved.json for ~10 unique facts). A group keeps the representative
+ *  leaf + a count + every member id, so the agent reads ONE fact and knows it applies N times.
+ *  `leaves` stays full for callers that address individual ids. */
+function groupLeaves(leaves) {
+  const byKey = new Map();
+  for (const leaf of leaves) {
+    const key = JSON.stringify([leaf.kind, leaf.evidence, leaf.resolved, leaf.fallback]);
+    if (!byKey.has(key)) byKey.set(key, { ...leaf, count: 1, ids: [leaf.id] });
+    else {
+      const g = byKey.get(key);
+      g.count++;
+      g.ids.push(leaf.id);
+    }
+  }
+  return [...byKey.values()];
 }
 
 /** A non-generic icon description (the FA glyph name an INSTANCE wrapper carries), else null. */
@@ -61,22 +87,45 @@ function meaningfulIconName(desc) {
 }
 
 /** Resolve a single styled leaf. Returns null for non-styled structural nodes. */
-function resolveNode(node, corpus, vocab, inheritedName = null) {
+function resolveNode(node, corpus, vocab, inheritedName = null, inheritedGlyph = null, inheritedVariant = null) {
   // Status badge: a group/row with bg #fef2f2-like + an icon child with a semantic color.
   const iconChild = findIconChild(node);
   const bg = node.bg ?? "";
   if (iconChild && isBadgeBg(bg)) {
     return resolveStatus(node, iconChild, corpus, vocab);
   }
+  // An icon GLYPH exported as TEXT: the FIGML plugin renders FontAwesome glyphs as font text
+  // whose characters come through empty — only the node/wrapper NAME ("Icon_..._T_toggle-on")
+  // and the style color survive. The report (2026-09-10 §1) showed these as `"" {15px w900 …}`.
+  // Treat such a leaf as an icon so it resolves from its glyphName instead of being skipped.
+  const isTextGlyph = node.type === "text" && (node.glyphName ?? inheritedGlyph) && !(node.text ?? "").trim();
+  if (isTextGlyph) {
+    return resolveIconLeaf(
+      { ...node, type: "icon", bg: node.style?.color ?? node.bg },
+      corpus,
+      node.glyphName ?? inheritedGlyph,
+    );
+  }
   // A bare icon (caret/action) — its Figma node name (description) is the strongest signal for
   // WHICH glyph it is (caret vs pencil vs search); color only disambiguates within a family.
   // Color-first wrongly resolved every #03337b glyph (caret, pencil, eye) to fa-search.
   // The name may sit on the INSTANCE wrapper (real FIGML nests FA name above a generic "Vector"
   // leaf); use the leaf's own meaningful name, else the inherited one from `resolveTranscript`.
+  // A Figma VARIANT name on the icon instance is often the glyph itself (F8: "sync") — prefer it
+  // over the generic node name when both exist.
   if (node.type === "icon" && node.bg) {
-    const ownDesc = meaningfulIconName(node.description);
-    const eff = ownDesc ?? inheritedName;
-    const name = String(eff ?? "").toLowerCase();
+    const ownGlyph = meaningfulIconName(node.variantName ?? inheritedVariant) ?? meaningfulIconName(node.glyphName) ?? inheritedGlyph;
+    return resolveIconLeaf(node, corpus, ownGlyph ?? inheritedName);
+  }
+  return resolveButtons(node, vocab);
+}
+
+/** Shared icon-leaf resolution (VECTOR/INSTANCE icons and glyph-as-text leaves).
+ *  `glyphSignal` is the glyph name — the node's own or the one inherited from a named wrapper. */
+function resolveIconLeaf(node, corpus, glyphSignal) {
+  {
+    const ownDesc = meaningfulIconName(node.description ?? glyphSignal);
+    const name = String(ownDesc ?? glyphSignal ?? "").toLowerCase();
     const fa = iconFromName(name);
 
     // Name evidence resolved a glyph → single confident answer.
@@ -137,9 +186,13 @@ function resolveNode(node, corpus, vocab, inheritedName = null) {
       type: "icon",
       evidence: { color: node.bg, name },
       resolved: [],
-      fallback: { kind: "native-plain", note: `icon glyph not resolvable from name (${name || "none"}) / color (${node.bg}) — infer from the action context (e.g. Icon_primary on a "Get data" button → fa-cloud-download), never a confident guess` },
+      fallback: { kind: "native-plain", note: `icon glyph not resolvable from name (${name || "none"}) / color (${node.bg}) — infer from the action context; never a confident guess` },
     };
   }
+}
+
+/** Button resolution: a Figma variant, or a bg-mapped primary/secondary. */
+function resolveButtons(node, vocab) {
   // Button: variant (from XML componentProperties/variantProperties) → project btn class.
   // A Figma `variant: "secondary"` must map to `btn-secondary` (the bulk outline button), not a
   // hand-rolled class — the project already names it.
@@ -184,8 +237,16 @@ const NAME_GLYPH = [
   [/caret-up|caret_up/i, "fa-caret-up"],
   [/caret|chevron-down/i, "fa-caret-down"],
   [/chevron|angle-(down|up)/i, "fa-chevron-down"],
+  [/toggle-on|toggle_on/i, "fa-toggle-on"],
+  [/toggle-off|toggle_off/i, "fa-toggle-off"],
+  // Bare "toggle" before the generic chevron rule — a toggle switch is not a chevron.
+  [/toggle|switch/i, "fa-toggle-on"],
   [/pencil|edit/i, "fa-pencil"],
   [/search|magnif/i, "fa-search"],
+  // `fa-sync-alt` is FontAwesome 5+; this org's projects pin `font-awesome@^4.7.0`, where the
+  // class does not exist and renders an empty box. `fa-refresh` is the FA4 name of the same
+  // glyph. Verified 2026-09-24 against the field project's package.json (report §4.2).
+  [/sync|refresh|reload/i, "fa-refresh"],
   [/eye/i, "fa-eye"],
   [/trash|delete/i, "fa-trash"],
   [/plus/i, "fa-plus"],

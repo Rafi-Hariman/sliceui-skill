@@ -2,11 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { install } from "../src/commands/install.mjs";
 
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** A dest dir nested in its own parent (so cleanup can rm the parent — the sibling
+ *  sliceui-handoff install lives in dirname(dest), which must NOT be the system tmp root). */
 function makeDest() {
-  return mkdtempSync(join(tmpdir(), "sliceui-install-"));
+  const parent = mkdtempSync(join(tmpdir(), "sliceui-install-"));
+  return join(parent, "sliceui");
 }
 
 test("install copies the skill and writes a version manifest", () => {
@@ -18,7 +24,7 @@ test("install copies the skill and writes a version manifest", () => {
   assert.ok(existsSync(join(dest, ".sliceui-cli-version")), "version manifest written");
   const ver = readFileSync(join(dest, ".sliceui-cli-version"), "utf8").trim();
   assert.match(ver, /^\d+\.\d+\.\d+$/, "manifest is a semver");
-  rmSync(dest, { recursive: true, force: true });
+  rmSync(dirname(dest), { recursive: true, force: true });
 });
 
 test("install backs up a user-modified SKILL.md instead of clobbering it", () => {
@@ -35,7 +41,7 @@ test("install backs up a user-modified SKILL.md instead of clobbering it", () =>
   assert.equal(bak, "# user custom content\n", "user edit preserved in .bak");
   // And the fresh copy replaced it
   assert.ok(readFileSync(join(dest, "SKILL.md"), "utf8").includes("SliceUI"), "fresh SKILL.md installed");
-  rmSync(dest, { recursive: true, force: true });
+  rmSync(dirname(dest), { recursive: true, force: true });
 });
 
 test("install is idempotent when nothing changed (no backups)", () => {
@@ -43,5 +49,37 @@ test("install is idempotent when nothing changed (no backups)", () => {
   install(dest);
   const r2 = install(dest);
   assert.equal(r2.backups.length, 0, "no backups on clean re-install");
-  rmSync(dest, { recursive: true, force: true });
+  rmSync(dirname(dest), { recursive: true, force: true });
+});
+
+test("install ships the companion sliceui-handoff skill as a sibling dir", () => {
+  const dest = makeDest();
+  const r = install(dest);
+  // Companion installed at <skills-parent>/sliceui-handoff/, with its own manifest…
+  const companion = join(dirname(dest), "sliceui-handoff");
+  assert.equal(r.handoffDir, companion, "handoffDir reported");
+  assert.ok(existsSync(join(companion, "SKILL.md")), "companion SKILL.md written");
+  assert.ok(existsSync(join(companion, ".sliceui-cli-version")), "companion manifest written");
+  // …and NOT nested inside the main skill dir (it must activate as its own command).
+  assert.ok(!existsSync(join(dest, "handoff")), "no handoff/ subdir inside the main skill");
+  rmSync(dirname(dest), { recursive: true, force: true });
+});
+
+test("handoff skill source ships with frontmatter and the CLI-less rules section", () => {
+  const src = readFileSync(join(HERE, "..", "skill", "handoff", "SKILL.md"), "utf8");
+  assert.match(src, /^---\nname: sliceui-handoff/, "frontmatter names the skill");
+  assert.ok(src.includes("Aturan untuk Agent Tanpa CLI"), "invariant section present");
+  assert.ok(src.includes("sliceui init"), "precondition tells the user to init");
+});
+
+test("handoff skill: Design tokens pointer must be verified, not assumed", () => {
+  const src = readFileSync(join(HERE, "..", "skill", "handoff", "SKILL.md"), "utf8");
+  // The Design tokens section must NOT unconditionally point at the scan artifact — it has to
+  // gate the pointer on the artifact actually containing tokens (the empty-artifact bug, 2026-09-19).
+  assert.ok(src.includes("Point to it ONLY if it actually contains"), "pointer gated on artifact content");
+  assert.ok(src.includes("full list:"), "explicit real-stylesheet pointer example present");
+  assert.ok(src.includes("src/assets/main.css"), "example names a stylesheet path, not the artifact");
+  assert.ok(src.includes("@theme"), "Tailwind v4 CSS-first source is called out");
+  // The general rule must exist so ANY pointer claim is verified against the file it names.
+  assert.ok(src.includes("without having READ that file"), "pointer-verification anti-pattern present");
 });

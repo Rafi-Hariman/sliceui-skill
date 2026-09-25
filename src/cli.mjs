@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appendRun, UNTIMED_COMMANDS } from "./lib/timing.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
@@ -15,13 +16,15 @@ Usage:
   sliceui install [--dir DIR]   Install the agent skill (default ~/.claude/skills/sliceui)
   sliceui init [--key-from F]   Set up this project: .sliceui/ dirs, config, .env.local, gitignore, detect
   sliceui detect                Detect the current project's framework/conventions
-  sliceui transcribe <img>      Screenshot → .sliceui/transcript.md (Gemini → static fallback)
+  sliceui transcribe <img>      Screenshot/XML → .sliceui/artifacts/<name>/transcript.md (Gemini → static fallback)
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui fidelity <xml>        Score visual-attribute preservation (FIGML → transcript)
-  sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions
+  sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions (--xml/--transcript/--conventions)
   sliceui referee [root]        Validate ground-truth artifacts (XML + codebase) — the corruption map
   sliceui resolve <xml|json>    Resolve styled leaves → exact idiom candidates (resolve-then-assemble)
+  sliceui spec <xml|json>       One-pass render doc: elements + inline idioms + copy-targets
+  sliceui timing                Per-stage wall-clock from .sliceui/runs.jsonl (where the minutes go)
   sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
   sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
   sliceui update                Self-update the CLI + refresh the installed skill
@@ -48,6 +51,52 @@ async function run(argv) {
   }
 
   const rest = argv.slice(1);
+  const profile = rest.includes("--profile");
+  const jsonReport = rest.includes("--json-report");
+  const cmdArgs = rest.filter((a) => a !== "--profile" && a !== "--json-report");
+  const exit = await dispatch(cmd, cmdArgs);
+  recordRun(cmd, cmdArgs, exit);
+  if (profile || jsonReport) reportTrace(cmd, jsonReport);
+  return exit;
+}
+
+/** Print the repository-access + read summary for a command run (`--profile` / `--json-report`).
+ *  Reports the counters the plan's guard asserts against (files/bytes read, repo reads outside the
+ *  allowlist, globs). Never logs source content or secrets — only counts. */
+function reportTrace(cmd, json) {
+  import("./lib/fs-trace.mjs").then(({ traceSummary }) => {
+    const s = traceSummary();
+    if (json) {
+      process.stdout.write("\n" + JSON.stringify({ profile: { command: cmd, ...s } }, null, 2) + "\n");
+    } else {
+      process.stdout.write(
+        `\nSliceUI profile — ${cmd}\n` +
+        `  files read         : ${s.fileReads}\n` +
+        `  bytes read         : ${s.bytesRead}\n` +
+        `  repo reads (outside allowlist): ${s.repoReads}\n` +
+        `  glob operations    : ${s.globs}\n`,
+      );
+    }
+  });
+}
+
+/** Log one command run to .sliceui/runs.jsonl (no-op before .sliceui/ exists, or for infra cmds).
+ *  This is what makes "where did the minutes go?" answerable — see `sliceui timing`. */
+function recordRun(cmd, args, exit) {
+  if (UNTIMED_COMMANDS.has(cmd)) return;
+  const elapsedMs = Math.round(monotonicMs() - startMs);
+  appendRun(process.cwd(), { ts: Date.now(), cmd, args, elapsedMs, exit });
+}
+
+/** Monotonic milliseconds (immune to wall-clock jumps; the log's `ts` stays wall-clock). */
+function monotonicMs() {
+  return Number(process.hrtime.bigint() / 1000000n);
+}
+
+/** Process-start anchor for the command's own elapsed time. */
+const startMs = monotonicMs();
+
+async function dispatch(cmd, rest) {
   switch (cmd) {
     case "install": {
       const { main } = await import("./commands/install.mjs");
@@ -83,6 +132,14 @@ async function run(argv) {
     }
     case "resolve": {
       const { main } = await import("./commands/resolve.mjs");
+      return main(rest);
+    }
+    case "spec": {
+      const { main } = await import("./commands/spec.mjs");
+      return main(rest);
+    }
+    case "timing": {
+      const { main } = await import("./commands/timing.mjs");
       return main(rest);
     }
     case "uninstall": {

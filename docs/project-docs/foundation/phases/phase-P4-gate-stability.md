@@ -102,7 +102,7 @@ False-positive-caused slice delays eliminated in the next field report; gate red
 ## Related Documents
 
 - `technical-guidelines/verify-gate-trust.md` — the design rules this phase implements
-- `docs/SLICEUI-EXPERIENCE-REPORT.md`, `docs/SLICEUI-EXPERIENCE-REPORT-2.md` — field evidence
+- `docs/archive/SLICEUI-EXPERIENCE-REPORT.md`, `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` — field evidence
 - `../status.md` — roadmap position
 
 ## Open Questions

@@ -37,7 +37,7 @@ The generated pilar artifacts and their extractors. Hand-written engine code is 
 
 - `foundation/phases/phase-P2-pilar-integration.md` — the phase that introduced the catalogs
 - `foundation/architecture.md` — module layout
-- `docs/HANDOFF-pilar-sliceui-2026-09-06.md` — original integration handoff
+- `docs/archive/HANDOFF-pilar-sliceui-2026-09-06.md` — original integration handoff
 
 ## 7. Open Questions
 

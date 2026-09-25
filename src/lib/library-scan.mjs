@@ -20,7 +20,7 @@ const SKIP = ["**/node_modules/**", "**/dist/**", "**/.angular/**", "**/.sliceui
  * @param {Record<string,string>} [deps] — merged package.json dependencies+devDependencies
  * @returns {{ capabilities: Record<string,object>, libraries: { inUse: string[] } }}
  */
-export async function scanLibraryUsage(root, deps = {}, { includeUii = true } = {}) {
+export async function scanLibraryUsage(root, deps = {}, { includeUii = true, preferRegistrySamples = false } = {}) {
   const tsFiles = fg.sync(["**/*.ts"], { cwd: root, ignore: SKIP, absolute: true });
   const htmlFiles = fg.sync(["**/*.html"], { cwd: root, ignore: SKIP, absolute: true });
   const scssFiles = fg.sync(["**/*.scss"], { cwd: root, ignore: SKIP, absolute: true });
@@ -56,7 +56,7 @@ export async function scanLibraryUsage(root, deps = {}, { includeUii = true } = 
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
-    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii, uiiRegistry });
+    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii, uiiRegistry, preferRegistrySamples });
   }
 
   return { capabilities, libraries: { inUse } };
@@ -69,7 +69,7 @@ export async function scanLibraryUsage(root, deps = {}, { includeUii = true } = 
  *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
  *    3. null — fall back to plain HTML with a note.
  */
-function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true, uiiRegistry = {} } = {}) {
+function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true, uiiRegistry = {}, preferRegistrySamples = false } = {}) {
   const libs = includeUii
     ? withUiiEntries(category, uiiRegistry[category])
     : registryEntries(category);
@@ -81,9 +81,15 @@ function buildCapability(category, combined, allTs, allHtml, allScss, deps, { in
   const used = libs.find((lib) => lib.test.test(combined));
   const entry = imported || used;
   if (entry) {
-    const local = findLocalSample(entry, allTs, allHtml, allScss);
-    if (local.sampleHtml || local.sampleTs) {
-      return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, sampleScss: local.sampleScss, sampleScssPath: local.sampleScssPath, source: "local" };
+    // UII projects (preferRegistrySamples) take the registry's CURATED sample over a
+    // repo-scanned one: a sampled feature component is a snapshot that can be stale/buggy (the
+    // field session leaked `.margin-top-20` and `[pagination]` into a fresh slice this way).
+    // The curated sample lives in uii-profile.mjs and is regenerated from the pilar catalogs.
+    if (!preferRegistrySamples) {
+      const local = findLocalSample(entry, allTs, allHtml, allScss);
+      if (local.sampleHtml || local.sampleTs) {
+        return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, sampleScss: local.sampleScss, sampleScssPath: local.sampleScssPath, source: "local" };
+      }
     }
     return { library: entry.name, sampleHtml: entry.sampleHtml, sampleTs: entry.sampleTs, source: "registry" };
   }

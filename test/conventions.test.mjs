@@ -109,6 +109,17 @@ test("renderConventionsMd: splits reusable vs component-specific", () => {
   assert.ok(md.includes("installment-spreadsheet.component.scss"), "specific block annotated with source");
 });
 
+test("renderConventionsMd: non-Angular emits an honest note, never Angular idiom", () => {
+  const md = renderConventionsMd({}, "Vue 3", "vue-sfc");
+  // The Angular sections must be absent for a non-Angular framework.
+  assert.ok(!md.includes("::ng-deep corpus"), "no ::ng-deep section for Vue");
+  assert.ok(!md.includes("translation pipe"), "no | translate note for Vue");
+  // The honest note points at the real sources instead.
+  assert.ok(md.includes("Angular-shaped"), "explains WHY the profile is empty");
+  assert.ok(md.includes("/sliceui-handoff"), "points at the handoff skill for a fuller profile");
+  assert.ok(md.includes(":deep()"), "uses the target framework's own term as the example");
+});
+
 test("ngDeepCorpus: bare form-control + ngx-select__toggle are reusable", () => {
   const c = extractConventions(FIX, { prefix: "ugw" });
   const fc = c.ngDeepCorpus.find((x) => x.selector === "form-control");

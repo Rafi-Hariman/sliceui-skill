@@ -1,7 +1,7 @@
 // sliceui transcribe — orchestrator. Auto-detects input type:
 //   .xml/.figml → FIGML parse (deterministic, exact, no key, instant)
 //   image       → Gemini (tier 1) → static (tier 2) fallback
-// Writes .sliceui/transcript/<name>.transcript.{md,json,meta.json}.
+// Writes .sliceui/artifacts/<name>/transcript.{md,json,meta.json}.
 
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join, basename, extname } from "node:path";
@@ -78,12 +78,12 @@ export async function main(argv) {
     return 3;
   }
 
-  const outDir = join(process.cwd(), ".sliceui", "transcript");
-  mkdirSync(outDir, { recursive: true });
   const stem = basename(abs).replace(/\.(xml|figml|png|jpe?g|webp)$/i, "");
-  const mdPath = join(outDir, `${stem}.transcript.md`);
-  const jsonPath = join(outDir, `${stem}.transcript.json`);
-  const metaPath = join(outDir, `${stem}.transcript.meta.json`);
+  const outDir = join(process.cwd(), ".sliceui", "artifacts", stem);
+  mkdirSync(outDir, { recursive: true });
+  const mdPath = join(outDir, `transcript.md`);
+  const jsonPath = join(outDir, `transcript.json`);
+  const metaPath = join(outDir, `transcript.meta.json`);
   writeFileSync(jsonPath, JSON.stringify(result.transcript, null, 2) + "\n");
   writeFileSync(mdPath, renderTranscript(result.transcript));
   writeFileSync(metaPath, JSON.stringify({

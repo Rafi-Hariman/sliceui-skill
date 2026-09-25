@@ -26,11 +26,14 @@ export function buildCodegenPrompt({ transcript, projectContext, instructions })
   blocks.push(`You are a senior frontend engineer working INSIDE the user's project. Generate production-ready component code that matches this project's conventions exactly, based on the UI transcript below (transcribed from a screenshot).`);
 
   // --- project context (highest priority) ---
+  // SLIM projection, not JSON.stringify(pc): real contexts carry inlined sampleHtml/sampleTs +
+  // the whole ngDeep corpus and can exceed the model context (479 KB in the 2026-09-10 run).
+  // The wiring bodies stay on disk — the agent reads the pointed-to files, not this prompt.
   blocks.push(`## Project context
 If the project context conflicts with other instructions, prioritize the project context — the code must drop into THIS codebase.
 
 <project_context>
-${JSON.stringify(pc, null, 2)}
+${JSON.stringify(slimProjectContext(pc), null, 2)}
 </project_context>`);
 
   // --- transcript ---
@@ -73,8 +76,8 @@ the action→authKey→icon truth table is in \`.sliceui/uii-profile.md\`.`);
 6. Match colors from the transcript exactly using hex values — unless project tokens exist for them (then use the tokens).
 7. Self-contained component — not a full app. No html/body/main entry points.
 8. After writing, run the project's build or type-check if available and fix errors you introduced.
-9. Reproduce the transcript's LAYOUT exactly: \`r:N\` → \`border-radius: Npx\`; \`r:tl/tr/br/bl\` → per-corner \`border-radius: tl tr br bl\`; \`border:color\` (or \`border:Wxcolor\`) → \`border: [Wpx] solid color\` (a stroke is NOT the fill \`bg\`); \`pad:t/r/b/l\` → padding; \`gap:N\` → real gap; \`justify:space-between\` → flex \`justify-content: space-between\` (NOT a \`gap:497px\`-style literal).
-10. A node marked \`[HIDDEN]\` / \`"hidden": true\` must NOT render visible — it carries design state (a required asterisk, a hidden section, an auth-only action icon). Reproduce its MEANING, not its visibility.
+9. Reproduce the transcript's LAYOUT exactly: \`r:N\` → \`border-radius: Npx\`; \`r:tl/tr/br/bl\` → per-corner \`border-radius: tl tr br bl\`; \`border:color\` (or \`border:Wxcolor\`) → \`border: [Wpx] solid color\` (a stroke is NOT the fill \`bg\`); \`pad:t/r/b/l\` → padding; \`gap:N\` → real gap; \`justify:space-between\` → flex \`justify-content: space-between\` (NOT a \`gap:497px\`-style literal). A filter row with MORE than 4 cells (fields + button) has no clean grid span — emit an equal-width flex row: container \`display:flex; align-items:flex-end; gap:<transcript gap>px\`, each field \`flex:1 1 0\`, button \`flex:0 0 auto\`.
+10. A node marked \`[HIDDEN]\` / \`"hidden": true\` must NOT render visible — it carries design state (a hidden section, an auth-only action icon). Reproduce its MEANING, not its visibility. **This does NOT mean emitting the hidden element and re-hiding it.** The design states a field's required-ness as an explicit flag (\`required: true|false\` on the node): emit the marker for \`true\` and emit NOTHING for \`false\`. Never reconstruct the design's hidden asterisk as \`<span class="required-mark hidden">*\` — a marker is either rendered or absent, and a marker that is emitted-but-hidden is unrequested output (2026-09-24, report §4.5).
 11. Mock data is capped: a paginated table (\`uii-table\`/\`ngx-datatable\`/\`mat-table\`) renders EXACTLY 15 mock rows — no more, no fewer — regardless of any "dari N data" total in the transcript. A plain detail table renders only the rows the design shows.`);
 
   // --- instructions ---
@@ -84,4 +87,37 @@ ${instructions.trim()}`);
   }
 
   return blocks.join("\n\n");
+}
+
+/** The prompt-scale view of project-context: identity + wiring POINTERS, never bodies.
+ *  Capabilities keep their library + sample paths (the agent reads those files itself);
+ *  sampleHtml/sampleTs/sampleScss, the ngDeep corpus, and class vocab stay out — they live in
+ *  conventions.md (copy source) and the pointed-to files (wiring source). */
+function slimProjectContext(pc) {
+  const capLib = {};
+  for (const [cat, c] of Object.entries(pc.capabilities ?? {})) {
+    capLib[cat] = {
+      library: c.library ?? null,
+      ...(c.note ? { note: c.note } : {}),
+      ...Object.fromEntries(["samplePath", "libSourcePath", "sampleScssPath"].filter((k) => c[k]).map((k) => [k, c[k]])),
+    };
+  }
+  return {
+    profile: pc.profile,
+    framework: pc.framework,
+    prefix: pc.prefix,
+    prefixAlternates: pc.prefixAlternates,
+    componentDir: pc.componentDir,
+    componentDirSource: pc.componentDirSource,
+    styleExt: pc.styleExt,
+    uiLibrary: pc.uiLibrary,
+    pathAliases: pc.pathAliases,
+    moduleStructure: pc.moduleStructure,
+    appModulePath: pc.appModulePath,
+    routing: pc.routing,
+    capabilities: capLib,
+    designTokens: pc.designTokens,
+    sampleComponents: pc.sampleComponents,
+    detectionWarnings: pc.detectionWarnings,
+  };
 }

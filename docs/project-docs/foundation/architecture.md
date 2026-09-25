@@ -145,8 +145,8 @@ A new framework can be added as a folder without touching shared `src/lib/` (the
 - `development/api-contract.md` — artifact schemas (§9b flow targets)
 - `development/testing.md` — how the architecture is gated
 - `technical-guidelines/generated-catalog.md` — the generated-file rulebook
-- `PLAN-framework-reorg-e2e.md` (repo root) — reorg plan with locked council decisions
-- `docs/council/` — historical council transcripts behind ADR-2/3
+- `docs/archive/PLAN-framework-reorg-e2e.md` — reorg plan with locked council decisions
+- `docs/archive/council/` — historical council transcripts behind ADR-2/3
 
 ## Open Questions
 

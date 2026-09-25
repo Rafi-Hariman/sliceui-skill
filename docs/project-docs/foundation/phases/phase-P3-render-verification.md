@@ -94,7 +94,7 @@ No release ships with a verify verdict unchecked against a real render.
 ## Related Documents
 
 - `../architecture.md` (ADR-5)
-- `docs/SLICEUI-GAP-ANALYSIS-2026-09-05.md` (superseded root-cause audit)
+- `docs/archive/SLICEUI-GAP-ANALYSIS-2026-09-05.md` (superseded root-cause audit)
 - `development/testing.md` — how the probes run in the suite
 
 ## Open Questions

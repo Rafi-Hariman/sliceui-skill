@@ -69,13 +69,19 @@ Does not restate command usage (see `getting-started.md` + README) or product vi
 
 ## 9. Historical (Non-SDD) Material
 
-Under `docs/` (repo root, one level up) — input only, superseded where marked:
+Under `docs/archive/` — input only, superseded where marked. Nothing here is authoritative.
 
 - `SLICEUI-GAP-ANALYSIS-2026-09-05.md` (superseded, v0.12.1 audit), `REMEDIATION-PLAN-2026-09-05.md`, `BRAINSTORM-sliceui-reality.md`
-- `SLICEUI-EXECUTION-LOG.md`, `SLICEUI-EXPERIENCE-REPORT.md`, `SLICEUI-EXPERIENCE-REPORT-2.md` — field evidence for gate friction
+- `REMEDIATION-PLAN-2026-09-10.md` — monorepo verify-trust plan, executed in commit `3769cf1`
+- `PLAN-folder-layout-2026-09-11.md` — `.sliceui/` reorg, executed (`inputs/` + `artifacts/<name>/`)
+- `SLICEUI-EXECUTION-LOG.md`, `SLICEUI-EXPERIENCE-REPORT.md`, `SLICEUI-EXPERIENCE-REPORT-2.md`, `sliceui-experience.md`, `experience-log-2026-09-10.md`, `agent-pov-2026-09-10.md` — field evidence for gate friction
+- `session-feedback-2026-09-11.md` — session feedback (F1–F14) behind `docs/phases/REMEDIATION-PLAN-2026-09-11.md`
 - `HANDOFF-2026-09-05.md`, `HANDOFF-pilar-sliceui-2026-09-06.md` — session handoffs
-- `council/` — 7 council transcripts/reports
-- `PLAN-framework-reorg-e2e.md` (repo root) — reorg plan, executed in v0.13.1
+- `SLICEUI-EXPLAINED.md`, `SLICEUI-HANDOFF-EXPLAINED.md` — cross-agent briefing docs (v0.15.0)
+- `council/` — 8 council transcripts/reports
+- `PLAN-framework-reorg-e2e.md` — reorg plan, executed in v0.13.1
+
+Pending (not yet executed) plans live in `docs/phases/`.
 
 ## Success Metrics
 
@@ -88,4 +94,4 @@ Every durable concern has exactly one owning doc; agent sessions resolve questio
 
 ## Open Questions
 
-- Whether historical `docs/` material should eventually move to an `archive/` folder (needs user decision).
+- None open.

@@ -15,20 +15,38 @@ export function detectAngularDetails(root, angularJson, warnings) {
   let componentDir = "";
   let routing = false;
   let styles = [];
+  let componentDirSource = "default";
 
   if (angularJson) {
     const projects = angularJson.projects ?? {};
     const projectNames = Object.keys(projects);
+    // Monorepos: the FIRST project is usually the bootstrapping host app (src/main.ts → src/app),
+    // while the real feature code lives in library projects (projects/<domain>/src/lib). Writing
+    // slices into the host silently loses them — the 2026-09-10 run nearly did exactly that.
+    // Prefer the library; fall back to the first project when no library exists.
+    const picked = pickProject(projects, projectNames);
+    const p = picked.project;
     if (projectNames.length > 1) {
-      warnings.push(`Monorepo: angular.json has ${projectNames.length} projects (${projectNames.join(", ")}). Using the first ("${projectNames[0]}").`);
+      const skipped = projectNames.filter((n) => n !== picked.name).join(", ");
+      warnings.push(
+        `Monorepo: angular.json has ${projectNames.length} projects — ` +
+        (picked.source === "angularJsonLibrary"
+          ? `targeting LIBRARY "${picked.name}" (skipping host app(s): ${skipped}).`
+          : `using the first ("${picked.name}"; skipping: ${skipped}).`),
+      );
     }
-    const p = projects[projectNames[0]];
     if (p) {
       configPrefix = p.prefix || configPrefix;
+      const sourceRoot = p.sourceRoot ?? (p.root ? join(p.root, "src") : null);
       const buildOpts = p.architect?.build?.options ?? {};
-      if (buildOpts.main) {
+      if (picked.source === "angularJsonLibrary" && sourceRoot) {
+        // A library project's sourceRoot IS the component tree (projects/<x>/src/lib).
+        componentDir = sourceRoot;
+        componentDirSource = "angularJsonLibrary";
+      } else if (buildOpts.main) {
         // main: "src/main.ts" → app dir is <dir-of-main>/app by CLI convention
         componentDir = join(dirname(buildOpts.main), "app");
+        componentDirSource = "angularJsonMain";
       }
       styles = (buildOpts.styles ?? []).filter((s) => typeof s === "string");
       if (styles.length) {
@@ -65,11 +83,32 @@ export function detectAngularDetails(root, angularJson, warnings) {
     styleExt,
     pathAliases,
     componentDir,
+    componentDirSource,
     routing,
     styles,
     appModulePath,
     moduleStructure,
   };
+}
+
+/** Pick the project slices should be written into. Preference order:
+ *  1. an explicit library project (projectType === "library"),
+ *  2. a sourceRoot-only project (libraries declare sourceRoot; host apps declare build.main),
+ *  3. the first project (single-app repos / older configs). */
+function pickProject(projects, projectNames) {
+  let name = projectNames[0];
+  let source = "first";
+  for (const n of projectNames) {
+    const p = projects[n];
+    if (p?.projectType === "library") {
+      return { name: n, project: p, source: "angularJsonLibrary" };
+    }
+  }
+  const sourceRootOnly = projectNames.find((n) => projects[n]?.sourceRoot && !projects[n]?.architect?.build?.options?.main);
+  if (sourceRootOnly) {
+    return { name: sourceRootOnly, project: projects[sourceRootOnly], source: "angularJsonLibrary" };
+  }
+  return { name, project: projects[name], source };
 }
 
 /** Collect every `selector:` prefix from source. The root component (app.component.ts)

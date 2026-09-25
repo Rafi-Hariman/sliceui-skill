@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "uiigateway-app": {
+      "projectType": "application",
+      "prefix": "ugw",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": { "build": { "options": { "main": "src/main.ts", "styles": ["src/styles.scss"] } } }
+    },
+    "bill": {
+      "projectType": "library",
+      "prefix": "bill",
+      "root": "projects/uiigateway/bill",
+      "sourceRoot": "projects/uiigateway/bill/src/lib"
+    }
+  }
+}

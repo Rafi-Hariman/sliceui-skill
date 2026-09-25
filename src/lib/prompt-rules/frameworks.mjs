@@ -6,6 +6,7 @@
 // When updating the ported rules, src/lib/prompts.ts remains the canonical copy — keep in sync.
 
 import { ANGULAR_RULES } from "../../framework/angular/rules.mjs";
+import { VUE_RULES } from "../../framework/vue-sfc/rules.mjs";
 
 export const FRAMEWORK_RULES = {
   tailwind: `SPECIFIC RULES:
@@ -17,9 +18,7 @@ export const FRAMEWORK_RULES = {
 - Name it based on dominant type (HeroSection, NavBar, CardGrid, etc).
 - Use className not class. Tailwind for styling. Export as default.`,
 
-  "vue-sfc": `SPECIFIC RULES:
-- Vue 3 SFC with <template>, <script setup lang='ts'>, <style scoped>.
-- Composition API. Tailwind classes in template.`,
+  "vue-sfc": VUE_RULES, // home: src/framework/vue-sfc/rules.mjs
 
   bootstrap5: `SPECIFIC RULES:
 - Plain HTML. Bootstrap 5 class names only.

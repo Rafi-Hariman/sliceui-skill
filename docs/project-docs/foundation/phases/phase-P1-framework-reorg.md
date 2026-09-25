@@ -98,7 +98,7 @@ The reorg plan's stated goal verified by layout: a new framework is a folder, no
 ## Related Documents
 
 - `../architecture.md` (ADR-2, ADR-6)
-- `PLAN-framework-reorg-e2e.md` (repo root) — locked council decisions
+- `docs/archive/PLAN-framework-reorg-e2e.md` — locked council decisions
 
 ## Open Questions
 

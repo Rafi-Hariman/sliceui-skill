@@ -17,13 +17,22 @@
 //  11. rowAuth       — action-column rows carry the auth flags pilar needs to render icons
 //  12. filterRowButton — filter-row buttons in the XML (e.g. "Cari") are not dropped
 //  13. buttonOrder   — paired action buttons match the XML's left→right order (no row-reverse)
-//  14. tableOptions  — search/limit/pagination bindings map XML evidence
+//  14. tableOptions  — search/limit/pagination bindings map XML evidence (incl. paginationAlign)
+//  14b. alignmentViaDeepCss — SUI006: footer/pagination alignment via ::ng-deep instead of the
+//      component's public input (warn — see the 23 Sep 2026 report §4.4 / §7 SUI006)
+//  14c. requiredMarker — a required marker emitted-but-hidden, or reconstructed for an optional
+//      field, is unrequested output (report §4.5)
+//  14d. containerPadding — an authored padding the design's explicit XML values don't state
+//  14e. inventedLayout — box-shadow/max-width/absolute/margin-auto with no design evidence (warn)
+//      (report §4.1)
 //  15. gridColumns   — a filter row's col-*-N spans must sum to ≤ 12 (no wrapped children)
 //  16. noTranslation — no `| translate` pipe (SliceUI emits literal text, never i18n)
 //  17. inventedUtility — no atomic utility class (w-100/mr-2/gap-2/rounded-xl) the project never uses
 
 import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from "./conventions.mjs";
 import { walkNodes } from "../../lib/walk-nodes.mjs";
+import { parseFigml } from "../../lib/figml-parse.mjs";
+import { unusedImports, unusedConstructorParams } from "../../lib/ts-ast.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
@@ -43,20 +52,25 @@ const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child",
  *   never crashes and never needs the private pilar modules.
  * @returns {{ checks: Array, pass: boolean, failCount: number, skipCount: number, warnCount: number }}
  */
-export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null } = {}) {
+export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null, modules = "" } = {}) {
   const checks = [
     checkScssCompiles(scss),
     checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
     checkTextCoverage(html, transcript),
     checkTableBindings(html, rawXml, pilar),
     checkPilarBindings(html, pilar),
+    checkDeadCode(ts),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
     checkAnatomy(html, conventions?.componentAnatomy),
     checkMockRowCount(html, ts, conventions?.componentAnatomy, transcript),
     checkNoHashedSelectors(scss),
     checkNoBareNgDeep(scss, conventions?.ngDeepCorpus),
+    checkAlignmentViaDeepCss(scss),
+    checkRequiredMarker(html),
+    checkContainerPadding(html, scss, transcript),
+    checkInventedLayout(scss, transcript),
     checkIconColor(ts + " " + scss, transcript),
-    checkPhantomWrapper(html, transcript),
+    checkPhantomWrapper(html, transcript, conventions?.componentAnatomy),
     checkNgxSelectBinding(html),
     checkRowAuth(html, ts, rawXml, pilar),
     checkFilterRowButton(html, rawXml),
@@ -69,6 +83,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkLibraryTable(html, conventions?.componentAnatomy, transcript, rawXml),
     checkLoadedClass(html, conventions?.loadedClassRegistry),
     checkPilarInjection(scss, html, ts, pilar),
+    checkDeclaredInModule(ts, modules),
   ];
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
@@ -186,7 +201,10 @@ function cssEscape(s) { return s.replace(/[^\w-]/g, "\\$&"); }
 
 /** Which corpus blocks must THIS component copy? Family triggered by the component's own
  *  tags/classes, then filtered to library-internal (reusable) selectors only — mirroring
- *  conventions.mjs's isReusable (token match + NOT under a component-specific wrapper). */
+ *  conventions.mjs's isReusable (token match + NOT under a component-specific wrapper).
+ *  For the TABLE family, a second filter scopes to the bindings that are actually IN PLAY:
+ *  a table with search/pagination/limit all OFF must not be forced to paste their dead SCSS
+ *  (2026-09-11 F6). */
 function relevantCorpus(ngDeepCorpus, html) {
   const triggers = {
     select: /<ngx-select\b|dropdown-menu/i,
@@ -194,12 +212,26 @@ function relevantCorpus(ngDeepCorpus, html) {
     layout: /ugw-header|ugw-sidebar|ugw-breadcrumb/i,
   };
   const inPlay = Object.keys(triggers).filter((fam) => triggers[fam].test(html));
+  const tableTag = /<(?:uii-table|ngx-datatable|mat-table)(?!-skeleton)\b[^>]*>/i.exec(String(html ?? ""))?.[0] ?? "";
+  // "Explicitly OFF" (`="false"`) is the F6 signal — a deliberately disabled complement must not
+  // demand its dead SCSS. ABSENT keeps the current behaviour (the default is on), so a table
+  // without an explicit `[paginationOptions]="false"` still requires its pagination corpus.
+  const bindingOff = (name) => new RegExp(`\\[${name}\\]\\s*=\\s*["']false["']`).test(tableTag);
+
   return ngDeepCorpus.filter((c) => {
     if (!c.family || !inPlay.includes(c.family)) return false;
     const rx = LIBRARY_INTERNAL[c.family];
     if (!rx || !rx.test(c.selector)) return false;
     const guard = LIBRARY_INTERNAL_WRAPPER_GUARD[c.family];
-    return guard ? !guard.test(c.selector) : true;
+    if (guard && guard.test(c.selector)) return false;
+    // F6: drop table-family selectors whose effect belongs to a binding explicitly OFF.
+    if (c.family === "table") {
+      const sel = c.selector ?? "";
+      if (bindingOff("searchOptions") && /search-input|search-options/i.test(sel)) return false;
+      if (bindingOff("limitOptions") && /limit-options/i.test(sel)) return false;
+      if (bindingOff("paginationOptions") && /pagination|page-box/i.test(sel)) return false;
+    }
+    return true;
   });
 }
 
@@ -325,12 +357,19 @@ function checkTableBindings(html, rawXml, pilar = null) {
   const el = tableTag[0];
   const inputs = [...el.matchAll(/\[(\w+)\]/g)].map((m) => m[1]);
   const outputs = [...el.matchAll(/\((\w+)\)\s*=/g)].map((m) => m[1]);
+  // A binding explicitly set to "false" is a deliberate OFF (the design lacks that column), not
+  // a usage claim — it must not trip forbidden/evidence checks (2026-09-11 F7, same guard
+  // pattern as checkRowAuth's [actionColumn]="false").
+  const isFalsy = (binding) => new RegExp(`\\[${binding}\\]\\s*=\\s*["']false["']`).test(el);
 
   const problems = [];
 
   for (const b of inputs) {
-    if (forbiddenTableInputs.has(b)) problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
-    else if (!legalTableInputs.has(b)) problems.push(`unknown input [${b}]`);
+    if (forbiddenTableInputs.has(b) && !isFalsy(b)) {
+      problems.push(`forbidden input [${b}] (server-mode/sliceui is mock-only)`);
+    } else if (!legalTableInputs.has(b)) {
+      problems.push(`unknown input [${b}]`);
+    }
   }
   for (const o of outputs) {
     if (forbiddenTableOutputs.has(o)) problems.push(`forbidden output (${o}) (server-mode/sliceui is mock-only)`);
@@ -339,12 +378,17 @@ function checkTableBindings(html, rawXml, pilar = null) {
 
   // Checkbox column: the XML is the single source of truth. Evidence is the raw XML's
   // <Checkbox_FNC> (the transcript mirrors it as `checkbox` nodes, but the raw source is
-  // authoritative) — never a guess from the component or a default.
-  if (inputs.includes("checkboxColumn")) {
+  // authoritative) — never a guess from the component or a default. An explicit
+  // [checkboxColumn]="false" is a deliberate OFF — no evidence required, no violation.
+  const checkboxOn = inputs.includes("checkboxColumn") && !isFalsy("checkboxColumn");
+  const checkboxOff = inputs.includes("checkboxColumn") && isFalsy("checkboxColumn");
+  if (checkboxOn) {
     if (!rawXml || !/<Checkbox_FNC\b/i.test(rawXml)) {
       problems.push("[checkboxColumn] has no <Checkbox_FNC> evidence in the source XML");
     }
-  } else if (rawXml && /<Checkbox_FNC\b/i.test(rawXml)) {
+  } else if (!checkboxOff && rawXml && /<Checkbox_FNC\b/i.test(rawXml)) {
+    // XML evidences a checkbox column but the output emits none (and doesn't explicitly turn it
+    // off) — that is a dropped design fact.
     problems.push("source XML has <Checkbox_FNC> but output is missing [checkboxColumn]");
   }
 
@@ -355,9 +399,12 @@ function checkTableBindings(html, rawXml, pilar = null) {
   // re-triggers the table's preprocessRows → ngOnChanges → rowsChanged loop (browser hang). Warn
   // but do not fail — the binding itself is not illegal (Report #1 §6.1).
   if (outputs.includes("rowsChanged")) {
-    return { name: "tableBindings", status: "warn", detail: "bindings legal + checkbox evidenced; (rowsChanged) bound — reassigning `rows` in its handler re-triggers the table (infinite loop). Read-only use or drop the binding." };
+    return { name: "tableBindings", status: "warn", detail: "bindings legal; (rowsChanged) bound — reassigning `rows` in its handler re-triggers the table (infinite loop). Read-only use or drop the binding." };
   }
-  return { name: "tableBindings", status: "pass", detail: "bindings legal + checkbox evidenced" };
+  // Honest pass message: name the checkbox state actually found (F7 — "checkbox evidenced" was
+  // misleading when the table has no checkbox column at all).
+  const cbNote = checkboxOn ? " + checkbox evidenced" : checkboxOff ? " + checkbox explicitly off" : "";
+  return { name: "tableBindings", status: "pass", detail: `bindings legal${cbNote}` };
 }
 
 // ---------- 3b. pilarBindings (catalog-enforcing, all uii-* tags) ----------
@@ -449,7 +496,12 @@ function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []
   // breaks an action's styling/behavior. Unlike the advisory `label-custom-*` taxonomy, this must
   // not be softened.
   const badButtons = [];
-  for (const m of generated.matchAll(/\bbtn-([a-z0-9-]+)/gi)) {
+  // `id="btn-*"` is an element ID, NOT a class — this project uses `id="btn-*"` ~46× (a dominant
+  // convention), and the old whole-text scan mistook every one for an invented button class
+  // (2026-09-10 B3). Strip id attributes before scanning: only class-attribute values, `[class.btn-*]`
+  // bindings, and `.btn-*` SCSS selectors are real class positions.
+  const btnSource = String(generated).replace(/\bid\s*=\s*["'][^"']*["']/gi, " ");
+  for (const m of btnSource.matchAll(/\bbtn-([a-z0-9-]+)/gi)) {
     const cls = m[0].toLowerCase();
     // A framework button (btn-primary etc.) is legal even when the project's own vocabulary
     // carries no btn-* — the library's global CSS defines it. Only a NON-framework, non-vocab
@@ -531,9 +583,187 @@ function checkNoBareNgDeep(scss, ngDeepCorpus = []) {
   return { name: "noBareNgDeep", status: "pass", detail: "all ::ng-deep are :host-scoped or corpus-blessed" };
 }
 
+// ---------- 4c-bis. alignmentViaDeepCss (SUI006: capability ignored in favor of deep CSS) ----------
+
+/** Selectors whose subject is the table's own footer/pagination region — the DOM pilar owns and
+ *  exposes configuration for. An alignment override aimed at THESE is the SUI006 case. Deliberately
+ *  narrow: the reusable corpus itself styles `.ugw-pagination-container li.page-box` (borders,
+ *  radius, weight) and that is legitimate VISUAL detail — only *layout distribution* (flex/grid
+ *  alignment, auto margins, text-align) on these owned containers is flagged. */
+const PAGINATION_OWNED = /\.table-footer|ugw-pagination|uii-pagination|\.pagination\b|\.aligned-footer/;
+/** Properties that place an element rather than decorate it. */
+const ALIGNMENT_PROPS = /\b(justify-content|justify-items|justify-self|align-items|align-self|text-align|margin-left|margin-right|margin-inline-start|margin-inline-end|float)\s*:/i;
+
+function checkAlignmentViaDeepCss(scss) {
+  // Why WARN and not FAIL: the string tier cannot always tell a needed workaround from a
+  // redundant one (a design may legitimately right-align inside a footer pilar already aligns).
+  // But a silent pass is what produced the 23 Sep 2026 field defect — three hand-written
+  // alignment overrides, none of which worked, where `[paginationAlign]="'right'"` did. The rule
+  // routes the agent to the public input without blocking a slice that genuinely needs the CSS.
+  const clean = stripComments(scss ?? "");
+  if (!clean.includes("::ng-deep")) {
+    return { name: "alignmentViaDeepCss", status: "skip", detail: "no ::ng-deep in generated scss" };
+  }
+  const offenders = [];
+  const rule = /([^{}]*::ng-deep[^{}]*)\{([^{}]*)\}/g;
+  for (const m of clean.matchAll(rule)) {
+    const selector = m[1].trim();
+    if (!PAGINATION_OWNED.test(selector)) continue;
+    const body = m[2];
+    for (const decl of body.matchAll(/([a-z-]+)\s*:\s*([^;]+)/gi)) {
+      if (!ALIGNMENT_PROPS.test(`${decl[1]}:`)) continue;
+      offenders.push(`${selector} { ${decl[1]}: ${decl[2].trim()} }`);
+    }
+  }
+  if (offenders.length) {
+    return {
+      name: "alignmentViaDeepCss",
+      status: "warn",
+      detail: `SUI006 — pagination/footer alignment set via ::ng-deep instead of the component's public input. Prefer [paginationAlign]="'right'" on <uii-table> (or [paginationALign] on <uii-pagination>); reach for deep CSS only for visual detail the input can't express: ${offenders.slice(0, 3).join("; ")}`,
+      offenders,
+    };
+  }
+  return { name: "alignmentViaDeepCss", status: "pass", detail: "no deep-CSS alignment override on the pagination/footer region" };
+}
+
+// ---------- 4c-ter. requiredMarker (explicit XML `required` beats a reconstructed marker) ----------
+
+/** A required-marker element that is emitted-but-hidden, or a marker on a field the XML states is
+ *  optional. Both are unrequested output: the design's required state is an EXPLICIT XML attribute
+ *  (`required="true"|"false"`), so the generator renders the asterisk for required fields and
+ *  renders NOTHING for optional ones — it must never reconstruct the design's hidden asterisk and
+ *  then hide it again (2026-09-24, report §4.5).
+ *
+ *  `hidden` in the generated markup is the tell either way: a marker the DESIGN hid was carried
+ *  into the output as a still-hidden span, which means the generator copied visibility instead of
+ *  meaning. Scope: markers only (a class/asterisk span), never `*ngIf`-gated content generally. */
+const REQUIRED_MARKER = /<span\b[^>]*class\s*=\s*["'][^"']*(?:required|mandatory)[^"']*["'][^>]*>/gi;
+
+function checkRequiredMarker(html) {
+  const markers = [...String(html ?? "").matchAll(REQUIRED_MARKER)];
+  if (!markers.length) {
+    return { name: "requiredMarker", status: "skip", detail: "no required-marker element in output" };
+  }
+  const hidden = markers.filter((m) => /\bhidden\b|display\s*:\s*none|aria-hidden\s*=\s*["']true["']/i.test(m[0]));
+  if (hidden.length) {
+    return {
+      name: "requiredMarker",
+      status: "fail",
+      detail: `required marker emitted but hidden (${hidden.length}) — the design states the field's required state as an explicit XML attribute, so emit the marker for a required field and emit NOTHING for an optional one; never reconstruct a hidden asterisk and re-hide it. A marker is either rendered or absent: ${hidden[0][0]}`,
+      markers: hidden.map((m) => m[0]),
+    };
+  }
+  return { name: "requiredMarker", status: "pass", detail: `${markers.length} required marker(s), none hidden` };
+}
+
+// ---------- 4c-quater. containerPadding (explicit XML padding must survive) ----------
+
+/** The padding the design declares on a node, as [top, right, bottom, left]. Read from the
+ *  TRANSCRIPT rather than the raw XML on purpose: the parser already applies the precedence the
+ *  report asks for (§4.1 — per-side > shorthand > project convention > fallback) and resolves
+ *  `verticalPadding`/`horizontalPadding` alongside the per-side attributes, so re-deriving it from
+ *  the XML here would be a second implementation free to disagree with the first. */
+function paddingTuple(node) {
+  const p = node?.padding;
+  if (!p || typeof p !== "object") return null;
+  const vals = ["top", "right", "bottom", "left"].map((k) => Number(p[k] ?? 0) || 0);
+  return vals.some((v) => v > 0) ? vals : null;
+}
+
+function checkContainerPadding(html, scss, transcript) {
+  if (!transcript?.layout?.length) {
+    return { name: "containerPadding", status: "skip", detail: "no transcript to check container padding against" };
+  }
+  const rules = authoredRules(scss);
+  if (!rules.length) {
+    return { name: "containerPadding", status: "skip", detail: "no authored SCSS rules to compare against" };
+  }
+  // The outermost node that declares padding IS the page container the design describes.
+  const root = transcript.layout.find((n) => paddingTuple(n));
+  if (!root) {
+    return { name: "containerPadding", status: "skip", detail: "the design declares no padding on its outer frame" };
+  }
+  const design = paddingTuple(root);
+  // Ownership guard: only compare a rule whose selector names a class the OUTPUT actually uses.
+  // A same-named class in the project's own SCSS is not this slice's rule.
+  const htmlStr = String(html ?? "");
+  const owned = rules.filter((r) => r.classes.some((c) => htmlStr.includes(c)));
+  if (!owned.length) {
+    return { name: "containerPadding", status: "skip", detail: "no authored rule whose class the output uses (slice reuses project classes)" };
+  }
+  // `pxNum` requires the `px` suffix, but CSS shorthand writes zero bare (`padding: 0 20px`).
+  // Without this, a side-aware declaration reads as unparseable and the check silently skips the
+  // very output it exists to judge.
+  const cssLen = (v) => (String(v ?? "").trim() === "0" ? 0 : pxNum(v));
+  const found = [];
+  for (const r of owned) {
+    const decls = declMap(r.body);
+    const shorthand = decls["padding"];
+    if (shorthand !== undefined) {
+      const n = shorthand.trim().split(/\s+/).map(cssLen);
+      if (n.some((v) => v === null)) continue; // token/rem — cannot judge
+      // CSS shorthand: 1 value = all sides; 2 = v/h; 3 = t/h/b; 4 = t/r/b/l.
+      const tuple = n.length === 1 ? [n[0], n[0], n[0], n[0]]
+        : n.length === 2 ? [n[0], n[1], n[0], n[1]]
+        : n.length === 3 ? [n[0], n[1], n[2], n[1]]
+        : n.slice(0, 4);
+      found.push({ selector: r.selector, tuple });
+      continue;
+    }
+    const tuple = ["padding-top", "padding-right", "padding-bottom", "padding-left"].map((p) => {
+      const v = decls[p];
+      return v === undefined ? null : pxNum(v);
+    });
+    if (tuple.every((v) => v === null)) continue;
+    found.push({ selector: r.selector, tuple });
+  }
+  if (!found.length) {
+    return { name: "containerPadding", status: "skip", detail: "no authored rule declares padding (nothing to compare)" };
+  }
+  // Each declared padding must be one of the values the design states SOMEWHERE on that edge —
+  // a container legitimately drops the sides it hands to inner elements. Comparing whole tuples
+  // instead would flag correct output (`padding: 0 20px`) as a defect and push the agent back to
+  // the fabricated `5px` the report is complaining about.
+  const SIDES = ["top", "right", "bottom", "left"];
+  const suspects = [];
+  for (const f of found) {
+    const bad = f.tuple
+      .map((v, i) => ({ v, i }))
+      .filter(({ v, i }) => v !== null && v > 0 && v !== design[i]);
+    if (bad.length) {
+      suspects.push(`${f.selector} ${SIDES[bad[0].i]}=${bad[0].v}px (XML: ${design[bad[0].i]}px)`);
+    }
+  }
+  if (suspects.length) {
+    return {
+      name: "containerPadding",
+      status: "warn",
+      detail: `container padding differs from the design's explicit XML values — explicit spacing must beat a generator fallback: ${suspects.join("; ")}`,
+      suspects,
+    };
+  }
+  return { name: "containerPadding", status: "pass", detail: `container padding matches the design (${design.join("/")})` };
+}
+
+/** The slice's OWN (authored) SCSS rules as { selector, body, classes }. Rules that pierce into a
+ *  library component (`::ng-deep`) are library styling, not the slice's layout, and are excluded —
+ *  they are the corpus's business, judged by scssCoverage/noBareNgDeep, never here. */
+function authoredRules(scss) {
+  const clean = stripComments(scss ?? "");
+  const out = [];
+  for (const m of clean.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = m[1].trim();
+    if (!selector || /^\s*@/.test(selector) || selector.includes("::ng-deep")) continue;
+    const classes = [...selector.matchAll(/\.([\w-]+)/g)].map((x) => x[1]);
+    if (!classes.length) continue;
+    out.push({ selector, body: m[2], classes });
+  }
+  return out;
+}
+
 // ---------- 4d. phantom wrapper (structure = XML, not convention) ----------
 
-function checkPhantomWrapper(html, transcript) {
+function checkPhantomWrapper(html, transcript, anatomy = {}) {
   // User's single-source-of-truth principle: structure comes from the XML/transcript ONLY.
   // A wrapper the design doesn't show (`.well`, `page-canvas`) is a phantom added by a
   // convention leak. Flag structural wrappers that have no transcript counterpart.
@@ -545,7 +775,12 @@ function checkPhantomWrapper(html, transcript) {
   const transcriptHasWell = /\bwell\b/i.test(transcriptText);
 
   const phantoms = [];
-  if (/(?:id|class)=["'][^"']*\bwell\b/i.test(html) && !transcriptHasWell) {
+  // The `.well` clause only fires when the project actually HAS a well idiom (wellAvailable).
+  // A project with no `.well` anywhere in its templates must NOT be failed for emitting one —
+  // the conventions layer and this gate pulled in opposite directions until 2026-09-10 §3.9.
+  // An ABSENT key keeps the check ON (older conventions fixtures).
+  const wellClauseActive = anatomy.wellAvailable !== false;
+  if (wellClauseActive && /(?:id|class)=["'][^"']*\bwell\b/i.test(html) && !transcriptHasWell) {
     phantoms.push("id/class=\"well\" (design has no well)");
   }
   if (/class=["'][^"']*page-canvas/i.test(html) && !/page-canvas/i.test(transcriptText)) {
@@ -561,6 +796,81 @@ function checkPhantomWrapper(html, transcript) {
     };
   }
   return { name: "phantomWrapper", status: "pass", detail: "no structural wrappers beyond the design" };
+}
+
+// ---------- 4d-bis. inventedLayout (SUI-STRUCT-004: layout effect with no design evidence) ----------
+
+/** Layout effects the generator emits but the design never evidences: `box-shadow`, `max-width`,
+ *  `position: absolute`, and an outer `margin: Xpx auto`. These are the wrapper-invention patterns
+ *  the plan's §7.2 calls out — the string tier cannot know WHY a shadow or a centering margin was
+ *  added, so this is a WARN, never a fail (preset: alignmentViaDeepCss / containerPadding are warn
+ *  for the same reason).
+ *
+ *  Scoped to the slice's OWN authored rules (::ng-deep excluded — that is library internal, judged
+ *  elsewhere). Evidence is the transcript: a design that actually shadows/centers a frame carries
+ *  it in the transcript JSON, so a rule whose effect has no transcript counterpart is flagged. */
+function checkInventedLayout(scss, transcript) {
+  if (!transcript) {
+    return { name: "inventedLayout", status: "skip", detail: "no transcript to check layout evidence against" };
+  }
+  const rules = authoredRules(scss).filter((r) => !r.selector.includes("::ng-deep"));
+  if (!rules.length) {
+    return { name: "inventedLayout", status: "skip", detail: "no authored SCSS rules to inspect" };
+  }
+  const transcriptText = JSON.stringify(transcript);
+  const offenders = [];
+  for (const r of rules) {
+    const body = r.body;
+    if (/box-shadow\s*:/i.test(body) && !/shadow/i.test(transcriptText)) {
+      offenders.push(`${r.selector} { box-shadow }`);
+    }
+    if (/max-width\s*:/i.test(body) && !/max-width/i.test(transcriptText)) {
+      offenders.push(`${r.selector} { max-width }`);
+    }
+    if (/position\s*:\s*absolute/i.test(body) && !/absolute|position/i.test(transcriptText)) {
+      offenders.push(`${r.selector} { position: absolute }`);
+    }
+    if (/margin\s*:\s*[^;]*auto/i.test(body) && !/center|margin/i.test(transcriptText)) {
+      offenders.push(`${r.selector} { margin: … auto }`);
+    }
+  }
+  if (offenders.length) {
+    return {
+      name: "inventedLayout",
+      status: "warn",
+      detail: `SUI-STRUCT-004 — layout effect(s) with no design evidence (canvas x/y must not become outer spacing; a shadow/centering/max-width the design never shows is invented): ${offenders.join("; ")}`,
+      offenders,
+    };
+  }
+  return { name: "inventedLayout", status: "pass", detail: "no layout effect without design evidence" };
+}
+
+// ---------- 3b-bis. deadCode (unused import / injected dependency) ----------
+
+/** Dead-code lint (P0-5 §5.5): a slice must not carry an import or an injected service it never
+ *  uses — those are speculative infrastructure the design never asked for (report §4.9: "import,
+ *  service injection, atau lifecycle infrastructure dibuat walaupun tidak dipakai"). WARN, not
+ *  fail: the TS AST heuristic counts identifier occurrences, so a param referenced only inside a
+ *  template string or a decorator would be a false positive the string tier cannot disprove. */
+function checkDeadCode(tsSource) {
+  if (!tsSource || !String(tsSource).trim()) {
+    return { name: "deadCode", status: "skip", detail: "no TS source to lint" };
+  }
+  const src = String(tsSource);
+  const problems = [];
+  const deadImports = unusedImports(src);
+  const deadParams = unusedConstructorParams(src);
+  for (const n of deadImports) problems.push(`unused import \`${n}\``);
+  for (const n of deadParams) problems.push(`injected but unused \`${n}\``);
+  if (problems.length) {
+    return {
+      name: "deadCode",
+      status: "warn",
+      detail: `dead code — remove the unused import or injected dependency (the design never asked for it): ${problems.join("; ")}`,
+      problems,
+    };
+  }
+  return { name: "deadCode", status: "pass", detail: "no unused import or injected dependency" };
 }
 
 // ---------- 3c. ngx-select binding (dead-filter defect) ----------
@@ -708,8 +1018,12 @@ function checkRowAuth(html, ts, rawXml, pilar = null) {
   if (!pilar) {
     return { name: "rowAuth", status: "skip", detail: "no pilar action→authKey grammar (pilar not present in this install)" };
   }
-  if (!/\[actionColumn\]/.test(html)) {
-    return { name: "rowAuth", status: "skip", detail: "no [actionColumn] (action column not emitted)" };
+  // Distinguish `[actionColumn]="false"` (column deliberately OFF, per the design) from a truthy
+  // column. The bare `[actionColumn]` (no value) and `="true"` both mean ON in Angular; only an
+  // explicit `="false"` is OFF. The old presence-only guard false-failed `="false"` (2026-09-10 B1).
+  const ac = /\[actionColumn\](?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/.exec(html);
+  if (!ac || /^\s*false\s*$/i.test(ac[1] ?? ac[2] ?? "true")) {
+    return { name: "rowAuth", status: "skip", detail: "no truthy [actionColumn] (action column not emitted)" };
   }
   if (!rawXml || !/<Aksi\b/i.test(rawXml)) {
     return { name: "rowAuth", status: "skip", detail: "no <Aksi> action-node evidence in raw XML" };
@@ -735,6 +1049,11 @@ function checkRowAuth(html, ts, rawXml, pilar = null) {
 function requiredAuthKeysFromXml(rawXml, authKeyByAction) {
   const keys = new Set();
   for (const block of rawXml.matchAll(/<Aksi\b[\s\S]*?<\/Aksi>/gi)) {
+    // A hidden <Aksi> is not a visible action column → it must not require auth flags. Hidden is
+    // signalled either as `visible="false"` on the node OR (FIGML style) via
+    // `<override overriddenField="visible" value="false">`. The old check read only the direct
+    // attribute, so a hidden-by-override Aksi forced the agent to add phantom auth (2026-09-10 B1).
+    if (isHiddenAksi(block[0])) continue;
     const props = block[0].match(/<componentProperties\b[\s\S]*?<\/componentProperties>/i);
     if (!props) continue;
     for (const prop of props[0].matchAll(/<([A-Za-z_][\w]*)\b([^>]*)\/>/g)) {
@@ -749,6 +1068,19 @@ function requiredAuthKeysFromXml(rawXml, authKeyByAction) {
   return [...keys];
 }
 
+/** Is an <Aksi> block hidden? True when the node (or an override within it) sets visible=false. */
+function isHiddenAksi(block) {
+  const open = /^<Aksi\b([^>]*)>/i.exec(block)?.[1] ?? "";
+  if (/visible\s*=\s*["']false["']/i.test(open)) return true;
+  for (const o of block.matchAll(/<override\b([^>]*)\/?>/gi)) {
+    const attrs = o[1];
+    if (/overriddenField\s*=\s*["']visible["']/i.test(attrs) && /value\s*=\s*["']false["']/i.test(attrs)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function normalizeFigmaAction(rawName, authKeyByAction) {
   const base = String(rawName).toLowerCase().replace(/_\d+(_\d+)?$/, "").replace(/^_+|_+$/g, "");
   return authKeyByAction[base] ?? null;
@@ -759,12 +1091,18 @@ function normalizeFigmaAction(rawName, authKeyByAction) {
  *    auth.canUpdate = true | 1          (also this.auth.canUpdate)
  *    auth["canUpdate"] = true | 1
  *    auth: { canUpdate: true }          (and AuthorizationModel({ canUpdate: true }) literals)
+ *    auth: Object.assign(new AuthorizationModel(), { canUpdate: true })   (2026-09-11 F3 —
+ *      the idiom this repo's existing components use; the old regex missed it and reported
+ *      explicitly-written flags as "missing")
  */
 function detectAuthFlags(ts) {
   const flags = new Set();
   for (const m of ts.matchAll(/\bauth\s*\.\s*([A-Za-z_$][\w$]*)\s*=\s*(?:true|1)\b/g)) flags.add(m[1]);
   for (const m of ts.matchAll(/\bauth\s*\[\s*["']([A-Za-z]+)["']\s*\]\s*=\s*(?:true|1)\b/g)) flags.add(m[1]);
   for (const m of ts.matchAll(/\b(?:auth|AuthorizationModel)\s*(?::|=)\s*(?:new\s+AuthorizationModel\s*\(\s*)?\{([^}]*)\}/g)) {
+    for (const p of m[1].matchAll(/\b(can[A-Za-z]+)\s*:\s*(?:true|1)\b/g)) flags.add(p[1]);
+  }
+  for (const m of ts.matchAll(/Object\.assign\(\s*new\s+AuthorizationModel\s*\([^)]*\)\s*,\s*\{([^}]*)\}/g)) {
     for (const p of m[1].matchAll(/\b(can[A-Za-z]+)\s*:\s*(?:true|1)\b/g)) flags.add(p[1]);
   }
   return flags;
@@ -838,9 +1176,19 @@ function checkTableOptions(html, rawXml) {
   const inputs = new Set([...el.matchAll(/\[(\w+)\]/g)].map((m) => m[1]));
 
   const required = [];
-  if (/<search_bar\b/i.test(rawXml)) required.push("searchOptions");
+  // A <search_bar> is the TABLE's toolbar search UNLESS it sits inside a filter card that also
+  // carries other filter controls (Field/Select/Button_FNC) — then it is a decorative page
+  // search, and demanding [searchOptions] makes the table render a SECOND search box (2026-09-11
+  // F14). The heuristic is conservative: only skip when the search_bar is inside a frame that
+  // also contains a filter control.
+  if (/<search_bar\b/i.test(rawXml) && !searchBarInFilterCard(rawXml)) required.push("searchOptions");
   if (/Tampilkan\s+\d+\s+data/i.test(rawXml)) required.push("limitOptions");
   if (/Menampilkan\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+\d+\s+data/i.test(rawXml)) required.push("paginationOptions");
+  // The pagination ALIGNMENT is evidence-gated the same way (2026-09-24). `paginationAlign` is a
+  // legal *presentation* input whose runtime default is 'center', so a design that puts the
+  // pagination at the frame's right edge renders centered unless the binding is sent — and the
+  // hand-written ::ng-deep that used to compensate never aligned it reliably.
+  const wantsRight = paginationAlignRightEvidenced(rawXml);
 
   const missing = required.filter((b) => !inputs.has(b));
   if (missing.length) {
@@ -851,10 +1199,92 @@ function checkTableOptions(html, rawXml) {
       missing,
     };
   }
-  if (!required.length) {
+  // Checked against the ACTUAL binding value, not mere presence: `[paginationAlign]="'left'"`
+  // set against a right-aligned footer is wrong even though the input is present. The value is
+  // normalized rather than regex-matched — Angular templates quote it as `"'right'"`, `'right'`,
+  // `"right"` or a bare expression, and a pattern tuned to one form silently rejects the others.
+  const alignValue = String(el.match(/\[paginationAlign\]\s*=\s*(['"])([\s\S]*?)\1/i)?.[2] ?? "")
+    .replace(/['"]/g, "")
+    .trim()
+    .toLowerCase();
+  if (wantsRight && alignValue !== "right") {
+    return {
+      name: "tableOptions",
+      status: "fail",
+      detail: `uii-table [paginationAlign] must be "'right'" — the XML footer distributes its children (pagination at the frame's right edge). pilar defaults this input to 'center', so a missing/other value renders the control centered.`,
+      missing: ["paginationAlign"],
+    };
+  }
+  if (!required.length && !wantsRight) {
     return { name: "tableOptions", status: "skip", detail: "no search/limit/pagination evidence in XML" };
   }
-  return { name: "tableOptions", status: "pass", detail: `table options bound (${required.join(", ")})` };
+  const bound = [...required];
+  // Naming the actual value (not just "present") keeps the pass message honest when the design
+  // is right-aligned AND when it is centered/left (binding allowed, simply not required).
+  if (wantsRight) bound.push(`paginationAlign='right'`);
+  else if (inputs.has("paginationAlign")) bound.push("paginationAlign='center' (no right-edge evidence)");
+  return { name: "tableOptions", status: "pass", detail: `table options bound (${bound.join(", ")})` };
+}
+
+/** Does the raw XML show the pagination footer distributing its children (pagination pinned to
+ *  the frame's right edge)? Uses the SAME `isSpaceBetween` predicate the parser and fidelity
+ *  scoring use (figml-parse.mjs / fidelity.mjs both read `primaryAxisAlignItems ?? justifyContent
+ *  ?? justify`), so the gate, the transcript, and the fidelity score can never disagree about
+ *  what "right-aligned" means — the strongest agent-side proxy for a Figma "auto-layout with
+ *  space-between" frame, which is how a right-pinned pagination is drawn.
+ *
+ *  Best-effort and conservative: any ambiguity (unparseable XML, no alignment attribute at all)
+ *  returns false, so the binding stays ALLOWED but UNREQUIRED rather than being demanded on a
+ *  guess. */
+function paginationAlignRightEvidenced(rawXml) {
+  if (!rawXml || !PAGINATION_HINT.test(rawXml)) return false;
+  const parsed = parseFigml(rawXml, "evidence.xml");
+  if (!parsed.ok) return false;
+  // Two independent signals, either sufficient. The parser keeps ONLY "space-between" in
+  // `node.justify` (justifyContentOf returns null for every other value), so `distributes` is a
+  // plain truth test, not a string compare.
+  //
+  // (a) PARSED — walk the transcript tree, carrying the ancestor chain, and match a node whose
+  //     surviving text/description names the pagination region while it (or a container in its
+  //     chain) distributes its children. This is the precise signal.
+  // (b) RAW — fallback for the shape the parser cannot carry: a frame's `name` attribute is NOT
+  //     retained on non-icon nodes, so `<frame name="Pagination">` is invisible to (a). Match the
+  //     raw tags directly.
+  let found = false;
+  const visit = (nodes, ancestors) => {
+    for (const n of nodes ?? []) {
+      if (found || !n || typeof n !== "object") continue;
+      const content = `${n.glyphName ?? ""} ${n.description ?? ""} ${n.text ?? ""}`;
+      if (PAGINATION_HINT.test(content) && (n.justify === "space-between" || ancestors.some((a) => a.justify === "space-between"))) {
+        found = true;
+        return;
+      }
+      const next = n.justify === "space-between" ? [...ancestors, n] : ancestors;
+      if (n.children) visit(n.children, next);
+    }
+  };
+  visit(parsed.transcript.layout, []);
+  if (found) return true;
+  return /<frame[^>]*(?:primaryAxisAlignItems|justifyContent)="SPACE_BETWEEN"[^>]*>[\s\S]*?(?:pagination|Menampilkan)/i.test(rawXml);
+}
+
+/** What the design calls the pagination region. Deliberately NOT bare `page` — the root frame of a
+ *  FIGML export is frequently named "Page", and matching that would demand a right-aligned table
+ *  on every design. The `Menampilkan N-M dari K data` footer is included because it is the same
+ *  signal `checkTableOptions` already uses to demand [paginationOptions] — the two must agree. */
+const PAGINATION_HINT = /pagination|pager\b|page[-_]?(?:box|nav|number)|Menampilkan\s+\d+\s*-\s*\d+\s+(?:dari|of)/i;
+
+/** Conservative F14 heuristic: is a <search_bar> inside a filter card (i.e. a frame that ALSO
+ *  holds a Field/Select/Button filter control), not the table's own toolbar? True only when the
+ *  search_bar shares a frame with a filter control — anything ambiguous → false (keep requiring
+ *  searchOptions, the safer default). */
+function searchBarInFilterCard(rawXml) {
+  for (const frame of rawXml.matchAll(/<frame\b[\s\S]*?<\/frame>/gi)) {
+    const body = frame[0];
+    if (!/<search_bar\b/i.test(body)) continue;
+    if (/<Field\b|<Select\b|<Button_FNC\b|<Dropdown\b/i.test(body)) return true;
+  }
+  return false;
 }
 
 // ---------- 3h. grid columns (a filter row's col spans must sum to ≤ 12) ----------
@@ -966,7 +1396,10 @@ function checkIconColor(generated, transcript) {
   // An icon is only "matched" if it is one the design's semantic color would produce (same
   // icon glyph family). Neutrals are structural ONLY when no design color targets that glyph;
   // a badge whose design fill is #f44444 must not render its icon neutral (#333/#fff/#000).
-  const neutral = new Set(["#303030", "#333333", "#000000", "#ffffff", "#f5f5f5"]);
+  // `#03337b` is the project's structural BLUE for ACTION icons (search/pencil/eye) — not a
+  // status color. It is excluded from `designColors` above; it must be neutral HERE too, or a
+  // faithful `fa-pencil { color: #03337b }` gets false-failed (2026-09-10 B4).
+  const neutral = new Set(["#303030", "#333333", "#000000", "#ffffff", "#f5f5f5", "#03337b"]);
   const problems = [];
   for (const { icon, color } of styledIcons) {
     if (semantic.includes(color)) continue; // matches a design color → OK
@@ -1003,11 +1436,15 @@ function checkAnatomy(html, anatomy = {}) {
   if (!anatomy.tableTag && !hasTable) {
     return { name: "anatomy", status: "skip", detail: "no table anatomy to check" };
   }
+  // The skeleton is a LOADING-state structure. "STRUCTURE = XML/TRANSCRIPT ONLY" is SliceUI's
+  // hardest rule — demanding a skeleton the design never shows forces the agent to ADD an
+  // isLoading/*ngIf wrapper that contradicts it (2026-09-11 F11). Downgrade to a WARN: the
+  // skeleton is a good-to-have when the project loads data async, never a blocking fail.
   if (hasTable && anatomy.skeletonTag && !new RegExp(`<${anatomy.skeletonTag}\\b`, "i").test(html)) {
     return {
       name: "anatomy",
-      status: "fail",
-      detail: `table present but <${anatomy.skeletonTag}> loading state missing`,
+      status: "warn",
+      detail: `table present but <${anatomy.skeletonTag}> loading state missing — add it only if the design/UX evidences a loading state (never a hard fail: structure = XML only)`,
     };
   }
   return { name: "anatomy", status: "pass", detail: "table + skeleton structure present" };
@@ -1022,7 +1459,22 @@ function isLibraryTable(html) {
 }
 
 function checkMockRowCount(html, ts, anatomy = {}, transcript) {
-  const rows = countMockRows(ts);
+  // The mock-row floor exists to activate PAGINATED LIBRARY tables. A uii-table with all
+  // complement bindings explicitly OFF (`[paginationOptions]="false"`, `[searchOptions]="false"`,
+  // `[limitOptions]="false"`) is a plain canvas: every row renders at once, so the design's row
+  // count is correct and 15 would be WRONG (2026-09-11 F4). Same guard pattern as checkRowAuth.
+  if (isLibraryTable(html)) {
+    const tableTag = /<(?:uii-table|ngx-datatable|mat-table)(?!-skeleton)\b[^>]*>/i.exec(String(html ?? ""))?.[0] ?? "";
+    const off = (binding) => new RegExp(`\\[${binding}\\]\\s*=\\s*["']false["']`).test(tableTag);
+    if (off("paginationOptions") && off("searchOptions") && off("limitOptions")) {
+      return {
+        name: "mockRowCount",
+        status: "skip",
+        detail: "table complement explicitly off (pagination/search/limit = false) — a plain canvas renders the design's row count, the 15-row floor does not apply",
+      };
+    }
+  }
+  const rows = countMockRows(html, ts);
   if (rows === null) {
     return { name: "mockRowCount", status: "skip", detail: "could not determine mock row count" };
   }
@@ -1106,10 +1558,76 @@ function checkPilarInjection(scss, html, ts, pilar) {
   };
 }
 
-/** Count top-level elements in the mock array. Supports the patterns SliceUI actually emits:
- *  `const base = [...]`, `rows = [...]`, `private mockTagihanData: Array<any> = [...]` (and
- *  other `name = [...]` assignments). Prefers the LARGEST array — the mock data source. */
-function countMockRows(ts) {
+// ---------- 20. declaredInModule (a library component must be in its NgModule declarations) ----------
+
+/** A library `ng build` silently SKIPS a component that is not in its NgModule's `declarations`
+ *  (green ≠ compiled; NG8001 only surfaces in the app build). This check names the component class
+ *  and confirms it appears INSIDE a `declarations: [...]` array — parsed brace-aware, NOT matched
+ *  loosely across the whole module source: the old whole-source regex false-PASSED a component
+ *  that only appeared in a route's `component: X` entry (2026-09-11 F2). */
+function checkDeclaredInModule(ts, modules) {
+  const cls = /export\s+class\s+([A-Za-z_$][\w$]*)\s*(?:extends|implements|\{|\()/.exec(String(ts ?? ""))?.[1];
+  if (!cls) {
+    return { name: "declaredInModule", status: "skip", detail: "no exported component class to check" };
+  }
+  const mods = String(modules ?? "");
+  if (!mods.trim()) {
+    return { name: "declaredInModule", status: "skip", detail: "no module source to check against (run verify from the project root)" };
+  }
+  const declared = extractDeclarationsArrays(mods);
+  if (!declared.length) {
+    // Cannot statically confirm (no parseable declarations array) → honest skip, never a pass.
+    return { name: "declaredInModule", status: "skip", detail: "cannot statically confirm — no parseable declarations: [...] array found in module sources" };
+  }
+  if (declared.some((body) => new RegExp(`(^|[^\\w$])${cls}([^\\w$]|$)`).test(body))) {
+    return { name: "declaredInModule", status: "pass", detail: `${cls} is in the owning NgModule declarations` };
+  }
+  return {
+    name: "declaredInModule",
+    status: "warn",
+    detail: `${cls} not found in any NgModule declarations — a library ng build skips undeclared components; register it, then confirm with the app build`,
+  };
+}
+
+/** Extract the BODY of every `declarations: [...]` array in @NgModule-ish source (brace-aware,
+ *  so `imports: [RouterModule.forChild(routes)]` cannot bleed into the match). */
+function extractDeclarationsArrays(src) {
+  const out = [];
+  const re = /\bdeclarations\s*:\s*\[/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const start = m.index + m[0].length;
+    let depth = 1;
+    for (let i = start; i < src.length && depth > 0; i++) {
+      const c = src[i];
+      if (c === "[" || c === "(" || c === "{") depth++;
+      else if (c === "]" || c === ")" || c === "}") depth--;
+      if (depth === 0) {
+        out.push(src.slice(start, i));
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Count the mock rows. Prefers the array BOUND to `[rows]="X"` in the HTML (2026-09-11 F4: the
+ *  old largest-array heuristic counted `columns` (5) instead of `rows` (3) and failed a correct
+ *  component). Falls back to the largest array only when the binding cannot be resolved.
+ *  Supports `const base = [...]`, `rows = [...]`, `private x: Array<any> = [...]`, `x = [...]`. */
+function countMockRows(html, ts) {
+  const bound = /\[rows\]\s*=\s*["'](\w+)["']/.exec(String(html ?? ""))?.[1];
+  if (bound) {
+    const re = new RegExp(`(?:(?:private|protected|public|readonly|const|let|var)\\s+)?${bound}\\s*(?::\\s*[A-Za-z<>\\[\\]]+)?\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*;`);
+    const m = re.exec(String(ts ?? ""));
+    if (m) {
+      const n = countArrayElements(m[1]);
+      if (n > 0) return n;
+    }
+    // Bound name present in HTML but no matching array literal (rows built via .map/fill):
+    // counting a DIFFERENT array would be wrong — skip honestly.
+    return null;
+  }
   let best = null;
   const re = /(?:(?:private|protected|public|readonly|const|let|var)\s+)?\w+\s*(?::\s*[A-Za-z<>\[\]]+)?\s*=\s*\[([\s\S]*?)\]\s*;/g;
   let m;
@@ -1120,13 +1638,17 @@ function countMockRows(ts) {
   return best;
 }
 
-/** Count top-level comma-separated elements (brace/quote aware) inside an array body. */
+/** Count top-level comma-separated elements (brace/quote aware) inside an array body.
+ *  A trailing comma (`[a, b, c,]`) is a legal, idiomatic TS array — it must NOT count as an
+ *  extra element (2026-09-10 B2). */
 function countArrayElements(body) {
+  const trimmed = String(body ?? "").replace(/[\s,]+$/, ""); // drop trailing whitespace + commas
+  if (!trimmed) return 0;
   let depth = 0;
   let count = 1;
   let quote = null;
-  for (let i = 0; i < body.length; i++) {
-    const c = body[i];
+  for (let i = 0; i < trimmed.length; i++) {
+    const c = trimmed[i];
     if (quote) { if (c === quote) quote = null; continue; }
     if (c === '"' || c === "'") { quote = c; continue; }
     if (c === "{" || c === "[" || c === "(") depth++;
@@ -1414,7 +1936,10 @@ function appendText(node, text) {
  *  class), or null. Reused/global classes that the slice never authors return null. */
 function authoredRule(scss, cls) {
   const clean = stripComments(scss);
-  const re = new RegExp(`(?:^|\\})[^{}]*\\.${cssEscape(cls)}\\b[^{]*\\{([^{}]*)\\}`, "g");
+  // `(?![-\\w])` after the class name is the boundary fix: `\b` alone lets `.summary-row-danger`
+  // satisfy a lookup for `.summary-row` (the `\b` matches between `w` and `-`), which mis-resolved
+  // `.summary-row` to the danger rule's color (2026-09-10 B5).
+  const re = new RegExp(`(?:^|\\})[^{}]*\\.${cssEscape(cls)}(?![-\\w])[^{]*\\{([^{}]*)\\}`, "g");
   const m = re.exec(clean);
   return m ? m[1] : null;
 }

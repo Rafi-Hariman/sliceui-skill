@@ -76,6 +76,11 @@ export function validateTranscript(t) {
         if (n.hidden !== undefined && typeof n.hidden !== "boolean") {
           errors.push(`layout node ${where}.hidden must be a boolean (got ${JSON.stringify(n.hidden)})`);
         }
+        // Glyph identity (FA glyph name) — an empty-TEXT icon glyph or a named VECTOR/INSTANCE
+        // icon. Optional, but shape-checked when present.
+        if (n.glyphName !== undefined && (typeof n.glyphName !== "string" || !n.glyphName)) {
+          errors.push(`layout node ${where}.glyphName must be a non-empty string (got ${JSON.stringify(n.glyphName)})`);
+        }
         // v4 (additive): a button/component's Figma variant ("primary"|"secondary"|"dropdown-c"),
         // border facts, and opacity — optional, but shape-checked when present.
         if (n.variant !== undefined && typeof n.variant !== "string") {

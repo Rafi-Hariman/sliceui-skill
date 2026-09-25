@@ -56,12 +56,12 @@ Commands are argument-driven; results are either stdout text (human/agent-readab
 
 | Command | Input | Output | Exit |
 | :--- | :--- | :--- | :--- |
-| `sliceui init [--key-from F]` | — | `.sliceui/{images,xml,transcript}/`, `config.json`, `.env.local`, gitignore, `project-context.json`, `conventions.json` (+3 pilar files for UII projects) | 0/1 |
-| `sliceui detect` | CWD project | `.sliceui/project-context.json` + `conventions.json` | 0/1 |
+| `sliceui init [--key-from F]` | — | `.sliceui/{images,xml,transcript}/`, `config.json`, `.env.local`, gitignore, `project-context.json`, `conventions.json`, `.sliceui/context/*.md` (+3 pilar files for UII projects) | 0/1 |
+| `sliceui detect` | CWD project | `.sliceui/project-context.json` + `.sliceui/context/*.md` | 0/1 |
 | `sliceui transcribe <input>` | `.xml`/`.figml` file or image | `.sliceui/transcript/<name>.transcript.{md,json}` + `.transcript.meta.json` (input-stamped) | 0/1 |
 | `sliceui resolve <xml\|json>` | FIGML XML or transcript JSON | `.sliceui/resolve/<name>.resolved.json` | 0/1 |
 | `sliceui referee [root]` | ground-truth artifacts | stdout verdict per claim (green/red per check) | 0/1 |
-| `sliceui verify <dir> [name]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 / 1 (gate) / 2 (usage/framework) |
+| `sliceui verify <dir> [name] [--xml F] [--transcript F] [--conventions F]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 / 1 (gate) / 2 (usage/framework) |
 | `sliceui doctor` | — | environment diagnosis (Node, platform, sips/swiftc, key, skill, live Gemini) | 0/1 |
 | `sliceui fidelity <xml>` | FIGML XML | stdout % + per-attribute breakdown | 0/1 |
 | `sliceui install [--dir D]` | — | skill files into `~/.claude/skills/sliceui` (or D) | 0/1 |
@@ -90,10 +90,14 @@ Names the exact input file the transcript was generated from — the staleness c
 Produced by detect/init. Carries:
 
 - `capabilities` — per UI-category library resolution: `{ library, sampleHtml, source }` with `source ∈ {local, installed}` or `null` (plain HTML + note). Precedence: local usage > installed package > null. Categories: `select, table, modal, toast, editor, date, slider, switch, pagination, divider, well, checkbox, layout`.
-- `provenance` — per-claim signal: `sourceCode | configFile | registryDefault` (source code is ground truth).
+- `provenance` — per-claim signal: `sourceCode | configFile | registryDefault` (source code is ground truth). `provenance.componentDir` carries `angularJsonLibrary | angularJsonMain | registryDefault`.
 - `designTokens` — the project's variables/CSS-props/mixins (literal values only).
 - `sampleComponents` — feature components (app shell excluded) chosen by relevance for idiom learning.
-- `moduleStructure`, `componentDir`, `generatedAt`, `inputHash`.
+- `moduleStructure`, `componentDir`, `componentDirSource`, `generatedAt`, `inputHash`.
+
+The agent-facing slice `.sliceui/context/{INDEX,capabilities,design-tokens,samples}.md` is written
+alongside (additive views — the root JSON stays the machine contract, since it can exceed the
+agent's Read cap).
 
 ### 10.4 `.sliceui/conventions.json`
 
@@ -101,7 +105,11 @@ Deterministic facts (the verify gate's ground truth): `classVocabulary`, deep-se
 
 ### 10.5 `.sliceui/resolve/<name>.resolved.json`
 
-Per styled leaf: `resolved[]` — the exact idiom candidates the agent may emit; keyed by design evidence (color, icon, Figma name). The agent emitting anything outside `resolved[]` is a verify failure mode.
+A `groups[]` array of unique styled-leaf facts — identical table rows are deduped into one entry
+with `count` + `ids[]`. Each group carries `resolved[]` (the exact idiom candidates the agent may
+emit; keyed by design evidence: color, icon, Figma glyph name) plus optional `candidates`/`fallback`.
+`meta` holds `totalLeaves`/`uniqueGroups`. The agent emitting anything outside `resolved[]` is a
+verify failure mode. (`--json` still prints the full per-leaf `leaves`/`statusTable` for callers.)
 
 ### 10.6 Config / env files
 

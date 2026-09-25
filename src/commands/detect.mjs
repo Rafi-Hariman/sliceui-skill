@@ -12,6 +12,7 @@ import { scanLibraryUsage } from "../lib/library-scan.mjs";
 import { extractStyleTokens } from "../lib/style-tokens.mjs";
 import { extractLoadedClasses } from "../lib/loaded-classes.mjs";
 import { extractConventions } from "../framework/angular/conventions.mjs";
+import { extractConventions as extractVueConventions } from "../framework/vue-sfc/conventions.mjs";
 import { detectAngularDetails } from "../framework/angular/detect-angular.mjs";
 import { walkFiles, readJsonSafe, readFileSyncSafe, toRel, extractTsconfigPaths } from "../lib/detect-utils.mjs";
 
@@ -54,6 +55,7 @@ export async function detectProject(rootDir, { frameworkId = null, profile = nul
   let styleExt = "css";
   let pathAliases = {};
   let componentDir = "";
+  let componentDirSource = "registryDefault";
   let routing = false;
   let stylePaths = [];
   let appModulePath = null;
@@ -69,6 +71,7 @@ export async function detectProject(rootDir, { frameworkId = null, profile = nul
     styleExt = ang.styleExt;
     pathAliases = ang.pathAliases;
     componentDir = ang.componentDir;
+    componentDirSource = ang.componentDirSource;
     routing = ang.routing;
     stylePaths = ang.styles;
     appModulePath = ang.appModulePath;
@@ -80,27 +83,52 @@ export async function detectProject(rootDir, { frameworkId = null, profile = nul
     styleExt = detectStyleExt(root, fw.id);
   }
 
-  const sampleComponents = [
-    ...readGoldenReferences(root, warnings),
-    ...findSampleComponents(root, fw.id, componentDir, warnings),
-  ];
+  // For a UII project the codegen source of truth is the org's curated pilar-reference.md +
+  // pilar-showcase.md + conventions.md — NOT feature components sampled from the repo. Sampling
+  // feature components and handing them to the agent as "read this for wiring" is what leaked the
+  // stale idioms (.margin-top-20 that doesn't exist, the [pagination] bogus input) into a fresh
+  // slice (2026-09-24 field session): a checked-in feature component is a snapshot that can be
+  // stale and buggy, whereas the generated pilar docs are curated. Keep GOLDEN references (the
+  // user hand-sliced them on purpose) but drop the auto-sampled feature components for UII.
+  const sampleComponents = isUii
+    ? [...readGoldenReferences(root, warnings)]
+    : [
+        ...readGoldenReferences(root, warnings),
+        ...findSampleComponents(root, fw.id, componentDir, warnings),
+      ];
 
   // Library-aware: capabilities map (category → library + real usage sample).
   // deps feeds the "installed but not yet used" signal so a fresh scaffold still resolves
   // its libraries (e.g. pilar → uii-table) before any component imports them.
-  const { capabilities, libraries } = await scanLibraryUsage(root, deps, { includeUii: isUii });
+  const { capabilities, libraries } = await scanLibraryUsage(root, deps, { includeUii: isUii, preferRegistrySamples: isUii });
   const uiLibrary = detectUiLibrary(deps, libraries.inUse);
 
   // Non-silent nulls: a null capability must surface a note, never quietly fall back.
+  // The note is the machine contract (every null capability carries it). The per-capability
+  // WARNING, though, is only useful for Angular — there a null table/select means "project has
+  // a UI library but this category wasn't resolved" (surprising). For every other framework ALL
+  // categories are null by design (the registry is Angular-shaped), so 13 identical warnings
+  // drown out real ones. Collapse to one summary line for non-Angular.
+  let nullCapabilityCount = 0;
   for (const [cat, cap] of Object.entries(capabilities)) {
     if (!cap.library) {
       cap.note = `no ${cat} library detected — use native HTML for this element and flag it in the output`;
-      warnings.push(`capability "${cat}": no library detected — generated code will use native HTML.`);
+      nullCapabilityCount++;
     }
+  }
+  if (fw.id === "angular") {
+    for (const [cat, cap] of Object.entries(capabilities)) {
+      if (!cap.library) warnings.push(`capability "${cat}": no library detected — generated code will use native HTML.`);
+    }
+  } else if (nullCapabilityCount) {
+    warnings.push(`No component libraries detected (${nullCapabilityCount} categories) — this is expected for a non-Angular project; generated code uses native elements + the project's own styling.`);
   }
 
   // Design tokens from the project's own stylesheets (SCSS vars + CSS custom props + mixins).
-  const designTokens = stylePaths.length ? extractStyleTokens(root, stylePaths) : { scss: [], cssProps: [], mixins: [] };
+  // `stylePaths` is only set for Angular; for every other framework it is [] and
+  // extractStyleTokens falls back to globbing src/**/*.scss|css itself (Tailwind v4 @theme
+  // tokens live in a plain .css and must NOT be skipped just because the project is not Angular).
+  const designTokens = extractStyleTokens(root, stylePaths);
 
   // Loaded class registry: which classes actually RESOLVE to CSS in this project (dist CSS or
   // the loaded stylesheet chain). Distinct from the vocabulary (which classes the team USES).
@@ -110,13 +138,22 @@ export async function detectProject(rootDir, { frameworkId = null, profile = nul
   // Code conventions — HOW this team writes (reusable classes, ::ng-deep corpus, page
   // anatomy, naming). Distinct from designTokens (WHAT tokens exist): these are the rules
   // the generated code must follow to read as native to this project.
-  const conventions = extractConventions(root, { prefix });
+  //
+  // Deep convention mining is framework-shaped. Angular mines reusable classes from .html +
+  // ::ng-deep corpus + Angular event syntax; Vue mines SFC anatomy + :deep() corpus + @event
+  // naming. Every other framework still gets an honest empty profile (its miner is not built
+  // yet) — the /sliceui-handoff skill reads the real components for those.
+  const conventions = fw.id === "angular"
+    ? extractConventions(root, { prefix })
+    : fw.id === "vue-sfc"
+      ? extractVueConventions(root)
+      : { classVocabulary: [], ngDeepCorpus: [], componentAnatomy: {}, naming: { prefix: null, eventNaming: null } };
 
   // Provenance: which signal produced each claim — source code beats config beats registry default.
   const provenance = {
     prefix: prefixSource ?? "configFile",
     styleExt: fw.id === "angular" ? "configFile" : "registryDefault",
-    componentDir: componentDir ? (fw.id === "angular" ? "configFile" : "sourceCode") : "registryDefault",
+    componentDir: componentDir ? (fw.id === "angular" ? componentDirSource : "sourceCode") : "registryDefault",
     uiLibrary: uiLibrary ? (libraries.inUse.includes(uiLibrary) ? "sourceCode" : "configFile") : "registryDefault",
   };
 
@@ -135,6 +172,7 @@ export async function detectProject(rootDir, { frameworkId = null, profile = nul
     prefixNote,
     styleExt,
     componentDir,
+    componentDirSource,
     appModulePath,
     moduleStructure,
     uiLibrary,
@@ -369,7 +407,7 @@ function readTemplateOf(tsPath, content, root) {
 }
 
 /** Hash the config inputs + git HEAD so a stale project-context is detectable. */
-function hashInputs(root) {
+export function hashInputs(root) {
   const hash = createHash("sha1");
   for (const f of ["package.json", "angular.json", "tsconfig.json", "package-lock.json"]) {
     const c = readFileSyncSafe(join(root, f));
@@ -411,20 +449,125 @@ function detectStyleExt(root, fwId) {
 
 export async function main(argv) {
   const root = cwd();
-  const ctx = await detectProject(root);
+  const force = argv.includes("--force");
   const outDir = join(root, ".sliceui");
-  mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, "project-context.json");
+
+  // Freshness gate (P0-3). `detect` is the EXPENSIVE scan (5 globs over the source tree). It is
+  // run by `init` (cold path, always fresh) and was also listed as a normal per-slice step in
+  // SKILL.md — which re-paid that scan on every slice for no reason. When the fingerprint of the
+  // inputs that determine detection (package.json / angular.json / tsconfig.json / lockfile / git
+  // HEAD) is unchanged and the cached context exists, reuse it instead of re-scanning.
+  //
+  // --force re-scans. Uncommitted source changes are NOT fingerprinted here (only git HEAD is),
+  // so a deliberately committed-then-verified workflow is assumed; --force is the escape hatch.
+  const cached = readJsonSafe(outPath);
+  const currentHash = hashInputs(root);
+  if (!force && cached?.inputHash && cached.inputHash === currentHash) {
+    console.log(JSON.stringify({
+      ok: true,
+      out: outPath,
+      framework: cached.framework,
+      detected: cached.detected,
+      fresh: true,
+      sampleComponents: (cached.sampleComponents ?? []).map((s) => s.path),
+      warnings: [],
+      note: "context fresh — no relevant change since last detect; re-run with --force to re-scan",
+    }, null, 2));
+    return 0;
+  }
+
+  const ctx = await detectProject(root);
+  mkdirSync(outDir, { recursive: true });
   writeFileSync(outPath, JSON.stringify(ctx, null, 2) + "\n");
+  writeContextSectionFiles(outDir, ctx);
   console.log(JSON.stringify({
     ok: true,
     out: outPath,
     framework: ctx.framework,
     detected: ctx.detected,
+    fresh: false,
     sampleComponents: ctx.sampleComponents.map((s) => s.path),
     warnings: ctx.detectionWarnings,
   }, null, 2));
   return 0;
+}
+
+// ---------- agent-readable context sections ----------
+// project-context.json is the MACHINE contract (referee/verify/init read it) and on real
+// projects it can exceed the agent's Read cap (479 KB in the 2026-09-10 run). The section
+// files below carry the SAME facts in readable slices the agent Reads instead of Greps.
+// The root file stays complete and authoritative — these are additive views, never a split.
+
+/** Render + write the .sliceui/context/*.md section files. Returns the paths written. */
+export function writeContextSectionFiles(outDir, ctx) {
+  const dir = join(outDir, "context");
+  mkdirSync(dir, { recursive: true });
+  const cap = ctx.capabilities ?? {};
+  const capLines = ["# Capabilities", "", "Which library serves each element category, with the file to read for wiring.", ""];
+  for (const [cat, c] of Object.entries(cap)) {
+    capLines.push(`## ${cat}`);
+    capLines.push("");
+    capLines.push(`- library: ${c.library ?? "_none — use native HTML and flag it_"}`);
+    if (c.note) capLines.push(`- note: ${c.note}`);
+    for (const k of ["samplePath", "libSourcePath", "sampleScssPath"]) {
+      if (c[k]) capLines.push(`- ${k}: \`${c[k]}\``);
+    }
+    capLines.push("");
+  }
+  const tk = ctx.designTokens ?? {};
+  const tokenLines = ["# Design tokens", "", "SCSS vars + CSS custom props + mixins from this project's stylesheets.", ""];
+  for (const t of tk.scss ?? []) tokenLines.push(`- \`${t.name}\`: ${t.value}`);
+  for (const t of tk.cssProps ?? []) tokenLines.push(`- \`${t.name}\`: ${t.value}`);
+  for (const m of tk.mixins ?? []) tokenLines.push(`- mixin \`${m.name ?? m}\``);
+  if (!(tk.scss ?? []).length && !(tk.cssProps ?? []).length && !(tk.mixins ?? []).length) {
+    tokenLines.push("_(none detected)_");
+  }
+  const sampleLines = ["# Sample components", "", "Pointers, not mirrors — read these files to absorb local wiring idiom.", ""];
+  for (const s of ctx.sampleComponents ?? []) {
+    sampleLines.push(`- \`${s.path}\`${s.golden ? " — **GOLDEN reference; read FIRST**" : ""}${s.selector ? ` (selector \`${s.selector}\`)` : ""}`);
+  }
+  const fw = ctx.framework ?? {};
+  const fwLines = [
+    `- framework: ${fw.label ?? fw.id ?? "?"}${fw.version ? ` ${fw.version}` : ""}`,
+    `- profile: ${ctx.profile ?? "generic"}`,
+  ];
+  // Angular-only facts are meaningless (and noisy) for other frameworks: a Vue project has no
+  // selector prefix and no NgModule. Emit them only when they exist — never as "``"/"?".
+  if (ctx.prefix) {
+    fwLines.push(`- prefix: \`${ctx.prefix}\` (alternates: ${(ctx.prefixAlternates ?? []).map((a) => a.prefix).join(", ") || "none"})`);
+  }
+  if (ctx.moduleStructure?.pattern) {
+    fwLines.push(`- moduleStructure: ${ctx.moduleStructure.pattern}${ctx.appModulePath ? ` (\`${ctx.appModulePath}\`)` : ""}`);
+  }
+  fwLines.push(`- componentDir: \`${ctx.componentDir ?? "?"}\` — **the write target**; if the target component is not under it, STOP and ask the user`);
+  fwLines.push(`- styleExt: \`${ctx.styleExt ?? "?"}\``);
+  fwLines.push(`- uiLibrary: ${ctx.uiLibrary || "_none_"}`);
+  const index = [
+    "# SliceUI project context — INDEX",
+    "",
+    `Full machine context: \`.sliceui/project-context.json\` (may exceed your Read cap — use these sections instead).`,
+    "",
+    ...fwLines,
+    "",
+    "Sections:",
+    "",
+    "- [capabilities.md](capabilities.md) — library per element category + where to read wiring",
+    "- [design-tokens.md](design-tokens.md) — SCSS vars / CSS custom props / mixins",
+    "- [samples.md](samples.md) — sample + golden components (writing patterns)",
+    "",
+    "Also read: `.sliceui/conventions.md` (idiom) and `.sliceui/conventions.json` (verify ground truth).",
+    "",
+    "Detection warnings:",
+    "",
+    ...(ctx.detectionWarnings ?? []).map((w) => `- ⚠ ${w}`),
+    "",
+  ];
+  const files = { "INDEX.md": index.join("\n"), "capabilities.md": capLines.join("\n"), "design-tokens.md": tokenLines.join("\n"), "samples.md": sampleLines.join("\n") };
+  for (const [name, body] of Object.entries(files)) {
+    writeFileSync(join(dir, name), body);
+  }
+  return Object.keys(files).map((n) => join(dir, n));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

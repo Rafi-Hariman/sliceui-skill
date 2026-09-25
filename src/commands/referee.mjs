@@ -35,20 +35,27 @@ export function main(argv) {
     const icon = f.status === "pass" ? "✓" : f.status === "fail" ? "✗" : f.status === "stale" ? "△" : "·";
     const label = f.status === "stale" ? "STALE" : f.status.toUpperCase();
     const mode = f.mode ? `  [mode: ${f.mode}]` : "";
-    console.log(`  ${icon} [${f.head}] ${label}  ${f.artifact}${mode}`);
+    const tag = (f.status === "fail" || f.status === "stale")
+      ? (f.blocking ? "  [BLOCKING]" : "  [repo-preexisting]")
+      : "";
+    console.log(`  ${icon} [${f.head}] ${label}  ${f.artifact}${mode}${tag}`);
     console.log(`       ${f.detail}${f.evidencePath ? `  (${f.evidencePath})` : ""}`);
   }
-  console.log(`\n${r.redCount} red (fail/stale) · ${r.findings.length} checks`);
+  console.log(`\n${r.blockingRedCount} slice-blocking red · ${r.redCount} red total · ${r.findings.length} checks`);
+  if (r.redCount > r.blockingRedCount) {
+    console.log("ℹ non-blocking reds are pre-existing repo debt (duplicate selectors, stale conventions) — reported, not slice blockers.");
+  }
 
+  // Exit non-zero ONLY on slice-blocking reds (F12). Repo-preexisting reds do not block the slice.
   return r.pass ? 0 : 1;
 }
 
 function readTranscript(root) {
-  const tdir = join(root, ".sliceui", "transcript");
-  if (!existsSync(tdir)) return null;
-  const json = readdirSync(tdir).find((f) => f.endsWith(".transcript.json") && !f.endsWith(".meta.json"));
-  if (!json) return null;
-  try { return JSON.parse(readFileSync(join(tdir, json), "utf8")); } catch { return null; }
+  const adir = join(root, ".sliceui", "artifacts");
+  if (!existsSync(adir)) return null;
+  const design = readdirSync(adir).find((d) => existsSync(join(adir, d, "transcript.json")));
+  if (!design) return null;
+  try { return JSON.parse(readFileSync(join(adir, design, "transcript.json"), "utf8")); } catch { return null; }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

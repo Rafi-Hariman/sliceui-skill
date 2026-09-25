@@ -137,6 +137,10 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 SliceUI is a single general-purpose package. An organization can ship private, project-specific library grammars (component catalogs, convention profiles, reference docs) as an optional add-on. When such a grammar is present in the install, `init`, `detect`, `verify`, and `doctor` make full use of it. When it is absent (the default public install), those same commands degrade gracefully and only adapt to the project's own detected conventions; they never emit or reference an org-private component vocabulary. This keeps the public package free of any private source while letting an org run the identical tool internally against its own libraries.
 
+### 7. Handoff to a CLI-less agent (`/sliceui-handoff`)
+
+Sometimes the slicing must be done by a web agent with no CLI (e.g. a Microsoft Copilot custom agent that only reads uploaded files). `sliceui install` ships a second skill, `/sliceui-handoff`, which writes `.sliceui/handoff.md` — one compact attachment carrying the project's framework rules, capability wiring, styling system, and the SliceUI invariants restated as direct rules. Unlike the CLI commands (whose mining is Angular-first and can be thin on other frameworks), the handoff skill has the agent itself read the real components and write the patterns it finds, so the handoff stays useful on a Vue/React/Svelte/Tailwind project. The file ends by stating plainly that no `sliceui verify` gate will run — a human must review the output.
+
 ## Requirements
 
 - Node >= 20 (Node 18 is EOL).

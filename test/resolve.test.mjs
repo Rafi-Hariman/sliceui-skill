@@ -259,6 +259,51 @@ test("resolve: Icon_primary / Icon_white names are generic (no false glyph), con
   assert.match(leaf.fallback.note, /infer from the action context/i, "note points at action context");
 });
 
+test("resolve: F8 — a Figma variantName on an icon resolves the glyph (sync), not a fallback", () => {
+  // 2026-09-11 F8: the "Get data" icon carried <variantProperties Name="sync"/>; the old fallback
+  // suggested fa-cloud-download (wrong). The variant name IS the glyph signal.
+  const transcript = {
+    layout: [
+      { id: "get-data", type: "icon", bg: "#ffffff", description: "Icon_primary", variantName: "sync" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "get-data");
+  assert.ok(leaf, "icon leaf resolved");
+  assert.equal(leaf.fallback, null, "variant name gives a confident answer, not a fallback");
+  // Pinned to the FA4 class name: the org's projects carry font-awesome@^4.7.0, where
+  // `fa-sync-alt` (FA5+) does not exist and renders an empty box (2026-09-24, report §4.2).
+  assert.deepEqual((leaf.resolved ?? []).map((x) => x.value), ["fa-refresh"], `resolved glyph is the FA4 sync glyph: ${JSON.stringify(leaf.resolved)}`);
+});
+
+test("resolve: an icon INSTANCE wrapper's variantName is inherited by its colored Vector child", () => {
+  // The REAL field shape (2026-09-24, mahasiswa-tarif export): <variantProperties Name="sync"/>
+  // sits on a COLORLESS Icon_primary INSTANCE; the painted, color-bearing leaf is its inner
+  // Vector child (generic name). The child must inherit the wrapper's variant to resolve — the
+  // F8 test above put variantName directly on the colored node, which masked this inheritance gap.
+  const transcript = {
+    layout: [
+      {
+        id: "get-data-wrapper", type: "icon", description: "Icon_primary", variantName: "sync",
+        children: [{ id: "get-data-leaf", type: "icon", bg: "#ffffff", description: "Vector", glyphName: "Vector" }],
+      },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "get-data-leaf");
+  assert.ok(leaf, "the Vector leaf is resolved");
+  assert.deepEqual((leaf.resolved ?? []).map((x) => x.value), ["fa-refresh"], "inherits sync → fa-refresh");
+});
+
+test("resolve: F8 — fallback note no longer invents a specific (wrong) glyph example", () => {
+  const transcript = {
+    layout: [{ id: "x", type: "icon", bg: "#ffffff", description: "Icon_primary" }],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "x");
+  assert.ok(!/fa-cloud-download/.test(leaf.fallback.note), "no invented glyph example in the fallback");
+});
+
 test("resolve: badge 'Aktif' bg #eef6ff is detected as a badge", () => {
   // Report #1 §6.6: "Aktif" badge (blue #eef6ff) must be recognized so it resolves to a
   // label-custom-* class, not a silent native-plain (which caused .label-aktif duplication).
@@ -274,4 +319,89 @@ test("resolve: badge 'Aktif' bg #eef6ff is detected as a badge", () => {
   const status = r.statusTable.find((s) => s.id === "aktif");
   assert.ok(status, "badge #eef6ff is recognized as a badge");
   assert.equal(status.evidence.statusText, "Aktif", "status text extracted");
+});
+
+// --- glyph-as-text (2026-09-10 §1.1/§1.2): empty text + glyph name resolves the toggle ---
+
+test("resolve: empty-TEXT glyph with toggle-on name → fa-toggle-on (NOT the #03337b 3-icon family)", () => {
+  // The reported failure: an action-column toggle glyph arrived as text `"" {15px w900 #1b3680}`;
+  // the #03337b color resolved to [fa-search, fa-pencil, fa-eye] and the agent had to guess.
+  const transcript = {
+    layout: [
+      { id: "tgl", type: "text", text: "", style: { size: 15, weight: 900, color: "#03337b" },
+        glyphName: "Icon_Font_Awesome_Free_Solid_T_toggle-on" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "tgl");
+  assert.ok(leaf, "glyph-as-text leaf is resolved (not skipped)");
+  assert.deepEqual(leaf.resolved, [{ kind: "icon", value: "fa-toggle-on" }]);
+  assert.equal(leaf.fallback, null);
+});
+
+test("resolve: empty-TEXT glyph inherits the wrapper's glyphName (no glyphName of its own)", () => {
+  // FIGML nests the glyph text under a named INSTANCE wrapper; the text itself is generic.
+  const transcript = {
+    layout: [
+      { id: "wrap", type: "icon", description: "Icon_Font_Awesome_Free_Solid_E_eye", glyphName: "Icon_Font_Awesome_Free_Solid_E_eye",
+        children: [
+          { id: "vec", type: "text", text: "", style: { color: "#03337b" } },
+        ]},
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const leaf = r.leaves.find((l) => l.id === "vec");
+  assert.ok(leaf, "inner glyph text resolved");
+  assert.deepEqual(leaf.resolved, [{ kind: "icon", value: "fa-eye" }]);
+});
+
+test("resolve: toggle-off name resolves fa-toggle-off; bare toggle defaults to fa-toggle-on", () => {
+  const transcript = {
+    layout: [
+      { id: "off", type: "text", text: "", style: { color: "#03337b" }, glyphName: "Icon_..._T_toggle-off" },
+      { id: "bare", type: "text", text: "", style: { color: "#03337b" }, glyphName: "Icon_..._T_toggle" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  assert.deepEqual(r.leaves.find((l) => l.id === "off").resolved, [{ kind: "icon", value: "fa-toggle-off" }]);
+  assert.deepEqual(r.leaves.find((l) => l.id === "bare").resolved, [{ kind: "icon", value: "fa-toggle-on" }]);
+});
+
+test("resolve: real text is never treated as a glyph, even with a glyphName present", () => {
+  const transcript = {
+    layout: [
+      { id: "label", type: "text", text: "Ubah tagihan", style: { color: "#03337b" }, glyphName: "Icon_..._T_toggle-on" },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  assert.equal(r.leaves.find((l) => l.id === "label"), undefined, "text with content is not an icon leaf");
+});
+
+// --- groups: dedup identical leaves (2026-09-10 §1.3: 1,659-line resolved.json) ---
+
+test("resolve: 10 identical badges group into 1 entry with count+ids; leaves stay full", () => {
+  const rows = Array.from({ length: 10 }, (_, i) => ({
+    id: `badge${i}`, type: "group", bg: "#fef2f2", children: [
+      { id: `icon${i}`, type: "icon", bg: "#f44444" },
+      { id: `txt${i}`, type: "text", text: "Aktif" },
+    ],
+  }));
+  const r = resolveTranscript({ layout: rows }, CONVENTIONS);
+  const badgeGroups = r.groups.filter((g) => g.kind === "status");
+  assert.equal(badgeGroups.length, 1, "all identical badges collapse to one group");
+  assert.equal(badgeGroups[0].count, 10);
+  assert.equal(badgeGroups[0].ids.length, 10);
+  assert.equal(r.leaves.filter((l) => l.kind === "status").length, 10, "leaves remain per-node");
+});
+
+test("resolve: distinct evidence signatures stay in separate groups", () => {
+  const transcript = {
+    layout: [
+      { id: "a1", type: "group", bg: "#fef2f2", children: [{ id: "i1", type: "icon", bg: "#f44444" }, { id: "t1", type: "text", text: "Dibatalkan" }] },
+      { id: "a2", type: "group", bg: "#fef7ec", children: [{ id: "i2", type: "icon", bg: "#f9933f" }, { id: "t2", type: "text", text: "Belum bayar" }] },
+    ],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  assert.ok(r.groups.filter((g) => g.kind === "status").length === 2, "two distinct badges → two groups");
+  assert.ok(r.groups.every((g) => g.count === 1), "each group has a single member");
 });

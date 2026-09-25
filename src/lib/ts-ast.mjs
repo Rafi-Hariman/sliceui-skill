@@ -66,3 +66,60 @@ export function componentMeta(source) {
   visit(sf);
   return meta;
 }
+
+/**
+ * Named imports whose binding is never referenced elsewhere in the file (a dead import).
+ * Conservative: only flags named bindings (not `import * as x` / side-effect imports), and only
+ * when the source has no other identifier of the same name anywhere (including in types).
+ * @param {string} source
+ * @returns {string[]} unused named import specifiers, e.g. ["AuthorizationModel"]
+ */
+export function unusedImports(source) {
+  const sf = ts.createSourceFile("x.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const unused = [];
+  for (const st of sf.statements) {
+    if (!ts.isImportDeclaration(st) || !st.importClause) continue;
+    const named = st.importClause.namedBindings;
+    if (!named || !ts.isNamedImports(named)) continue;
+    for (const el of named.elements) {
+      const localName = el.name.getText(sf);
+      if (identifierCount(sf, localName) <= 1) unused.push(localName);
+    }
+  }
+  return unused;
+}
+
+/** Count how many times an identifier appears in a source file (declaration included). */
+function identifierCount(sf, name) {
+  let count = 0;
+  const visit = (node) => {
+    if (ts.isIdentifier(node) && node.text === name) count++;
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return count;
+}
+
+/**
+ * Constructor parameters (injected services) that are never referenced in the class body.
+ * A `constructor(private svc: FooService) {}` whose `svc` never appears outside the parameter
+ * list is an injected-but-unused dependency. Conservative: ignores a bare constructor with no
+ * body references by only flagging params whose name count in the file is exactly 1.
+ * @param {string} source
+ * @returns {string[]} unused constructor parameter names
+ */
+export function unusedConstructorParams(source) {
+  const sf = ts.createSourceFile("x.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const unused = [];
+  const visit = (node) => {
+    if (ts.isConstructorDeclaration(node) && node.body) {
+      for (const p of node.parameters) {
+        const name = p.name.getText(sf);
+        if (identifierCount(sf, name) <= 1) unused.push(name);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return unused;
+}

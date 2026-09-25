@@ -1,0 +1,1581 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="16601:46203" name="Frame_2048" expanded="true" cornerRadius="8" maskType="ALPHA" x="270" y="140" width="1274" height="814" layoutMode="VERTICAL" paddingLeft="20" paddingRight="20" paddingTop="20" paddingBottom="20" horizontalPadding="20" verticalPadding="20" primaryAxisSizingMode="FIXED" itemSpacing="10" type="FRAME">
+  <children>
+    <Frame id="16601:46204" name="Frame_2042" expanded="true" maskType="ALPHA" x="20" y="20" width="1234" height="746" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" counterAxisAlignItems="CENTER" itemSpacing="20" type="FRAME">
+      <children>
+        <Text id="16601:46205" name="Tambah_mahasiswa_tarif" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="0" width="1234" height="19" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" fontSize="16" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Tambah mahasiswa tarif " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+          <fills>
+            <fill blendMode="NORMAL" color="#000000" />
+          </fills>
+          <constraints horizontal="MIN" vertical="MIN" />
+          <letterSpacing value="0" unit="PERCENT" />
+          <lineHeight unit="AUTO" />
+        </Text>
+        <Rectangle id="16601:46206" name="Garis" maskType="ALPHA" strokeWeight="0" strokeAlign="CENTER" x="0" y="39" width="1234" height="1" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" type="RECTANGLE">
+          <strokes>
+            <stroke visible="false" blendMode="NORMAL" color="#979797" />
+          </strokes>
+          <fills>
+            <fill blendMode="NORMAL" color="#fdd835" />
+          </fills>
+          <constraints horizontal="MIN" vertical="MIN" />
+        </Rectangle>
+        <Information_box_detail id="16601:46491" name="Information_box_detail" cornerRadius="4" maskType="ALPHA" x="0" y="60" width="1234" height="64" layoutMode="VERTICAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" type="INSTANCE">
+          <children>
+            <Frame id="I16601:46491;12:101" name="Frame_2007" maskType="ALPHA" x="12" y="12" width="1210" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" itemSpacing="7" type="FRAME">
+              <children>
+                <Icon_Font_Awesome_Free_Solid_I_info-circle id="I16601:46491;12:95" name="Icon_Font_Awesome_Free_Solid_I_info-circle" maskType="ALPHA" x="0" y="0" width="24" height="24" clipsContent="true" variantProperties="" type="INSTANCE">
+                  <children>
+                    <Vector id="I16601:46491;12:95;4845:6491" name="Vector" maskType="ALPHA" x="2" y="2" width="20" height="20" type="VECTOR">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#004c88" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                    </Vector>
+                  </children>
+                  <fills>
+                    <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                  </fills>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <mainComponent id="10095:20674" />
+                  <overrides>
+                    <override id="I16601:46491;12:95;4845:6491">
+                      <overriddenFields>
+                        <overriddenField value="fillStyleId" index="0" />
+                        <overriddenField value="fills" index="1" />
+                        <overriddenField value="strokeStyleId" index="2" />
+                        <overriddenField value="strokes" index="3" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </Icon_Font_Awesome_Free_Solid_I_info-circle>
+                <Frame id="I16601:46491;12:100" name="Frame_2006" maskType="ALPHA" x="31" y="0" width="1179" height="40" layoutGrow="1" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" paddingTop="4" verticalPadding="4" type="FRAME">
+                  <children>
+                    <Text id="I16601:46491;12:87" name="Belum_isi_data." maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="4" width="926" height="18" fontSize="14" fontWeight="700" hyperlink="" characters="Informasi" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#004c88" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight value="18" unit="PIXELS" />
+                    </Text>
+                    <Text id="I16601:46491;12:88" name="Silakan_isi_data_registrasi_untuk_melengkapi_persyaratan_mahasiswa_baru." maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="22" width="926" height="18" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="" hyperlink="" characters="Hanya mahasiswa dengan status Aktif, Non-aktif, dan Skorsing saja yang akan digenerate." type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#004c88" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight value="18" unit="PIXELS" />
+                    </Text>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+              </children>
+              <constraints horizontal="MIN" vertical="MIN" />
+            </Frame>
+          </children>
+          <strokes>
+            <stroke blendMode="NORMAL" color="#01579b" />
+          </strokes>
+          <fills>
+            <fill blendMode="NORMAL" color="#e0f7fa" />
+          </fills>
+          <constraints horizontal="MIN" vertical="MIN" />
+          <variantProperties type="belum isi data" icon="true" />
+          <mainComponent id="10095:20650" />
+          <componentProperties>
+            <type type="VARIANT" value="belum isi data" />
+            <icon type="VARIANT" value="true" />
+          </componentProperties>
+          <overrides>
+            <override id="16601:46491">
+              <overriddenFields>
+                <overriddenField value="fillStyleId" index="0" />
+                <overriddenField value="fills" index="1" />
+                <overriddenField value="height" index="2" />
+                <overriddenField value="primaryAxisSizingMode" index="3" />
+                <overriddenField value="strokeStyleId" index="4" />
+                <overriddenField value="width" index="5" />
+              </overriddenFields>
+            </override>
+            <override id="I16601:46491;12:100">
+              <overriddenFields>
+                <overriddenField value="counterAxisSizingMode" index="0" />
+                <overriddenField value="layoutGrow" index="1" />
+                <overriddenField value="paddingBottom" index="2" />
+                <overriddenField value="paddingTop" index="3" />
+              </overriddenFields>
+            </override>
+            <override id="I16601:46491;12:101">
+              <overriddenFields>
+                <overriddenField value="layoutAlign" index="0" />
+                <overriddenField value="primaryAxisSizingMode" index="1" />
+              </overriddenFields>
+            </override>
+            <override id="I16601:46491;12:87">
+              <overriddenFields>
+                <overriddenField value="characters" index="0" />
+                <overriddenField value="fillStyleId" index="1" />
+                <overriddenField value="fontName" index="2" />
+                <overriddenField value="styledTextSegments" index="3" />
+              </overriddenFields>
+            </override>
+            <override id="I16601:46491;12:88">
+              <overriddenFields>
+                <overriddenField value="characters" index="0" />
+                <overriddenField value="fillStyleId" index="1" />
+                <overriddenField value="styledTextSegments" index="2" />
+              </overriddenFields>
+            </override>
+            <override id="I16601:46491;12:95;4845:6491">
+              <overriddenFields>
+                <overriddenField value="fillStyleId" index="0" />
+                <overriddenField value="fills" index="1" />
+                <overriddenField value="strokeStyleId" index="2" />
+                <overriddenField value="strokes" index="3" />
+              </overriddenFields>
+            </override>
+          </overrides>
+        </Information_box_detail>
+        <Frame id="16601:46209" name="Frame_2693" expanded="true" maskType="ALPHA" x="0" y="144" width="1234" height="63" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" itemSpacing="10" type="FRAME">
+          <children>
+            <Frame id="16601:46210" name="Frame_1992" expanded="true" maskType="ALPHA" x="0" y="0" width="1234" height="63" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" counterAxisAlignItems="MAX" itemSpacing="10" type="FRAME">
+              <children>
+                <Field id="16601:46211" name="Field" maskType="ALPHA" x="0" y="0" width="301" height="63" layoutAlign="STRETCH" layoutGrow="1" layoutSizingHorizontal="FILL" layoutSizingVertical="FILL" layoutMode="VERTICAL" primaryAxisSizingMode="FIXED" itemSpacing="8" type="INSTANCE">
+                  <children>
+                    <Frame id="I16601:46211;8231:12464" name="Frame_2046" maskType="ALPHA" x="0" y="0" width="191" height="14" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" itemSpacing="3" type="FRAME">
+                      <children>
+                        <Text id="I16601:46211;8231:12465" name="Title_field" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="0" width="182" height="14" layoutSizingHorizontal="HUG" fontSize="12" fontWeight="600" hyperlink="" characters="Tahun akademik semester masuk" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#555555" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="I16601:46211;8231:12466" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="185" y="0" width="6" height="14" layoutSizingHorizontal="HUG" fontSize="12" fontWeight="600" hyperlink="" characters="*" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#f44444" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Frame id="I16601:46211;8231:12467" name="Frame_1651" cornerRadius="6" maskType="ALPHA" x="0" y="22" width="301" height="41" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" counterAxisAlignItems="CENTER" itemSpacing="12" type="FRAME">
+                      <children>
+                        <Text id="I16601:46211;8231:12468" name="Tuliskan_text_disini" maskType="ALPHA" strokeWeight="0" x="12" y="12" width="253" height="17" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontWeight="400" hyperlink="" characters="2025/2026 ganjil" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#333333" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Icon_Font_Awesome_Free_Solid_C_caret-down id="I16601:46211;8231:12469" name="Icon_Font_Awesome_Free_Solid_C_caret-down" maskType="ALPHA" x="277" y="14.5" width="12" height="12" clipsContent="true" variantProperties="" type="INSTANCE">
+                          <children>
+                            <Vector id="I16601:46211;8231:12469;4845:7175" name="Vector" maskType="ALPHA" x="1" y="3.163731336593628" width="10" height="5.672537326812744" type="VECTOR">
+                              <fills>
+                                <fill blendMode="NORMAL" color="#03337b" />
+                              </fills>
+                              <constraints horizontal="SCALE" vertical="SCALE" />
+                            </Vector>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <mainComponent id="8199:14105" />
+                        </Icon_Font_Awesome_Free_Solid_C_caret-down>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#b1bccc" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <variantProperties Type="dropdown" required="true" />
+                  <mainComponent id="8231:12463" />
+                  <componentProperties>
+                    <show_error_4863_40 type="BOOLEAN" value="true" />
+                    <Show_Icon_Font_Awesome_Free_Solid_C_caret-down_4863_10 type="BOOLEAN" value="true" />
+                    <Title_4863_25 type="TEXT" value="Tahun akademik semester masuk" />
+                    <Show_Title_4863_30 type="BOOLEAN" value="true" />
+                    <icon_4863_5 type="INSTANCE_SWAP" value="8199:14105" />
+                    <error_message_4863_35 type="TEXT" value="This is error message" />
+                    <Text_4863_20 type="TEXT" value="2025/2026 ganjil" />
+                    <Show_Icon_4863_15 type="BOOLEAN" value="true" />
+                    <Type type="VARIANT" value="dropdown" />
+                    <required type="VARIANT" value="true" />
+                  </componentProperties>
+                  <overrides>
+                    <override id="16601:46211">
+                      <overriddenFields>
+                        <overriddenField value="height" index="0" />
+                        <overriddenField value="primaryAxisSizingMode" index="1" />
+                        <overriddenField value="width" index="2" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46211;8231:12466">
+                      <overriddenFields>
+                        <overriddenField value="characters" index="0" />
+                        <overriddenField value="styledTextSegments" index="1" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46211;8231:12467">
+                      <overriddenFields>
+                        <overriddenField value="counterAxisSizingMode" index="0" />
+                        <overriddenField value="layoutAlign" index="1" />
+                        <overriddenField value="layoutGrow" index="2" />
+                        <overriddenField value="primaryAxisSizingMode" index="3" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46211;8231:12468">
+                      <overriddenFields>
+                        <overriddenField value="layoutGrow" index="0" />
+                        <overriddenField value="opacity" index="1" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </Field>
+                <Field id="16601:46212" name="Field" maskType="ALPHA" x="311" y="0" width="301" height="63" layoutAlign="STRETCH" layoutGrow="1" layoutSizingHorizontal="FILL" layoutSizingVertical="FILL" layoutMode="VERTICAL" primaryAxisSizingMode="FIXED" itemSpacing="8" type="INSTANCE">
+                  <children>
+                    <Frame id="I16601:46212;8231:12007" name="Frame_2046" maskType="ALPHA" x="0" y="0" width="77" height="14" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="FRAME">
+                      <children>
+                        <Text id="I16601:46212;8199:14168" name="Title_field" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="0" width="77" height="14" layoutSizingHorizontal="HUG" fontSize="12" fontWeight="600" hyperlink="" characters="Program studi" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#555555" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="I16601:46212;8231:11706" name="_" visible="false" maskType="ALPHA" strokeAlign="OUTSIDE" x="51" y="0" width="6" height="14" fontSize="12" fontWeight="600" hyperlink="" characters="*" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#f44444" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Frame id="I16601:46212;8199:14169" name="Frame_1651" cornerRadius="6" maskType="ALPHA" x="0" y="22" width="301" height="41" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" counterAxisAlignItems="CENTER" itemSpacing="12" type="FRAME">
+                      <children>
+                        <Text id="I16601:46212;8199:14170" name="Tuliskan_text_disini" opacity="0.4000000059604645" maskType="ALPHA" strokeWeight="0" x="12" y="12" width="253" height="17" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Pilih program studi" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#333333" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Icon_Font_Awesome_Free_Solid_C_caret-down id="I16601:46212;8199:14171" name="Icon_Font_Awesome_Free_Solid_C_caret-down" maskType="ALPHA" x="277" y="14.5" width="12" height="12" clipsContent="true" variantProperties="" type="INSTANCE">
+                          <children>
+                            <Vector id="I16601:46212;8199:14171;4845:7175" name="Vector" maskType="ALPHA" x="1" y="3.163731336593628" width="10" height="5.672537326812744" type="VECTOR">
+                              <fills>
+                                <fill blendMode="NORMAL" color="#03337b" />
+                              </fills>
+                              <constraints horizontal="SCALE" vertical="SCALE" />
+                            </Vector>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <mainComponent id="8199:14105" />
+                        </Icon_Font_Awesome_Free_Solid_C_caret-down>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#b1bccc" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <variantProperties Type="dropdown" required="false" />
+                  <mainComponent id="8199:14167" />
+                  <componentProperties>
+                    <show_error_4863_40 type="BOOLEAN" value="true" />
+                    <Show_Icon_Font_Awesome_Free_Solid_C_caret-down_4863_10 type="BOOLEAN" value="true" />
+                    <Title_4863_25 type="TEXT" value="Program studi" />
+                    <Show_Title_4863_30 type="BOOLEAN" value="true" />
+                    <icon_4863_5 type="INSTANCE_SWAP" value="8199:14105" />
+                    <error_message_4863_35 type="TEXT" value="This is error message" />
+                    <Text_4863_20 type="TEXT" value="Pilih program studi" />
+                    <Show_Icon_4863_15 type="BOOLEAN" value="true" />
+                    <Type type="VARIANT" value="dropdown" />
+                    <required type="VARIANT" value="false" />
+                  </componentProperties>
+                  <overrides>
+                    <override id="16601:46212">
+                      <overriddenFields>
+                        <overriddenField value="height" index="0" />
+                        <overriddenField value="primaryAxisSizingMode" index="1" />
+                        <overriddenField value="width" index="2" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46212;8199:14170">
+                      <overriddenFields>
+                        <overriddenField value="opacity" index="0" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46212;8231:11706">
+                      <overriddenFields>
+                        <overriddenField value="characters" index="0" />
+                        <overriddenField value="styledTextSegments" index="1" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </Field>
+                <Field id="16601:46213" name="Field" maskType="ALPHA" x="622" y="0" width="301" height="63" layoutAlign="STRETCH" layoutGrow="1" layoutSizingHorizontal="FILL" layoutSizingVertical="FILL" layoutMode="VERTICAL" primaryAxisSizingMode="FIXED" itemSpacing="8" type="INSTANCE">
+                  <children>
+                    <Frame id="I16601:46213;8231:12379" name="Frame_2043" maskType="ALPHA" x="0" y="0" width="23" height="14" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="FRAME">
+                      <children>
+                        <Text id="I16601:46213;8231:12380" name="Title_field" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="0" width="23" height="14" layoutSizingHorizontal="HUG" fontSize="12" fontWeight="600" hyperlink="" characters="NIM" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#555555" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="I16601:46213;8231:12381" name="_" visible="false" maskType="ALPHA" strokeAlign="OUTSIDE" x="51" y="0" width="6" height="14" fontSize="12" fontWeight="600" hyperlink="" characters="*" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#f44444" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="SemiBold" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Frame id="I16601:46213;8231:12382" name="Frame_1651" cornerRadius="6" maskType="ALPHA" x="0" y="22" width="301" height="41" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" itemSpacing="10" type="FRAME">
+                      <children>
+                        <Text id="I16601:46213;8231:12383" name="Tuliskan_text_disini" opacity="0.4000000059604645" maskType="ALPHA" strokeWeight="0" x="12" y="12" width="277" height="17" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Pilih nim" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#333333" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#b1bccc" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <variantProperties Type="Active" required="false" />
+                  <mainComponent id="8231:12378" />
+                  <componentProperties>
+                    <error_message_4863_35 type="TEXT" value="This is error message" />
+                    <show_error_4863_40 type="BOOLEAN" value="true" />
+                    <Show_Icon_Font_Awesome_Free_Solid_C_caret-down_4863_10 type="BOOLEAN" value="true" />
+                    <Show_Icon_4863_15 type="BOOLEAN" value="true" />
+                    <Show_Title_4863_30 type="BOOLEAN" value="true" />
+                    <icon_4863_5 type="INSTANCE_SWAP" value="8199:14105" />
+                    <Title_4863_25 type="TEXT" value="NIM" />
+                    <Text_4863_20 type="TEXT" value="Pilih nim" />
+                    <Type type="VARIANT" value="Active" />
+                    <required type="VARIANT" value="false" />
+                  </componentProperties>
+                  <overrides>
+                    <override id="16601:46213">
+                      <overriddenFields>
+                        <overriddenField value="height" index="0" />
+                        <overriddenField value="primaryAxisSizingMode" index="1" />
+                        <overriddenField value="width" index="2" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46213;8231:12381">
+                      <overriddenFields>
+                        <overriddenField value="characters" index="0" />
+                        <overriddenField value="styledTextSegments" index="1" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46213;8231:12383">
+                      <overriddenFields>
+                        <overriddenField value="opacity" index="0" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </Field>
+                <Button_FNC id="16601:46214" name="Button_FNC" expanded="true" cornerRadius="6" maskType="ALPHA" x="933" y="22" width="301" height="41" layoutGrow="1" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="INSTANCE">
+                  <children>
+                    <Icon_primary id="I16601:46214;708:13980" name="Icon_primary" expanded="true" maskType="ALPHA" x="112.19999694824219" y="13.699999809265137" width="13.600000381469727" height="13.600000381469727" clipsContent="true" type="INSTANCE" scaleFactor="0.800000011920929">
+                      <children>
+                        <Vector id="I16601:46214;708:13980;7:5286" name="Vector" maskType="ALPHA" strokeWeight="0.800000011920929" x="1.1333333253860474" y="1.1333333253860474" width="11.333333969116211" height="11.333333969116211" type="VECTOR">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                        </Vector>
+                      </children>
+                      <fills>
+                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <variantProperties Alphabet="S" Name="sync" />
+                      <mainComponent id="10249:9345" />
+                      <componentProperties>
+                        <Alphabet type="VARIANT" value="S" />
+                        <Name type="VARIANT" value="sync" />
+                      </componentProperties>
+                      <overrides>
+                        <override id="I16601:46214;708:13980;7:5286">
+                          <overriddenFields>
+                            <overriddenField value="fillStyleId" index="0" />
+                          </overriddenFields>
+                        </override>
+                      </overrides>
+                    </Icon_primary>
+                    <Text id="I16601:46214;3:1917" name="Button" maskType="ALPHA" strokeAlign="OUTSIDE" x="135.8000030517578" y="12" width="53" height="17" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="Get data" type="TEXT" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                  </children>
+                  <fills>
+                    <fill blendMode="NORMAL" color="#03337b" />
+                  </fills>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <variantProperties Type="primary" State="normal" Text="true" icon="true" />
+                  <mainComponent id="10249:11171" />
+                  <componentProperties>
+                    <Type type="VARIANT" value="primary" />
+                    <State type="VARIANT" value="normal" />
+                    <Text type="VARIANT" value="true" />
+                    <icon type="VARIANT" value="true" />
+                  </componentProperties>
+                  <overrides>
+                    <override id="16601:46214">
+                      <overriddenFields>
+                        <overriddenField value="height" index="0" />
+                        <overriddenField value="width" index="1" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46214;3:1917">
+                      <overriddenFields>
+                        <overriddenField value="characters" index="0" />
+                        <overriddenField value="fontName" index="1" />
+                        <overriddenField value="styledTextSegments" index="2" />
+                      </overriddenFields>
+                    </override>
+                    <override id="I16601:46214;708:13980;7:5286">
+                      <overriddenFields>
+                        <overriddenField value="fillStyleId" index="0" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </Button_FNC>
+              </children>
+              <constraints horizontal="MIN" vertical="MIN" />
+            </Frame>
+          </children>
+          <constraints horizontal="MIN" vertical="MIN" />
+        </Frame>
+        <Frame id="16601:46215" name="Table_tagihan" maskType="ALPHA" x="0" y="227" width="1234" height="358" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+          <children>
+            <Frame id="16601:46216" name="Frame_1653" maskType="ALPHA" x="0" y="0" width="1234" height="41" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" primaryAxisAlignItems="SPACE_BETWEEN" counterAxisAlignItems="CENTER" itemSpacing="497" type="FRAME">
+              <children>
+                <Frame id="16601:46217" name="Show_data_table" maskType="ALPHA" x="0" y="1.5" width="145" height="38" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" counterAxisAlignItems="CENTER" itemSpacing="5" type="FRAME">
+                  <children>
+                    <Text id="16601:46218" name="Tampilkan" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="10.5" width="65" height="17" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Tampilkan" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#555555" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Frame id="16601:46219" name="Frame_1652" cornerRadius="5" maskType="ALPHA" x="70" y="0" width="42" height="38" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="10" paddingBottom="10" horizontalPadding="10" verticalPadding="10" counterAxisSizingMode="AUTO" itemSpacing="4" type="FRAME">
+                      <children>
+                        <Text id="16601:46220" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="10" y="10" width="8" height="17" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="5" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#555555" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46221" name="_" maskType="ALPHA" strokeWeight="0" x="22" y="10" width="10" height="18" layoutSizingHorizontal="HUG" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#1b3680" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#bdbdbd" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Text id="16601:46222" name="data" maskType="ALPHA" strokeAlign="OUTSIDE" x="117" y="10.5" width="28" height="17" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="data" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#555555" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <search_bar id="16601:46223" name="search_bar" maskType="ALPHA" x="933" y="0" width="301" height="41" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                  <children>
+                    <Frame id="I16601:46223;24:334" name="Frame_2031" cornerRadius="" topLeftRadius="6" bottomLeftRadius="6" maskType="ALPHA" x="0" y="0" width="260" height="41" layoutMode="VERTICAL" paddingLeft="12" paddingRight="12" paddingTop="12" paddingBottom="12" horizontalPadding="12" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisAlignItems="CENTER" type="FRAME">
+                      <children>
+                        <Text id="I16601:46223;24:335" name="Pencarian" maskType="ALPHA" strokeWeight="0" x="12" y="12" width="236" height="17.424999237060547" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Pencarian" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#bdbdbd" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#b1bccc" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Frame id="I16601:46223;24:336" name="Frame_2030" cornerRadius="" topRightRadius="6" bottomRightRadius="6" maskType="ALPHA" x="260" y="0" width="41" height="41" layoutMode="VERTICAL" paddingLeft="12" paddingRight="12" paddingTop="9" paddingBottom="9" horizontalPadding="12" verticalPadding="9" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                      <children>
+                        <Text id="I16601:46223;24:337" name="_" maskType="ALPHA" strokeWeight="0" x="13" y="11.5" width="15" height="18" layoutSizingHorizontal="HUG" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="SCALE" vertical="SCALE" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                      </children>
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#03337b" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <variantProperties type="Default" />
+                  <mainComponent id="10006:13997" />
+                  <componentProperties>
+                    <type type="VARIANT" value="Default" />
+                  </componentProperties>
+                </search_bar>
+              </children>
+              <constraints horizontal="MIN" vertical="MIN" />
+            </Frame>
+            <Frame id="16601:46224" name="Frame_2352" strokeAlign="OUTSIDE" cornerRadius="4" maskType="ALPHA" x="0" y="51" width="1234" height="260" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" type="FRAME">
+              <children>
+                <Frame id="16601:46225" name="Frame_2349" cornerRadius="" topLeftRadius="4" topRightRadius="4" maskType="ALPHA" x="0" y="0" width="1234" height="60" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                  <children>
+                    <Text id="16601:46226" name="No." maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="22.5" width="26" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="No." type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46227" name="NIM" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="22.5" width="68" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="NIM" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46228" name="Nama" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="22.5" width="202" height="15" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="13" fontWeight="700" hyperlink="" characters="Nama" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46229" name="Fakultas" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="22.5" width="192" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="Fakultas" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46230" name="Program_studi" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="22.5" width="192" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="Program studi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46231" name="Skema" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="22.5" width="235" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="Skema" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46232" name="Nominal_akhir__Rp_" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="22.5" width="120" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="Nominal akhir (Rp)" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46233" name="Status" maskType="ALPHA" strokeAlign="OUTSIDE" x="1155" y="22.5" width="64" height="15" fontSize="13" fontWeight="700" hyperlink="" characters="Status" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Bold" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                  </children>
+                  <fills>
+                    <fill blendMode="NORMAL" color="#ffffff" />
+                  </fills>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <Line id="16601:46234" name="Line_5" maskType="ALPHA" strokeAlign="CENTER" x="0" y="60" width="1234" height="0" type="LINE">
+                  <strokes>
+                    <stroke blendMode="NORMAL" color="#bdbdbd" />
+                  </strokes>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Line>
+                <Frame id="16601:46235" name="Frame_2350" maskType="ALPHA" x="0" y="60" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                  <children>
+                    <Text id="16601:46236" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="12.5" width="26" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="1" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46237" name="_5915001" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25915001" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46238" name="Raisha_Adinda_Emoney" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Raisha Adinda Emoney" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46239" name="Teknologi_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Teknologi Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46240" name="S2_-_Teknik_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Teknik Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46241" name="S2_Teknik_Industri_-__Kelas_blok_" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Teknik Industri - (Kelas blok)" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46242" name="_4.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="44.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Status_Beasiswa id="16601:46243" name="Status_Beasiswa" maskType="ALPHA" x="1155" y="7.5" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                      <children>
+                        <Frame id="I16601:46243;323:29648" name="Status_tanggal_akhir_bayar" cornerRadius="5" maskType="ALPHA" x="0" y="0" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="5" paddingBottom="5" horizontalPadding="10" verticalPadding="5" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                          <children>
+                            <Frame id="I16601:46243;323:29649" name="Frame_1" maskType="ALPHA" x="10" y="5" width="44" height="15" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="4" type="FRAME">
+                              <children>
+                                <Icon_white id="I16601:46243;828:664" name="Icon_white" maskType="ALPHA" x="0" y="0.5" width="14" height="14" clipsContent="true" type="INSTANCE">
+                                  <children>
+                                    <Vector id="I16601:46243;828:664;7:9437" name="Vector" maskType="ALPHA" x="1.1666666269302368" y="1.1666666269302368" width="11.666666030883789" height="11.666666030883789" type="VECTOR">
+                                      <fills>
+                                        <fill blendMode="NORMAL" color="#3e82f3" />
+                                      </fills>
+                                      <constraints horizontal="SCALE" vertical="SCALE" />
+                                    </Vector>
+                                  </children>
+                                  <fills>
+                                    <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                                  </fills>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                  <variantProperties Alphabet="C" Name="check-circle" />
+                                  <mainComponent id="10054:18603" />
+                                  <componentProperties>
+                                    <Alphabet type="VARIANT" value="C" />
+                                    <Name type="VARIANT" value="check-circle" />
+                                  </componentProperties>
+                                </Icon_white>
+                                <Text id="I16601:46243;323:29653" name="Berlangsung" maskType="ALPHA" strokeAlign="OUTSIDE" x="18" y="0" width="26" height="15" layoutSizingHorizontal="HUG" fontSize="12" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Aktif" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                                  <fills>
+                                    <fill blendMode="NORMAL" color="#303030" />
+                                  </fills>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                  <letterSpacing value="0" unit="PERCENT" />
+                                  <lineHeight unit="AUTO" />
+                                </Text>
+                              </children>
+                              <constraints horizontal="MIN" vertical="MIN" />
+                            </Frame>
+                          </children>
+                          <strokes>
+                            <stroke blendMode="NORMAL" color="#c5cdee" />
+                          </strokes>
+                          <fills>
+                            <fill blendMode="NORMAL" color="#eef6ff" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                        </Frame>
+                      </children>
+                      <fills>
+                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <variantProperties type="Aktif" Text_Only="True" />
+                      <mainComponent id="10054:16968" />
+                      <componentProperties>
+                        <type type="VARIANT" value="Aktif" />
+                        <Text_Only type="VARIANT" value="True" />
+                      </componentProperties>
+                    </Status_Beasiswa>
+                  </children>
+                  <fills>
+                    <fill blendMode="NORMAL" color="#f5f5f5" />
+                  </fills>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <Frame id="16601:46244" name="Frame_2355" maskType="ALPHA" x="0" y="100" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" itemSpacing="10" type="FRAME">
+                  <children>
+                    <Frame id="16601:46245" name="Frame_2351" maskType="ALPHA" x="0" y="0" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                      <children>
+                        <Text id="16601:46246" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="12.5" width="26" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="2" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46247" name="_5231045" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25231045" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46248" name="Aqshal_Marbel" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Aqshal Marbel" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46249" name="Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46250" name="S2_-_Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46251" name="S2_Kedokteran_-_Reguler__Alumni_" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Kedokteran - Reguler (Alumni)" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46252" name="_2.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="52.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Status_Beasiswa id="16601:46253" name="Status_Beasiswa" maskType="ALPHA" x="1155" y="7.5" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                          <children>
+                            <Frame id="I16601:46253;323:29648" name="Status_tanggal_akhir_bayar" cornerRadius="5" maskType="ALPHA" x="0" y="0" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="5" paddingBottom="5" horizontalPadding="10" verticalPadding="5" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                              <children>
+                                <Frame id="I16601:46253;323:29649" name="Frame_1" maskType="ALPHA" x="10" y="5" width="44" height="15" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="4" type="FRAME">
+                                  <children>
+                                    <Icon_white id="I16601:46253;828:664" name="Icon_white" maskType="ALPHA" x="0" y="0.5" width="14" height="14" clipsContent="true" type="INSTANCE">
+                                      <children>
+                                        <Vector id="I16601:46253;828:664;7:9437" name="Vector" maskType="ALPHA" x="1.1666666269302368" y="1.1666666269302368" width="11.666666030883789" height="11.666666030883789" type="VECTOR">
+                                          <fills>
+                                            <fill blendMode="NORMAL" color="#3e82f3" />
+                                          </fills>
+                                          <constraints horizontal="SCALE" vertical="SCALE" />
+                                        </Vector>
+                                      </children>
+                                      <fills>
+                                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <variantProperties Alphabet="C" Name="check-circle" />
+                                      <mainComponent id="10054:18603" />
+                                      <componentProperties>
+                                        <Alphabet type="VARIANT" value="C" />
+                                        <Name type="VARIANT" value="check-circle" />
+                                      </componentProperties>
+                                    </Icon_white>
+                                    <Text id="I16601:46253;323:29653" name="Berlangsung" maskType="ALPHA" strokeAlign="OUTSIDE" x="18" y="0" width="26" height="15" layoutSizingHorizontal="HUG" fontSize="12" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Aktif" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                                      <fills>
+                                        <fill blendMode="NORMAL" color="#303030" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <letterSpacing value="0" unit="PERCENT" />
+                                      <lineHeight unit="AUTO" />
+                                    </Text>
+                                  </children>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                </Frame>
+                              </children>
+                              <strokes>
+                                <stroke blendMode="NORMAL" color="#c5cdee" />
+                              </strokes>
+                              <fills>
+                                <fill blendMode="NORMAL" color="#eef6ff" />
+                              </fills>
+                              <constraints horizontal="MIN" vertical="MIN" />
+                            </Frame>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <variantProperties type="Aktif" Text_Only="True" />
+                          <mainComponent id="10054:16968" />
+                          <componentProperties>
+                            <type type="VARIANT" value="Aktif" />
+                            <Text_Only type="VARIANT" value="True" />
+                          </componentProperties>
+                        </Status_Beasiswa>
+                      </children>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Line id="16601:46254" name="Line_6" maskType="ALPHA" strokeAlign="CENTER" x="0" y="0" width="1234" height="0" layoutPositioning="ABSOLUTE" type="LINE">
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#bdbdbd" />
+                      </strokes>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Line>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <Frame id="16601:46255" name="Frame_2356" maskType="ALPHA" x="0" y="140" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" itemSpacing="10" type="FRAME">
+                  <children>
+                    <Frame id="16601:46256" name="Frame_2351" maskType="ALPHA" x="0" y="0" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                      <children>
+                        <Text id="16601:46257" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="12.5" width="26" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="3" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46258" name="_5910220" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25910220" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46259" name="Farrij_Rifufu" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Farrij Rifufu" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46260" name="Teknologi_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Teknologi Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46261" name="S2_-_Informatika" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Informatika" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46262" name="S2_Teknik_Informatika_-_Eksekutif" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Teknik Informatika - Eksekutif " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46263" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="40.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Status_Beasiswa id="16601:46264" name="Status_Beasiswa" maskType="ALPHA" x="1155" y="7.5" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                          <children>
+                            <Frame id="I16601:46264;323:29648" name="Status_tanggal_akhir_bayar" cornerRadius="5" maskType="ALPHA" x="0" y="0" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="5" paddingBottom="5" horizontalPadding="10" verticalPadding="5" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                              <children>
+                                <Frame id="I16601:46264;323:29649" name="Frame_1" maskType="ALPHA" x="10" y="5" width="44" height="15" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="4" type="FRAME">
+                                  <children>
+                                    <Icon_white id="I16601:46264;828:664" name="Icon_white" maskType="ALPHA" x="0" y="0.5" width="14" height="14" clipsContent="true" type="INSTANCE">
+                                      <children>
+                                        <Vector id="I16601:46264;828:664;7:9437" name="Vector" maskType="ALPHA" x="1.1666666269302368" y="1.1666666269302368" width="11.666666030883789" height="11.666666030883789" type="VECTOR">
+                                          <fills>
+                                            <fill blendMode="NORMAL" color="#3e82f3" />
+                                          </fills>
+                                          <constraints horizontal="SCALE" vertical="SCALE" />
+                                        </Vector>
+                                      </children>
+                                      <fills>
+                                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <variantProperties Alphabet="C" Name="check-circle" />
+                                      <mainComponent id="10054:18603" />
+                                      <componentProperties>
+                                        <Alphabet type="VARIANT" value="C" />
+                                        <Name type="VARIANT" value="check-circle" />
+                                      </componentProperties>
+                                    </Icon_white>
+                                    <Text id="I16601:46264;323:29653" name="Berlangsung" maskType="ALPHA" strokeAlign="OUTSIDE" x="18" y="0" width="26" height="15" layoutSizingHorizontal="HUG" fontSize="12" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Aktif" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                                      <fills>
+                                        <fill blendMode="NORMAL" color="#303030" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <letterSpacing value="0" unit="PERCENT" />
+                                      <lineHeight unit="AUTO" />
+                                    </Text>
+                                  </children>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                </Frame>
+                              </children>
+                              <strokes>
+                                <stroke blendMode="NORMAL" color="#c5cdee" />
+                              </strokes>
+                              <fills>
+                                <fill blendMode="NORMAL" color="#eef6ff" />
+                              </fills>
+                              <constraints horizontal="MIN" vertical="MIN" />
+                            </Frame>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <variantProperties type="Aktif" Text_Only="True" />
+                          <mainComponent id="10054:16968" />
+                          <componentProperties>
+                            <type type="VARIANT" value="Aktif" />
+                            <Text_Only type="VARIANT" value="True" />
+                          </componentProperties>
+                        </Status_Beasiswa>
+                      </children>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#f5f5f5" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Line id="16601:46265" name="Line_6" maskType="ALPHA" strokeAlign="CENTER" x="0" y="0" width="1234" height="0" layoutPositioning="ABSOLUTE" type="LINE">
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#bdbdbd" />
+                      </strokes>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Line>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <Frame id="16601:46266" name="Frame_2357" maskType="ALPHA" x="0" y="180" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" itemSpacing="10" type="FRAME">
+                  <children>
+                    <Frame id="16601:46267" name="Frame_2351" maskType="ALPHA" x="0" y="0" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                      <children>
+                        <Text id="16601:46268" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="12.5" width="26" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="4" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46269" name="_5324087" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25324087" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46270" name="Yudhistira_Arsitek" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Yudhistira Arsitek" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46271" name="Ekonomi_dan_Bisnis" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Ekonomi dan Bisnis" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46272" name="S2_-_Manajemen" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Manajemen" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46273" name="S2_Manajemen_-_Reguler" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Manajemen - Reguler " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46274" name="_3.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="43.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Status_Beasiswa id="16601:46275" name="Status_Beasiswa" maskType="ALPHA" x="1155" y="7.5" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                          <children>
+                            <Frame id="I16601:46275;323:29648" name="Status_tanggal_akhir_bayar" cornerRadius="5" maskType="ALPHA" x="0" y="0" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="5" paddingBottom="5" horizontalPadding="10" verticalPadding="5" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                              <children>
+                                <Frame id="I16601:46275;323:29649" name="Frame_1" maskType="ALPHA" x="10" y="5" width="44" height="15" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="4" type="FRAME">
+                                  <children>
+                                    <Icon_white id="I16601:46275;828:664" name="Icon_white" maskType="ALPHA" x="0" y="0.5" width="14" height="14" clipsContent="true" type="INSTANCE">
+                                      <children>
+                                        <Vector id="I16601:46275;828:664;7:9437" name="Vector" maskType="ALPHA" x="1.1666666269302368" y="1.1666666269302368" width="11.666666030883789" height="11.666666030883789" type="VECTOR">
+                                          <fills>
+                                            <fill blendMode="NORMAL" color="#3e82f3" />
+                                          </fills>
+                                          <constraints horizontal="SCALE" vertical="SCALE" />
+                                        </Vector>
+                                      </children>
+                                      <fills>
+                                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <variantProperties Alphabet="C" Name="check-circle" />
+                                      <mainComponent id="10054:18603" />
+                                      <componentProperties>
+                                        <Alphabet type="VARIANT" value="C" />
+                                        <Name type="VARIANT" value="check-circle" />
+                                      </componentProperties>
+                                    </Icon_white>
+                                    <Text id="I16601:46275;323:29653" name="Berlangsung" maskType="ALPHA" strokeAlign="OUTSIDE" x="18" y="0" width="26" height="15" layoutSizingHorizontal="HUG" fontSize="12" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Aktif" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                                      <fills>
+                                        <fill blendMode="NORMAL" color="#303030" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <letterSpacing value="0" unit="PERCENT" />
+                                      <lineHeight unit="AUTO" />
+                                    </Text>
+                                  </children>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                </Frame>
+                              </children>
+                              <strokes>
+                                <stroke blendMode="NORMAL" color="#c5cdee" />
+                              </strokes>
+                              <fills>
+                                <fill blendMode="NORMAL" color="#eef6ff" />
+                              </fills>
+                              <constraints horizontal="MIN" vertical="MIN" />
+                            </Frame>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <variantProperties type="Aktif" Text_Only="True" />
+                          <mainComponent id="10054:16968" />
+                          <componentProperties>
+                            <type type="VARIANT" value="Aktif" />
+                            <Text_Only type="VARIANT" value="True" />
+                          </componentProperties>
+                        </Status_Beasiswa>
+                      </children>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Line id="16601:46276" name="Line_6" maskType="ALPHA" strokeAlign="CENTER" x="0" y="0" width="1234" height="0" layoutPositioning="ABSOLUTE" type="LINE">
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#bdbdbd" />
+                      </strokes>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Line>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+                <Frame id="16601:46277" name="Frame_2358" maskType="ALPHA" x="0" y="220" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="VERTICAL" itemSpacing="10" type="FRAME">
+                  <children>
+                    <Frame id="16601:46278" name="Frame_2351" cornerRadius="" bottomLeftRadius="4" bottomRightRadius="4" maskType="ALPHA" x="0" y="0" width="1234" height="40" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingLeft="15" paddingRight="15" horizontalPadding="15" primaryAxisSizingMode="FIXED" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="15" type="FRAME">
+                      <children>
+                        <Text id="16601:46279" name="_" maskType="ALPHA" strokeAlign="OUTSIDE" x="15" y="12.5" width="26" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="5" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46280" name="_5922316" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25922316" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46281" name="Rafi_Farmasi" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Rafi Farmasi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46282" name="Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46283" name="S2_-_Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46284" name="S2_Kedokteran_-_Eksekutif" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Kedokteran - Eksekutif " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46285" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="70.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Status_Beasiswa id="16601:46286" name="Status_Beasiswa" maskType="ALPHA" x="1155" y="7.5" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" type="INSTANCE">
+                          <children>
+                            <Frame id="I16601:46286;323:29648" name="Status_tanggal_akhir_bayar" cornerRadius="5" maskType="ALPHA" x="0" y="0" width="64" height="25" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" paddingLeft="10" paddingRight="10" paddingTop="5" paddingBottom="5" horizontalPadding="10" verticalPadding="5" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="FRAME">
+                              <children>
+                                <Frame id="I16601:46286;323:29649" name="Frame_1" maskType="ALPHA" x="10" y="5" width="44" height="15" layoutSizingHorizontal="HUG" layoutMode="HORIZONTAL" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="4" type="FRAME">
+                                  <children>
+                                    <Icon_white id="I16601:46286;828:664" name="Icon_white" maskType="ALPHA" x="0" y="0.5" width="14" height="14" clipsContent="true" type="INSTANCE">
+                                      <children>
+                                        <Vector id="I16601:46286;828:664;7:9437" name="Vector" maskType="ALPHA" x="1.1666666269302368" y="1.1666666269302368" width="11.666666030883789" height="11.666666030883789" type="VECTOR">
+                                          <fills>
+                                            <fill blendMode="NORMAL" color="#3e82f3" />
+                                          </fills>
+                                          <constraints horizontal="SCALE" vertical="SCALE" />
+                                        </Vector>
+                                      </children>
+                                      <fills>
+                                        <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <variantProperties Alphabet="C" Name="check-circle" />
+                                      <mainComponent id="10054:18603" />
+                                      <componentProperties>
+                                        <Alphabet type="VARIANT" value="C" />
+                                        <Name type="VARIANT" value="check-circle" />
+                                      </componentProperties>
+                                    </Icon_white>
+                                    <Text id="I16601:46286;323:29653" name="Berlangsung" maskType="ALPHA" strokeAlign="OUTSIDE" x="18" y="0" width="26" height="15" layoutSizingHorizontal="HUG" fontSize="12" fontName="Symbol(figma.mixed)" fontWeight="500" hyperlink="" characters="Aktif" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                                      <fills>
+                                        <fill blendMode="NORMAL" color="#303030" />
+                                      </fills>
+                                      <constraints horizontal="MIN" vertical="MIN" />
+                                      <letterSpacing value="0" unit="PERCENT" />
+                                      <lineHeight unit="AUTO" />
+                                    </Text>
+                                  </children>
+                                  <constraints horizontal="MIN" vertical="MIN" />
+                                </Frame>
+                              </children>
+                              <strokes>
+                                <stroke blendMode="NORMAL" color="#c5cdee" />
+                              </strokes>
+                              <fills>
+                                <fill blendMode="NORMAL" color="#eef6ff" />
+                              </fills>
+                              <constraints horizontal="MIN" vertical="MIN" />
+                            </Frame>
+                          </children>
+                          <fills>
+                            <fill visible="false" blendMode="NORMAL" color="#ffffff" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <variantProperties type="Aktif" Text_Only="True" />
+                          <mainComponent id="10054:16968" />
+                          <componentProperties>
+                            <type type="VARIANT" value="Aktif" />
+                            <Text_Only type="VARIANT" value="True" />
+                          </componentProperties>
+                        </Status_Beasiswa>
+                      </children>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#f5f5f5" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Frame>
+                    <Line id="16601:46287" name="Line_6" maskType="ALPHA" strokeAlign="CENTER" x="0" y="0" width="1234" height="0" layoutPositioning="ABSOLUTE" type="LINE">
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#bdbdbd" />
+                      </strokes>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                    </Line>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                </Frame>
+              </children>
+              <strokes>
+                <stroke blendMode="NORMAL" color="#bdbdbd" />
+              </strokes>
+              <constraints horizontal="MIN" vertical="MIN" />
+            </Frame>
+            <Frame id="16601:46288" name="Frame_768" maskType="ALPHA" x="0" y="321" width="1234" height="37" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" primaryAxisAlignItems="SPACE_BETWEEN" type="FRAME">
+              <children>
+                <Text id="16601:46289" name="Menampilkan_1-5_dari_215_data" maskType="ALPHA" strokeAlign="OUTSIDE" x="0" y="0" width="193" height="17" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Menampilkan 1-5 dari 215 data" type="TEXT" textAlignHorizontal="JUSTIFIED" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                  <fills>
+                    <fill blendMode="NORMAL" color="#555555" />
+                  </fills>
+                  <constraints horizontal="SCALE" vertical="MIN" />
+                  <letterSpacing value="0" unit="PERCENT" />
+                  <lineHeight unit="AUTO" />
+                </Text>
+                <pressed id="16601:46290" name="pressed" maskType="ALPHA" x="989" y="0" width="245" height="37" variantProperties="" type="INSTANCE">
+                  <children>
+                    <Rectangle id="I16601:46290;581:112" name="Rectangle_2.6" maskType="ALPHA" x="0" y="0" width="245" height="37" cornerRadius="4" type="RECTANGLE">
+                      <strokes>
+                        <stroke blendMode="NORMAL" color="#03337b" />
+                      </strokes>
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                    </Rectangle>
+                    <Rectangle id="I16601:46290;619:1" name="Rectangle_3.2" maskType="ALPHA" x="70" y="0" width="35" height="37" type="RECTANGLE">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                    </Rectangle>
+                    <Text id="I16601:46290;581:113" name="_" maskType="ALPHA" strokeWeight="0" x="11" y="11" width="14" height="18" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:115" name="_" maskType="ALPHA" strokeWeight="0" x="48" y="11" width="10" height="18" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:116" name="_" maskType="ALPHA" strokeWeight="0" x="83" y="10" width="9" height="17" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="1" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#ffffff" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:117" name="_" maskType="ALPHA" strokeWeight="0" x="118" y="10" width="9" height="17" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="2" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:118" name="_" maskType="ALPHA" strokeWeight="0" x="153" y="10" width="9" height="17" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="3" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:119" name="_" maskType="ALPHA" strokeWeight="0" x="188" y="11" width="10" height="18" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="I16601:46290;581:120" name="_" maskType="ALPHA" strokeWeight="0" x="221" y="11" width="14" height="18" fontSize="15" fontName="Symbol(figma.mixed)" fontWeight="900" hyperlink="" characters="" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#03337b" />
+                      </fills>
+                      <constraints horizontal="SCALE" vertical="SCALE" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                  </children>
+                  <constraints horizontal="MIN" vertical="MIN" />
+                  <mainComponent id="3096:21" />
+                  <overrides>
+                    <override id="16601:46290">
+                      <overriddenFields>
+                        <overriddenField value="height" index="0" />
+                        <overriddenField value="width" index="1" />
+                      </overriddenFields>
+                    </override>
+                  </overrides>
+                </pressed>
+              </children>
+              <constraints horizontal="MIN" vertical="MIN" />
+            </Frame>
+          </children>
+          <constraints horizontal="MIN" vertical="MIN" />
+        </Frame>
+        <Frame id="16601:46291" name="Frame_2043" maskType="ALPHA" x="0" y="605" width="1234" height="141" layoutAlign="STRETCH" layoutSizingHorizontal="FILL" layoutMode="HORIZONTAL" paddingTop="100" paddingBottom="1" verticalPadding="100" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="20" type="FRAME">
+          <children>
+            <Button_FNC id="16601:46292" name="Button_FNC" cornerRadius="6" maskType="ALPHA" x="485.5" y="100" width="83" height="40" layoutSizingHorizontal="HUG" layoutMode="VERTICAL" paddingLeft="25" paddingRight="25" paddingTop="12" paddingBottom="12" horizontalPadding="25" verticalPadding="12" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" type="INSTANCE">
+              <children>
+                <Text id="I16601:46292;3:1921" name="Button" maskType="ALPHA" strokeAlign="OUTSIDE" x="25" y="12" width="33" height="16" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="Batal" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                  <fills>
+                    <fill blendMode="NORMAL" color="#03337b" />
+                  </fills>
+                  <constraints horizontal="CENTER" vertical="SCALE" />
+                  <letterSpacing value="0" unit="PERCENT" />
+                  <lineHeight unit="AUTO" />
+                </Text>
+              </children>
+              <strokes>
+                <stroke blendMode="NORMAL" color="#03337b" />
+              </strokes>
+              <fills>
+                <fill blendMode="NORMAL" color="#ffffff" />
+              </fills>
+              <constraints horizontal="MIN" vertical="MIN" />
+              <variantProperties Type="secondary" State="normal" Text="true" icon="false" />
+              <mainComponent id="9417:10495" />
+              <componentProperties>
+                <Type type="VARIANT" value="secondary" />
+                <State type="VARIANT" value="normal" />
+                <Text type="VARIANT" value="true" />
+                <icon type="VARIANT" value="false" />
+              </componentProperties>
+              <overrides>
+                <override id="16601:46292">
+                  <overriddenFields>
+                    <overriddenField value="counterAxisSizingMode" index="0" />
+                    <overriddenField value="height" index="1" />
+                    <overriddenField value="width" index="2" />
+                  </overriddenFields>
+                </override>
+                <override id="I16601:46292;3:1921">
+                  <overriddenFields>
+                    <overriddenField value="characters" index="0" />
+                    <overriddenField value="fontName" index="1" />
+                    <overriddenField value="styledTextSegments" index="2" />
+                  </overriddenFields>
+                </override>
+              </overrides>
+            </Button_FNC>
+            <Button_FNC id="16601:46293" name="Button_FNC" cornerRadius="6" maskType="ALPHA" x="588.5" y="100" width="160" height="40" layoutMode="HORIZONTAL" paddingLeft="25" paddingRight="25" paddingTop="12" paddingBottom="12" horizontalPadding="25" verticalPadding="12" primaryAxisSizingMode="FIXED" counterAxisSizingMode="AUTO" primaryAxisAlignItems="CENTER" counterAxisAlignItems="CENTER" itemSpacing="10" type="INSTANCE">
+              <children>
+                <Text id="I16601:46293;3:1913" name="Button" maskType="ALPHA" strokeAlign="OUTSIDE" x="51" y="12" width="58" height="16" layoutSizingHorizontal="HUG" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="700" hyperlink="" characters="Generate" type="TEXT" textAlignHorizontal="CENTER" textAlignVertical="TOP" textAutoResize="WIDTH_AND_HEIGHT">
+                  <fills>
+                    <fill blendMode="NORMAL" color="#ffffff" />
+                  </fills>
+                  <constraints horizontal="SCALE" vertical="SCALE" />
+                  <letterSpacing value="0" unit="PERCENT" />
+                  <lineHeight unit="AUTO" />
+                </Text>
+              </children>
+              <fills>
+                <fill blendMode="NORMAL" color="#03337b" />
+              </fills>
+              <constraints horizontal="MIN" vertical="MIN" />
+              <variantProperties Type="primary" State="normal" Text="true" icon="false" />
+              <mainComponent id="10005:4337" />
+              <componentProperties>
+                <Type type="VARIANT" value="primary" />
+                <State type="VARIANT" value="normal" />
+                <Text type="VARIANT" value="true" />
+                <icon type="VARIANT" value="false" />
+              </componentProperties>
+              <overrides>
+                <override id="16601:46293">
+                  <overriddenFields>
+                    <overriddenField value="counterAxisAlignItems" index="0" />
+                    <overriddenField value="height" index="1" />
+                    <overriddenField value="primaryAxisAlignItems" index="2" />
+                    <overriddenField value="primaryAxisSizingMode" index="3" />
+                    <overriddenField value="width" index="4" />
+                  </overriddenFields>
+                </override>
+                <override id="I16601:46293;3:1913">
+                  <overriddenFields>
+                    <overriddenField value="characters" index="0" />
+                    <overriddenField value="fontName" index="1" />
+                    <overriddenField value="styledTextSegments" index="2" />
+                  </overriddenFields>
+                </override>
+              </overrides>
+            </Button_FNC>
+          </children>
+          <constraints horizontal="MIN" vertical="MIN" />
+        </Frame>
+      </children>
+      <constraints horizontal="MIN" vertical="MIN" />
+    </Frame>
+  </children>
+  <fills>
+    <fill blendMode="NORMAL" color="#ffffff" />
+  </fills>
+  <constraints horizontal="MIN" vertical="MIN" />
+</frame>

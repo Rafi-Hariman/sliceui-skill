@@ -28,8 +28,11 @@ const PARSER = new XMLParser({
  */
 export function parseFigml(xml, filename) {
   let rootChildren;
+  let rootAttrs = {};
   try {
-    rootChildren = findRootChildren(PARSER.parse(xml));
+    const parsed = PARSER.parse(xml);
+    rootChildren = findRootChildren(parsed);
+    rootAttrs = findRootAttrs(parsed);
   } catch (err) {
     return { ok: false, reason: "parse-error", message: String(err?.message ?? err) };
   }
@@ -39,6 +42,18 @@ export function parseFigml(xml, filename) {
   const height = rootDim(xml, "height");
   const layout = walkNodes(rootChildren, 0, 0);
   markTables(layout);
+  // The root frame's OWN box facts were dropped entirely — only its children were walked, so a
+  // page frame carrying `paddingTop="20" paddingBottom="20"` never reached the transcript and the
+  // generator fell back to its own padding (2026-09-24, report §4.1 — verified against a field
+  // export whose root frame holds all four 20px paddings). Re-attach them to the node that
+  // represents the root content, which is the first top-level node (a FIGML export's root has a
+  // single <children> wrapping the real content).
+  if (layout.length) {
+    const rootPadding = paddingOf(rootAttrs);
+    if (rootPadding && !layout[0].padding) layout[0].padding = rootPadding;
+    const rootJustify = justifyContentOf(rootAttrs);
+    if (rootJustify && !layout[0].justify) layout[0].justify = rootJustify;
+  }
 
   const transcript = emptyTranscript({
     source: "figml",
@@ -72,6 +87,27 @@ function findRootChildren(parsed) {
     }
   }
   return null;
+}
+
+/** The ROOT frame element's own attributes. preserveOrder keeps them under the sibling `":@"`
+ *  key, which findRootChildren drops when it returns only the children — this is where a page
+ *  frame's `padding*` / alignment facts live, and the reason they never reached the transcript. */
+function findRootAttrs(parsed) {
+  if (!Array.isArray(parsed)) return {};
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== "object") continue;
+    for (const key of Object.keys(entry)) {
+      if (key === "?xml" || key === "?figml") continue;
+      const arr = entry[key];
+      const item = Array.isArray(arr) ? arr[0] : arr;
+      // Identify the root ELEMENT first (the entry whose value carries <children>), then read its
+      // sibling ":@". The processing-instruction entries ALSO expose a ":@" — and their key is
+      // literally ":@", so keying off `entry[":@"]` alone returns `<?xml version="1.0"?>`'s
+      // declaration attrs instead of the frame's, silently yielding an empty padding.
+      if (item && Array.isArray(item.children)) return entry[":@"] ?? {};
+    }
+  }
+  return {};
 }
 
 /** Root frame's width/height (its attributes are lost by preserveOrder, so regex the raw XML). */
@@ -115,13 +151,34 @@ function walkNodes(nodes, ox, oy) {
     const childStrokes = kids.find((k) => k && k.strokes);
     const effectiveAttrs2 = childStrokes ? { ...effectiveAttrs, strokes: childStrokes.strokes } : effectiveAttrs;
     const visualKids2 = childStrokes ? visualKids.filter((k) => k !== childStrokes) : visualKids;
-    // A child <variantProperties Type="primary|secondary|…"/> is the component's variant —
-    // a design fact the agent needs (button primary vs secondary), not a node to transcribe.
-    // Consume it into the parent attrs and drop it from the child walk.
+    // A child <variantProperties Type="primary|secondary|…" Name="sync"/> is the component's
+    // variant — a design fact the agent needs (button primary vs secondary; an icon's variant
+    // Name is often the glyph name, e.g. "sync"). Consume into parent attrs; drop from walk.
+    // The SAME element also carries non-variant component metadata — most importantly
+    // `required`, a field's explicit required-ness. Real exports put it nowhere else:
+    //   <variantProperties Type="dropdown" required="true" />
+    // Reading only Type/Name dropped it entirely, so the transcript never knew which fields
+    // were required and the generator reconstructed the design's hidden asterisk instead
+    // (2026-09-24, report §4.5 — verified against a field export).
     const childVariant = kids.find((k) => k && k.variantProperties);
-    const effectiveAttrs3 = childVariant ? { ...effectiveAttrs2, variantType: childVariant[":@"]?.Type ?? null } : effectiveAttrs2;
+    const variantAttrs = childVariant?.[":@"] ?? {};
+    const effectiveAttrs3 = childVariant
+      ? {
+          ...effectiveAttrs2,
+          variantType: variantAttrs.Type ?? null,
+          variantName: variantAttrs.Name ?? null,
+          ...(variantAttrs.required !== undefined ? { required: variantAttrs.required } : {}),
+        }
+      : effectiveAttrs2;
     const visualKids3 = childVariant ? visualKids2.filter((k) => k !== childVariant) : visualKids2;
-    const mapped = mapNode(tag, effectiveAttrs3, visualKids3, ox, oy);
+    // A hidden-by-OVERRIDE node (FIGML expresses visibility as `<override overriddenField="visible"
+    // value="false">`, not a direct `visible="false"`). Surface it as `visible="false"` so
+    // isHidden() marks the node hidden — conservative: only when the override names "visible"
+    // explicitly, so a malformed/other-field override never hides a real node (2026-09-10 B1).
+    const effectiveAttrs4 = overrideHidesNode(kids)
+      ? { ...effectiveAttrs3, visible: "false" }
+      : effectiveAttrs3;
+    const mapped = mapNode(tag, effectiveAttrs4, visualKids3, ox, oy);
     if (mapped) out.push(mapped);
   }
   return out;
@@ -173,7 +230,14 @@ function mapNode(tag, attrs, kids, ox, oy) {
       const letterSpacing = childNumAttr(kids, "letterSpacing");
       if (lineHeight) style.lineHeight = lineHeight;
       if (letterSpacing) style.letterSpacing = letterSpacing;
-      return { ...base, type: "text", text: attrs.characters ?? "", style };
+      const text = attrs.characters ?? "";
+      const node = { ...base, type: "text", text, style };
+      // An EMPTY text inside a named node is an icon GLYPH rendered as font text (FontAwesome
+      // glyph = a private-use-area codepoint the XML leaves out). The node's name is the glyph
+      // identity ("Icon_Font_Awesome_Free_Solid_T_toggle-on") — the cheapest signal to carry and
+      // the one resolve needs. Type/style stay untouched so fidelity scoring is unchanged.
+      if (!text.trim() && name) node.glyphName = name;
+      return node;
     }
 
     case "RECTANGLE":
@@ -195,7 +259,8 @@ function mapNode(tag, attrs, kids, ox, oy) {
     case "VECTOR":
       // Carry the vector's fill color — a status/action icon's color is the design effect
       // that was being lost (defect #3: red #f44444 / pink #f6cacb badge icons dropped).
-      return { ...base, type: "icon", description: name, bg: color ?? undefined };
+      // glyphName carries the Figma node name (the FA glyph name when the export names it).
+      return { ...base, type: "icon", description: name, glyphName: name || undefined, bg: color ?? undefined };
 
     case "FRAME": {
       const axis = attrs.layoutMode === "HORIZONTAL" ? "row" : attrs.layoutMode === "VERTICAL" ? "column" : undefined;
@@ -235,9 +300,31 @@ function mapNode(tag, attrs, kids, ox, oy) {
       const label = childNodes.length ? firstText(childNodes) : "";
       if (cls.type === "button" && label) node.text = label;
       if (cls.type === "input") node.label = label;
-      if (cls.type === "icon") node.description = name;
+      if (cls.type === "icon") {
+        node.description = name;
+        node.glyphName = name || undefined;
+        // A Figma variant name on an icon instance is often the glyph itself ("sync") — a
+        // stronger signal than the generic node name. Surface it so resolve can use it before
+        // falling back to native-plain (2026-09-11 F8).
+        if (attrs.variantName) node.variantName = attrs.variantName;
+        // An empty-TEXT child of an icon instance IS the glyph (rendered as font text); its
+        // own name is generic ("glyph") — carry the instance's FA name instead, so the
+        // transcript and resolve both see the real glyph identity.
+        for (const ch of childNodes) {
+          if (ch.type === "text" && !(ch.text ?? "").trim()) ch.glyphName = name;
+        }
+      }
       if (cls.table) node.table = true;
       if (attrs.variantType) node.variant = attrs.variantType;
+      // A field's `required` flag is an EXPLICIT design fact, and the design expresses it as a
+      // hidden asterisk (a text node — usually "*" — the export marks invisible). Surface the
+      // boolean so the generator emits the marker for required fields and emits NOTHING for
+      // optional ones: the defect it closes is an agent reconstructing the hidden asterisk and
+      // shipping `<span class="required-mark hidden">*</span>` on an optional field (2026-09-24,
+      // report §4.5). Only set when the attribute is actually present, so "absent" stays
+      // distinguishable from "present and false".
+      const req = requiredOf(attrs);
+      if (req !== null) node.required = req;
       if (childNodes.length) node.children = childNodes;
       return node;
     }
@@ -300,6 +387,35 @@ function isHidden(attrs) {
   if (v != null && (String(v).toLowerCase() === "false" || String(v) === "0")) return true;
   if (attrs.opacity != null && Number(attrs.opacity) === 0) return true;
   return false;
+}
+
+/** True when a node's child `<overrides>/<override>` sets `overriddenField="visible"` to "false"
+ *  (FIGML encodes hidden-by-override this way, not as a direct `visible="false"`). Conservative:
+ *  only the explicit `visible` field — any other override is ignored, never hiding a real node.
+ *  preserveOrder shape: the node's kid is `{ overrides: [ { override: [], ":@": { overriddenField,
+ *  value } } ] }` — the override element's attributes sit on that inner object's ":@". */
+function overrideHidesNode(kids) {
+  for (const k of kids ?? []) {
+    if (!k || typeof k !== "object") continue;
+    // Direct `<override overriddenField="visible" value="false"/>` child.
+    if (k.override) {
+      const ovs = Array.isArray(k.override) ? k.override : [k.override];
+      for (const o of ovs) if (overrideHides(o)) return true;
+    }
+    // `<overrides><override …/></overrides>` wrapper: the array holds the <override> elements.
+    if (k.overrides) {
+      const list = Array.isArray(k.overrides) ? k.overrides : [k.overrides];
+      for (const o of list) if (overrideHides(o)) return true;
+    }
+  }
+  return false;
+}
+
+/** An <override> element hides its node when overriddenField=visible and value=false. */
+function overrideHides(o) {
+  const a = (o && o[":@"]) ?? o ?? {};
+  return String(a.overriddenField ?? "").toLowerCase() === "visible"
+    && String(a.value ?? "").toLowerCase() === "false";
 }
 
 /** Per-corner radius `{ tl, tr, br, bl }` — emitted ONLY when asymmetric. Symmetric corners are
@@ -407,6 +523,14 @@ function paddingOf(attrs) {
   const left = num(attrs.paddingLeft) || num(attrs.horizontalPadding);
   if (!top && !right && !bottom && !left) return null;
   return { top, right, bottom, left };
+}
+
+/** A field's `required` flag; null when the attribute is absent (so "unstated" is distinct from
+ *  "stated false" — only the latter may suppress a marker the design would otherwise imply). */
+function requiredOf(attrs) {
+  const v = attrs.required;
+  if (v === undefined || v === null) return null;
+  return v === true || String(v).toLowerCase() === "true";
 }
 
 /** Read a numeric child-element attribute (e.g. <lineHeight unit="PIXELS" value="24"/>).

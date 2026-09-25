@@ -190,22 +190,100 @@ export function refereeArtifacts(root, ctx, xml, xmlFilename, transcript = null,
     });
   }
 
+  // Duplicate selectors across declared components — a silent, dangerous hazard: Angular does NOT
+  // error on two components sharing a selector (routing instantiates by class), so a duplicate is a
+  // latent bug that only surfaces when both are used in one view (2026-09-10 C2).
+  const duplicateSelectors = findDuplicateSelectors(root);
+  if (duplicateSelectors.length) {
+    findings.push({
+      head: "codebase",
+      artifact: "component selectors",
+      claim: "every component selector is unique",
+      evidencePath: duplicateSelectors.map((d) => d.selector).join(", "),
+      status: "fail",
+      detail: `duplicate selector(s): ${duplicateSelectors.map((d) => `${d.selector} (${d.files.length}×)`).join(", ")}`,
+      duplicates: duplicateSelectors,
+    });
+  }
+
+  // F12: classify every red finding as slice-blocking vs repo-preexisting. The slice must STOP
+  // (exit non-zero) only on slice-blocking reds: a wrong transcript or a target that already has
+  // code. Repo-preexisting reds (duplicate selectors, stale well claim, unverified corpus, app
+  // shell in samples) are pre-existing tech debt — printing them as red every run trains the
+  // agent to ignore red, so they are reported but do NOT block the slice (2026-09-11 F12).
   const red = findings.filter((x) => x.status === "fail" || x.status === "stale");
-  return { findings, pass: red.length === 0, redCount: red.length };
+  const blockingRed = red.filter((f) => isSliceBlocking(f));
+  return {
+    findings: findings.map((f) => ({ ...f, blocking: isSliceBlocking(f) })),
+    pass: blockingRed.length === 0,
+    redCount: red.length,
+    blockingRedCount: blockingRed.length,
+  };
+}
+
+/** Is a red finding the slice's own fault (STOP) vs the repo's pre-existing debt (report only)? */
+function isSliceBlocking(f) {
+  // A target that already has code is a STOP gate; a transcript that dropped design attributes
+  // is a slice-ground-truth defect. Everything else is repo/conventions quality.
+  return (f.artifact === "component target" && f.status === "fail")
+    || (f.head === "xml" && f.status === "fail");
+}
+
+/** Scan every `.component.ts` for `selector: '…'`; return any selector claimed by >1 file. */
+function findDuplicateSelectors(root) {
+  const tsFiles = fg.sync(["**/*.component.ts"], { cwd: root, ignore: SKIP, absolute: true });
+  const bySelector = new Map();
+  for (const f of tsFiles) {
+    const src = readFileSyncSafe(f);
+    const sel = /selector\s*:\s*['"]([^'"]+)['"]/.exec(src)?.[1];
+    if (!sel) continue;
+    if (!bySelector.has(sel)) bySelector.set(sel, []);
+    bySelector.get(sel).push(f);
+  }
+  return [...bySelector.entries()]
+    .filter(([, files]) => files.length > 1)
+    .map(([selector, files]) => ({ selector, files }));
 }
 
 function readFileSyncSafe(p) {
   try { return readFileSync(p, "utf8"); } catch { return ""; }
 }
 
-/** Locate `<name>.component.ts` for a target: prefer componentDir, then a repo-wide search. */
+/** Locate `<name>.component.ts` for a target: prefer componentDir, then a repo-wide search.
+ *
+ *  The target is accepted in EITHER of the two names an agent actually has in hand:
+ *    - the basename an Angular component file derives from (`testingcomponent` → `testingcomponent.component.ts`), or
+ *    - the PascalCase class name (`TestingcomponentComponent`) — which must be normalized to the
+ *      kebab-case file stem before it can match a filename.
+ *  The 2026-09-24 field session passed the CLASS name, so the file was never found and the
+ *  target-exists STOP gate stayed inert (silently green) — exactly the false-green R1 forbids. */
 function locateTargetTs(root, ctx, target) {
+  if (!target) return null;
+  const stems = new Set([target, classNameToFileStem(target)]);
   const cd = ctx?.componentDir ?? "src/app";
-  const direct = join(root, cd, `${target}.component.ts`);
-  if (existsSync(direct)) return direct;
-  // Monorepo / nested feature dirs: search the whole project, skipping vendored/built dirs.
-  const hits = fg.sync([`**/${target}.component.ts`], { cwd: root, ignore: SKIP, absolute: true });
-  return hits[0] ?? null;
+  for (const stem of stems) {
+    if (!stem) continue;
+    const direct = join(root, cd, `${stem}.component.ts`);
+    if (existsSync(direct)) return direct;
+    const hits = fg.sync([`**/${stem}.component.ts`], { cwd: root, ignore: SKIP, absolute: true });
+    if (hits.length) return hits[0];
+  }
+  return null;
+}
+
+/** `TestingcomponentComponent` → `testingcomponent`. Angular's file-naming convention derives the
+ *  component file from the kebab-case class stem: strip a trailing `Component` suffix, then insert
+ *  a `-` before each uppercase run (handling leading acronym runs so `HTTPClientComponent` →
+ *  `http-client`). A name already kebab-case passes through unchanged. */
+export function classNameToFileStem(target) {
+  const s = String(target ?? "");
+  if (!s || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) return s; // already a kebab-case stem
+  const withoutSuffix = s.replace(/Component$/, "");
+  const kebab = withoutSuffix
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase();
+  return kebab || s.toLowerCase();
 }
 
 /** Classify an existing component as "mock data" vs "real API" by its .ts contents. */
@@ -221,9 +299,9 @@ function classifyComponentMode(ts) {
   return "static/simple";
 }
 
-/** Read the raw XML from .sliceui/xml/ (first .xml/.figml) when not supplied. */
+/** Read the raw XML from .sliceui/inputs/xml/ (first .xml/.figml) when not supplied. */
 export function readRawXmlFromSliceui(root) {
-  const xdir = join(root, ".sliceui", "xml");
+  const xdir = join(root, ".sliceui", "inputs", "xml");
   if (!existsSync(xdir)) return { xml: null, name: null };
   const f = readdirSync(xdir).find((x) => /\.(xml|figml)$/i.test(x));
   return f ? { xml: readFileSyncSafe(join(xdir, f)), name: f } : { xml: null, name: null };

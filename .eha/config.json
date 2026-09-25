@@ -1,0 +1,8 @@
+{
+  "configVersion": 2,
+  "agent": "claude",
+  "agents": [
+    "claude"
+  ],
+  "subagentRouting": false
+}

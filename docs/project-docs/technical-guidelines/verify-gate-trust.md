@@ -37,7 +37,7 @@ The product's core value is a trustworthy gate: red must mean real defect, green
 
 - `foundation/phases/phase-P4-gate-stability.md` — the live phase implementing this
 - `development/testing.md` — suite policy protecting the gate
-- `docs/SLICEUI-EXPERIENCE-REPORT-2.md` — the field evidence that motivated R2
+- `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` — the field evidence that motivated R2
 
 ## 7. Open Questions
 

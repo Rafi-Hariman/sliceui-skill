@@ -1,5 +1,5 @@
 // sliceui resolve — deterministic idiom-resolution pass. Reads the transcript + conventions,
-// writes .sliceui/resolve/<name>.resolved.json so the agent assembles from EXACT candidates.
+// writes .sliceui/artifacts/<name>/resolved.json so the agent assembles from EXACT candidates.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
@@ -28,17 +28,21 @@ export function main(argv) {
   const conventions = readConventions(process.cwd());
   const result = resolveTranscript(transcript, conventions);
 
-  const outDir = join(process.cwd(), ".sliceui", "resolve");
-  mkdirSync(outDir, { recursive: true });
+  // The written artifact carries the DEDUPED view (groups) — identical table-row leaves repeat
+  // 10×+ and reading them whole wasted ~90% of the resolved.json (2026-09-10 §1.3). `leaves`
+  // stays available for programmatic callers via --json.
+  const deduped = { groups: result.groups, meta: { totalLeaves: result.leaves.length, uniqueGroups: result.groups.length } };
   const stem = basename(abs).replace(/\.(xml|figml|json)$/i, "");
-  const out = join(outDir, `${stem}.resolved.json`);
-  writeFileSync(out, JSON.stringify(result, null, 2) + "\n");
+  const outDir = join(process.cwd(), ".sliceui", "artifacts", stem);
+  mkdirSync(outDir, { recursive: true });
+  const out = join(outDir, `resolved.json`);
+  writeFileSync(out, JSON.stringify(deduped, null, 2) + "\n");
 
   if (argv.includes("--json")) {
     console.log(JSON.stringify(result, null, 2));
     return 0;
   }
-  console.log(`SliceUI resolve — ${result.leaves.length} styled leaves resolved`);
+  console.log(`SliceUI resolve — ${result.groups.length} unique leaf groups (from ${result.leaves.length} styled leaves)`);
   console.log(`status leaves: ${result.statusTable.length}`);
   for (const s of result.statusTable.slice(0, 12)) {
     const r = s.resolved.map((x) => `${x.value}`).join(" + ") || "(none)";

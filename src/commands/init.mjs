@@ -1,7 +1,7 @@
 // sliceui init — one-shot project setup.
 // Creates everything the skill needs inside the target project:
-//   .sliceui/            (config, transcripts, project context)
-//   .sliceui/images/     (drop screenshots here)
+//   .sliceui/            (config, artifacts, project context)
+//   .sliceui/inputs/     (drop screenshots/xml here)
 //   .sliceui/config.json (per-project settings)
 //   .env.local           (Gemini key — from --key-from FILE, or a commented template)
 //   .gitignore entries   (.sliceui/, .env.local)
@@ -11,9 +11,10 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
-import { detectProject } from "./detect.mjs";
+import { detectProject, writeContextSectionFiles } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
 import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../framework/angular/conventions.mjs";
+import { renderConventionsMd as renderVueConventionsMd } from "../framework/vue-sfc/conventions.mjs";
 import { refereeArtifacts } from "../lib/referee.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 
@@ -35,18 +36,15 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   // docs/drift-guard below degrade to a no-op (never crash, never leak org source).
   const pilar = await loadPilar();
 
-  // --- 1. .sliceui/ + images/ + xml/ + transcript/ ---
+  // --- 1. .sliceui/ + inputs/{images,xml}/ ---
   const sliceuiDir = join(root, ".sliceui");
-  const imagesDir = join(sliceuiDir, "images");
-  const xmlDir = join(sliceuiDir, "xml");
-  const transcriptDir = join(sliceuiDir, "transcript");
+  const imagesDir = join(sliceuiDir, "inputs", "images");
+  const xmlDir = join(sliceuiDir, "inputs", "xml");
   if (!existsSync(sliceuiDir)) created.push(".sliceui/");
-  if (!existsSync(imagesDir)) created.push(".sliceui/images/");
-  if (!existsSync(xmlDir)) created.push(".sliceui/xml/");
-  if (!existsSync(transcriptDir)) created.push(".sliceui/transcript/");
+  if (!existsSync(imagesDir)) created.push(".sliceui/inputs/images/");
+  if (!existsSync(xmlDir)) created.push(".sliceui/inputs/xml/");
   mkdirSync(imagesDir, { recursive: true });
   mkdirSync(xmlDir, { recursive: true });
-  mkdirSync(transcriptDir, { recursive: true });
 
   // --- 2. per-project config ---
   const configPath = join(sliceuiDir, "config.json");
@@ -116,6 +114,12 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   const ctxPath = join(sliceuiDir, "project-context.json");
   writeFileSync(ctxPath, JSON.stringify(ctx, null, 2) + "\n");
   created.push(".sliceui/project-context.json");
+  // Agent-readable context sections (.sliceui/context/*.md) — project-context.json can exceed
+  // the agent's Read cap (479 KB in the 2026-09-10 run); these are additive slices of the same
+  // facts, written alongside the full machine contract.
+  for (const p of writeContextSectionFiles(sliceuiDir, ctx)) {
+    created.push(toRelCreated(root, p));
+  }
 
   // conventions.json — deterministic facts (machine-readable, the verify gate's ground truth)
   // Golden references (config.json `references`) are the user's hand-curated canonical pattern:
@@ -141,10 +145,15 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   writeFileSync(convPath, JSON.stringify({ ...conventions, generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   created.push(".sliceui/conventions.json");
 
-  // conventions.md — agent-facing narrative profile (deterministic template)
+  // conventions.md — agent-facing narrative profile (deterministic template). Per-framework
+  // renderer: Vue gets its own (SFC anatomy + :deep() corpus), everything else uses the
+  // Angular renderer's generic fallback until its miner is built.
   const convMdPath = join(sliceuiDir, "conventions.md");
   const fwLabel = ctx.framework?.label ?? "";
-  writeFileSync(convMdPath, renderConventionsMd(conventions, fwLabel));
+  const convMd = ctx.framework?.id === "vue-sfc"
+    ? renderVueConventionsMd(conventions, fwLabel)
+    : renderConventionsMd(conventions, fwLabel, ctx.framework?.id);
+  writeFileSync(convMdPath, convMd);
   created.push(".sliceui/conventions.md");
 
   // uii-profile.md — the org's action→authKey→icon grammar. Written ONLY for UII projects
@@ -200,6 +209,11 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
 /** Read GEMINI_API_KEY / VITE_GEMINI_API_KEY from another env file. Returns the value or null. */
 function readJsonSafe(p) {
   try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; }
+}
+
+/** Absolute path under root → the `.sliceui/...` shape the `created[]` list uses. */
+function toRelCreated(root, abs) {
+  return abs.startsWith(root) ? "." + abs.slice(root.length) : abs;
 }
 
 function extractKeyFrom(path) {
@@ -301,8 +315,8 @@ export async function main(argv) {
     console.log("\nNext: paste your Gemini key into .env.local (free at https://aistudio.google.com).");
   }
   console.log("\nDrop your inputs, then ask your agent:");
-  console.log('  Figma XML   → .sliceui/xml/<name>.xml   ("slice this into my app: .sliceui/xml/<name>.xml")');
-  console.log('  Screenshot  → .sliceui/images/<name>.png ("slice this into my app: .sliceui/images/<name>.png")');
+  console.log('  Figma XML   → .sliceui/inputs/xml/<name>.xml   ("slice this into my app: .sliceui/inputs/xml/<name>.xml")');
+  console.log('  Screenshot  → .sliceui/inputs/images/<name>.png ("slice this into my app: .sliceui/inputs/images/<name>.png")');
   console.log("ℹ XML is instant + exact (no key). Screenshots use Gemini (your key); `--static` for 100% local.");
   return 0;
 }

@@ -27,12 +27,12 @@ const CONVENTIONS = {
 // internal/UII build) these come from the real pilar catalogs via loadPilar(); tests inject a
 // minimal stand-in so verify's uii-table checks run without importing the private catalogs.
 const PILAR_FIXTURE = {
-  legalTableInputs: new Set(["rows", "columns", "actionTitle", "actionColumn", "checkboxColumn", "paginationOptions", "searchOptions", "limitOptions", "emptyTableMsg", "footerInfo", "radioColumn"]),
+  legalTableInputs: new Set(["rows", "columns", "actionTitle", "actionColumn", "checkboxColumn", "paginationOptions", "searchOptions", "limitOptions", "emptyTableMsg", "footerInfo", "radioColumn", "showSummary", "summaryRows", "paginationAlign"]),
   legalTableOutputs: new Set(["editClicked", "deleteClicked", "detailClicked", "selectedRow", "switchChanged", "rowsChanged"]),
-  forbiddenTableInputs: new Set(["serverMode", "page", "selectedLimit", "saveStatement", "forceLimitOptions", "alignedComponent", "allowRightClick", "rightClickMenuActions"]),
+  forbiddenTableInputs: new Set(["serverMode", "page", "selectedLimit", "saveStatement", "forceLimitOptions", "alignedComponent", "allowRightClick", "rightClickMenuActions", "summaryRows", "showSummary"]),
   forbiddenTableOutputs: new Set(["pageChanged", "limitChanged", "searchChanged"]),
   pilarComponents: [
-    { selector: "uii-table", inputs: [{ name: "rows" }, { name: "columns" }, { name: "checkboxColumn" }, { name: "actionColumn" }, { name: "actionTitle" }, { name: "saveStatement" }, { name: "allowRightClick" }, { name: "serverMode" }], outputs: [{ name: "editClicked" }, { name: "deleteClicked" }, { name: "detailClicked" }] },
+    { selector: "uii-table", inputs: [{ name: "rows" }, { name: "columns" }, { name: "checkboxColumn" }, { name: "actionColumn" }, { name: "actionTitle" }, { name: "saveStatement" }, { name: "allowRightClick" }, { name: "serverMode" }, { name: "paginationAlign" }], outputs: [{ name: "editClicked" }, { name: "deleteClicked" }, { name: "detailClicked" }] },
   ],
   authKeyByAction: { edit: "canUpdate", detail: "canRead", delete: "canDelete", print: "canPrint", verify: "canVerify", validate: "canValidate" },
 };
@@ -179,6 +179,40 @@ test("verify: tableBindings forbids server/advanced inputs a mock slice must not
   }
 });
 
+test("verify: F7 — [checkboxColumn]=\"false\" is a deliberate OFF, not a violation", () => {
+  // 2026-09-11 F7: an explicit false means the design has no checkbox column; the XML evidence
+  // check must not fire (and it must not demand the column that was deliberately turned off).
+  const htmlOff = `<uii-table [rows]="rows" [columns]="columns" [checkboxColumn]="false"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlOff, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.notEqual(check.status, "fail", "explicit [checkboxColumn]=\"false\" must not fail");
+  assert.ok(!(check.problems ?? []).some((p) => p.includes("checkboxColumn")), "no checkbox evidence problem when explicitly off");
+});
+
+test("verify: F7 — [showSummary]=\"false\" is not flagged as a forbidden binding", () => {
+  // A declarative OFF is not a usage claim — it must not trip the mock-only forbidden list.
+  const html = `<uii-table [rows]="rows" [columns]="columns" [showSummary]="false"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.ok(!(check.problems ?? []).some((p) => p.includes("showSummary")), "[showSummary]=\"false\" must not be forbidden");
+});
+
+test("verify: F7 — [showSummary]=\"true\" is still forbidden (usage claim)", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns" [showSummary]="true"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.ok((check.problems ?? []).some((p) => p.includes("showSummary")), "[showSummary]=\"true\" stays forbidden");
+});
+
 test("verify: tableBindings still allows the mock-appropriate binding set", () => {
   const html = `<uii-table [rows]="rows" [columns]="columns" [limitOptions]="true" [searchOptions]="true" [paginationOptions]="true"></uii-table>`;
   const r = verifyComponent({ scss: GOOD_SCSS, html, ts: GOOD_TS, conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE });
@@ -239,18 +273,21 @@ test("verify: an all-skip run (missing ground truth) is NOT green — closes the
   assert.ok(r.skipCount > 0, "checks skipped for missing ground truth");
 });
 
-test("verify: anatomy fails when table present but skeleton missing", () => {
+test("verify: F11 — anatomy WARNS (not fails) when the skeleton is missing", () => {
+  // 2026-09-11 F11: demanding a loading-state skeleton the design never shows contradicts
+  // "STRUCTURE = XML ONLY" — downgrade to a warn, never a blocking fail.
   const htmlNoSkeleton = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
   const r = verifyComponent({
     scss: GOOD_SCSS, html: htmlNoSkeleton, ts: GOOD_TS,
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "anatomy");
-  assert.equal(check.status, "fail");
+  assert.equal(check.status, "warn", "skeleton missing is a warn, not a fail");
 });
 
 test("verify: mockRowCount fails when a paginated table has fewer than 15 rows", () => {
-  const tsFewRows = `const base = [{ nim: "1" }, { nim: "2" }, { nim: "3" }];`;
+  // GOOD_HTML binds [rows]="rows" — the fixture must declare `rows` (binding-resolved counting).
+  const tsFewRows = `const rows = [{ nim: "1" }, { nim: "2" }, { nim: "3" }];`;
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: tsFewRows,
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
@@ -263,7 +300,7 @@ test("verify: mockRowCount fails when a paginated table has fewer than 15 rows",
 
 test("verify: mockRowCount fails when a paginated table has MORE than 15 rows", () => {
   // "dari 20 data" must NOT drive 20 rows — the cap is exactly 15. 16+ is a fail too.
-  const tsManyRows = `const base = [
+  const tsManyRows = `const rows = [
   { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
   { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
   { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
@@ -277,6 +314,72 @@ test("verify: mockRowCount fails when a paginated table has MORE than 15 rows", 
   assert.equal(check.status, "fail");
   assert.equal(check.rows, 16);
   assert.equal(check.required, 15, "required = 15; 16 mock rows is a fail (cap, not just a floor)");
+});
+
+test("verify: F4 — mockRowCount counts the [rows]-bound array, not the largest (columns)", () => {
+  // 2026-09-11 F4: komponenList (3 rows) vs columns (5 defs) — the old largest-array heuristic
+  // counted 5 and failed a correct component.
+  const html = `<uii-table [rows]="komponenList" [columns]="columns"></uii-table>`;
+  const ts = `const komponenList = [
+  { label: "A" }, { label: "B" }, { label: "C" },
+];
+const columns = [
+  { field: "a" }, { field: "b" }, { field: "c" }, { field: "d" }, { field: "e" },
+];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "fail", "3 bound rows ≠ 15 on a paginated table");
+  assert.equal(check.rows, 3, "counts komponenList (the [rows] binding), not columns (5)");
+});
+
+test("verify: F4 — mockRowCount skips when all complement bindings are explicitly false", () => {
+  // A uii-table canvas with pagination/search/limit all OFF renders the design's row count;
+  // demanding 15 there is wrong (the modal-detail case from 2026-09-11).
+  const htmlOff = `<uii-table [rows]="komponenList" [columns]="columns" [paginationOptions]="false" [searchOptions]="false" [limitOptions]="false"></uii-table>`;
+  const ts = `const komponenList = [{ label: "A" }, { label: "B" }, { label: "C" }];
+const columns = [{ field: "a" }, { field: "b" }];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlOff, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "skip", "complement all-off → floor not applicable");
+});
+
+test("verify: F4 — mockRowCount counts the [rows]-bound array when it differs from the largest", () => {
+  const html = `<uii-table [rows]="komponenList" [columns]="columns"></uii-table>`;
+  const ts = `const komponenList = [
+  { label: "A" }, { label: "B" }, { label: "C" },
+];
+const columns = [
+  { field: "a" }, { field: "b" }, { field: "c" }, { field: "d" }, { field: "e" },
+];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  // 3 bound rows ≠ 15 → fail is CORRECT here, but the count must be 3 (not 5 from columns).
+  assert.equal(check.status, "fail", "3 rows on a paginated table correctly fails the 15 floor");
+  assert.equal(check.rows, 3, "counts komponenList (the [rows] binding), not columns (5)");
+});
+
+test("verify: mockRowCount ignores a trailing comma (15 rows stay 15, not 16)", () => {
+  // 2026-09-10 B2: a trailing comma is idiomatic TS and must not inflate the count.
+  const tsTrailing = `const rows = [
+  { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
+  { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
+  { nim: "11" }, { nim: "12" }, { nim: "13" }, { nim: "14" }, { nim: "15" },
+];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: tsTrailing,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "pass", "15 rows (with trailing comma) must pass, not fail as 16");
 });
 
 test("verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not applicable)", () => {
@@ -349,6 +452,19 @@ test("verify: classVocabulary FAILS an invented btn-* class (btn-gray)", () => {
   const check = r.checks.find((c) => c.name === "classVocabulary");
   assert.equal(check.status, "fail", "invented btn-* must fail, not warn");
   assert.ok(check.inventedButtons?.includes("btn-gray"), `must name btn-gray, got ${JSON.stringify(check.inventedButtons)}`);
+});
+
+test("verify: classVocabulary does NOT flag id=\"btn-*\" (an element id, not a class)", () => {
+  // 2026-09-10 B3: this project uses `id="btn-*"` ~46×; the old whole-text scan flagged them as
+  // invented button classes. An id is not a class and must be ignored.
+  const html = `<div class="action-bar"><button id="btn-save" class="btn btn-primary">Simpan</button></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "classVocabulary");
+  assert.notEqual(check.status, "fail", "id=\"btn-save\" must not be flagged as an invented button");
+  assert.ok(!(check.inventedButtons ?? []).includes("btn-save"), "btn-save (an id) is not invented");
 });
 
 test("verify: classVocabulary does NOT flag framework btn-primary (Report #2 §4.2)", () => {
@@ -451,6 +567,24 @@ test("verify: iconColor fails when badge icon color is invented (#f9933f triangl
   assert.ok(check.detail.includes("#f9933f"), "detail names the invented color");
 });
 
+test("verify: iconColor does NOT flag a structural blue action icon (#03337b)", () => {
+  // 2026-09-10 B4: #03337b is the project's structural blue for ACTION icons (search/pencil/eye),
+  // NOT a status color. A faithful `fa-pencil { color: #03337b }` must not be false-failed.
+  const transcriptWithBadge = {
+    layout: [
+      { type: "text", text: "Ubah tagihan" },
+      { type: "group", bg: "#fef2f2", children: [{ type: "icon", bg: "#f44444" }] },
+    ],
+  };
+  const scssActionIcon = GOOD_SCSS + "\n.action-icon .fa-pencil { color: #03337b; }\n";
+  const r = verifyComponent({
+    scss: scssActionIcon, html: FAITHFUL_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: transcriptWithBadge, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "iconColor");
+  assert.notEqual(check.status, "fail", "structural #03337b action icon must not be a fail");
+});
+
 test("verify: phantomWrapper fails when well wrapper has no transcript counterpart", () => {
   const htmlWithWell = `<div class="well" id="well"><h1>Ubah tagihan</h1></div>`;
   const transcriptNoWell = { layout: [{ type: "text", text: "Ubah tagihan" }] };
@@ -461,6 +595,23 @@ test("verify: phantomWrapper fails when well wrapper has no transcript counterpa
   const check = r.checks.find((c) => c.name === "phantomWrapper");
   assert.equal(check.status, "fail");
   assert.ok(check.detail.includes("well"), "detail names the phantom well");
+});
+
+test("verify: phantomWrapper skips the well clause when the project has no well idiom", () => {
+  // 2026-09-10 §3.9: a project with no `.well` in its templates must not be failed for
+  // emitting one — conventions and verify pulled in opposite directions until this.
+  const htmlWithWell = `<div class="well" id="well"><h1>Ubah tagihan</h1></div>`;
+  const transcriptNoWell = { layout: [{ type: "text", text: "Ubah tagihan" }] };
+  const noWellProject = {
+    ...CONVENTIONS,
+    componentAnatomy: { ...CONVENTIONS.componentAnatomy, wellAvailable: false },
+  };
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlWithWell, ts: GOOD_TS,
+    conventions: noWellProject, transcript: transcriptNoWell, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "phantomWrapper");
+  assert.notEqual(check.status, "fail", "well without a project idiom is not a phantom");
 });
 
 // ---------- ngxSelectBinding ----------
@@ -495,7 +646,90 @@ test("verify: ngxSelectBinding skips when no <ngx-select> present", () => {
   assert.equal(check.status, "skip");
 });
 
+// ---------- declaredInModule ----------
+
+test("verify: F2 — declaredInModule does NOT pass on a route `component: X` reference", () => {
+  // 2026-09-11 F2: the class appears in settings-routing (component: X) but in NO declarations
+  // array — the old whole-source regex false-passed this exact case.
+  const ts = `export class ScholarshipDeductionAddComponent {}\n`;
+  const moduleSrc = `const routes = [{ path: 'create', component: ScholarshipDeductionAddComponent, pathMatch: 'full' }];
+@NgModule({ declarations: [OtherComponent], imports: [RouterModule.forChild(routes)] })
+export class SettingsRoutingModule {}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts, modules: moduleSrc,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "declaredInModule");
+  assert.notEqual(check.status, "pass", "routed-but-undeclared must NOT pass");
+  assert.equal(check.status, "warn", "it warns (app build is the definitive gate)");
+});
+
+test("verify: F2 — declaredInModule passes only when the class is INSIDE declarations: [...]", () => {
+  const ts = `export class ScholarshipDeductionAddComponent {}\n`;
+  const moduleSrc = `const routes = [{ path: 'create', component: ScholarshipDeductionAddComponent }];
+@NgModule({ declarations: [ScholarshipDeductionAddComponent], imports: [CommonModule] })
+export class BillModule {}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts, modules: moduleSrc,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "declaredInModule").status, "pass");
+});
+
+test("verify: declaredInModule skips when no declarations array is parseable", () => {
+  const ts = `export class HeroComponent {}\n`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts, modules: `export const x = 1;`,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "declaredInModule").status, "skip");
+});
+
+test("verify: declaredInModule warns when the component class is missing from declarations", () => {
+  const ts = `export class HeroComponent {}\n`;
+  const moduleSrc = `@NgModule({ declarations: [OtherComponent], imports: [] })\nexport class AppModule {}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts, modules: moduleSrc,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "declaredInModule");
+  assert.equal(check.status, "warn", "undeclared component is a warn (app build is the definitive gate)");
+  assert.match(check.detail, /HeroComponent/);
+});
+
+test("verify: declaredInModule passes when the class is declared", () => {
+  const ts = `export class HeroComponent {}\n`;
+  const moduleSrc = `@NgModule({ declarations: [HeroComponent, OtherComponent], imports: [] })\nexport class AppModule {}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts, modules: moduleSrc,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "declaredInModule").status, "pass");
+});
+
+test("verify: declaredInModule skips without module source", () => {
+  const ts = `export class HeroComponent {}\n`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "declaredInModule").status, "skip");
+});
+
 // ---------- rowAuth ----------
+
+test("verify: F3 — rowAuth recognizes Object.assign(new AuthorizationModel(), {…})", () => {
+  // 2026-09-11 F3: the repo's existing idiom; flags written explicitly were reported "missing".
+  const ts = `import { AuthorizationModel } from "@uiigateway/core";
+const rows = [{ nim: "1" }, { nim: "2" }];
+const withAuth = rows.map((r) => ({ ...r, auth: Object.assign(new AuthorizationModel(), { canRead: true, canUpdate: true }) }));`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: ACTION_HTML, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "rowAuth");
+  assert.equal(check.status, "pass", "Object.assign auth idiom must count as flags present");
+});
 
 test("verify: rowAuth passes when actionColumn rows carry the required auth flag", () => {
   const r = verifyComponent({
@@ -529,6 +763,32 @@ test("verify: rowAuth skips without [actionColumn] or without <Aksi> evidence", 
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   assert.equal(noAksi.checks.find((c) => c.name === "rowAuth").status, "skip");
+});
+
+test("verify: rowAuth skips when actionColumn is explicitly false (no phantom auth)", () => {
+  // 2026-09-10 B1a: [actionColumn]="false" is a deliberate OFF, not a missing column.
+  const htmlFalse = `<uii-table [rows]="rows" [columns]="columns" [actionColumn]="false"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlFalse, ts: BAD_TS, // BAD_TS has no auth flags — must still skip
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_AKSI, pilar: PILAR_FIXTURE,
+  });
+  assert.equal(r.checks.find((c) => c.name === "rowAuth").status, "skip");
+});
+
+test("verify: rowAuth skips a hidden <Aksi> (visible=false via override)", () => {
+  // 2026-09-10 B1b: an Aksi hidden by `<override overriddenField="visible" value="false">`
+  // is not a visible action column → must not require auth flags.
+  const hiddenAksi = `<Aksi id="x:1" name="Aksi" type="INSTANCE">
+    <override overriddenField="visible" value="false" />
+    <componentProperties>
+      <edit_4879_2 type="BOOLEAN" value="true" />
+    </componentProperties>
+  </Aksi>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: ACTION_HTML, ts: BAD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: hiddenAksi, pilar: PILAR_FIXTURE,
+  });
+  assert.equal(r.checks.find((c) => c.name === "rowAuth").status, "skip");
 });
 
 // ---------- filterRowButton ----------
@@ -614,6 +874,24 @@ test("verify: tableOptions passes when all three bindings present", () => {
   assert.equal(check.status, "pass");
 });
 
+test("verify: F14 — a search_bar inside a filter card does NOT require [searchOptions]", () => {
+  // The design puts a decorative "Pencarian" input in the filter area (alongside a Field), not in
+  // the table toolbar — demanding [searchOptions] would render a SECOND search box.
+  const xmlFilterSearch = `<frame name="filter card">
+  <Field id="f:1" name="Field" />
+  <search_bar id="s:1" name="search_bar" />
+</frame>
+<Text id="t:1" name="pagination" characters="Menampilkan 1-10 dari 20 data" />`;
+  // Output correctly renders a filter search input + only pagination on the table.
+  const html = `<div class="filter"><input placeholder="Pencarian" /></div><uii-table [rows]="rows" [columns]="columns" [paginationOptions]="true"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: xmlFilterSearch,
+  });
+  const check = r.checks.find((c) => c.name === "tableOptions");
+  assert.ok(!(check.missing ?? []).includes("searchOptions"), "filter search must not demand table searchOptions");
+});
+
 test("verify: tableOptions skips without table or without XML evidence", () => {
   const noTable = verifyComponent({
     scss: GOOD_SCSS, html: `<div>no table</div>`, ts: GOOD_TS,
@@ -628,7 +906,222 @@ test("verify: tableOptions skips without table or without XML evidence", () => {
   assert.equal(noEvidence.checks.find((c) => c.name === "tableOptions").status, "skip");
 });
 
+// ---------- paginationAlign: un-forbidden + evidence-gated (2026-09-24) ----------
+
+// A footer frame that DISTRIBUTES its children (Figma auto-layout space-between) — the design
+// signal for "pagination pinned to the right edge". `Page` is the root frame name on purpose:
+// the hint must not fire on it.
+const RAW_XML_FOOTER_SPACE_BETWEEN = `<?xml version="1.0" encoding="UTF-8"?>
+<frame id="1:1" name="Page" x="0" y="0" width="1200" height="800" type="FRAME">
+  <children>
+    <frame id="1:2" name="Footer" x="0" y="760" width="1200" height="40" layoutMode="HORIZONTAL" primaryAxisAlignItems="SPACE_BETWEEN" type="FRAME">
+      <children>
+        <Text id="1:3" name="info" x="0" y="0" width="300" height="20" fontSize="14" characters="Menampilkan 1-10 dari 20 data" type="TEXT" />
+        <frame id="1:4" name="Pagination" x="900" y="0" width="300" height="20" type="FRAME" />
+      </children>
+    </frame>
+  </children>
+</frame>`;
+
+const RAW_XML_FOOTER_FLAT = RAW_XML_FOOTER_SPACE_BETWEEN.replace(' primaryAxisAlignItems="SPACE_BETWEEN"', "");
+
+test("verify: policy — [paginationAlign] is no longer a forbidden table input", () => {
+  // Was in SLICE_FORBIDDEN_TABLE_INPUTS until 2026-09-24. It is a presentation input, not
+  // server-mode state, and its runtime default is 'center' — so a right-aligned design cannot be
+  // satisfied without it.
+  const html = `<uii-table [rows]="rows" [columns]="columns" [paginationAlign]="'right'"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX, pilar: PILAR_FIXTURE,
+  });
+  const check = r.checks.find((c) => c.name === "tableBindings");
+  assert.equal(check.status, "pass", check.detail);
+  assert.ok(!(check.problems ?? []).some((p) => p.includes("paginationAlign")), "[paginationAlign] must not be forbidden");
+});
+
+test("verify: tableOptions requires [paginationAlign]='right' when the XML footer distributes its children", () => {
+  // The 23 Sep 2026 field defect (§4.4): pagination rendered centered because the binding was
+  // never emitted, and three hand-written ::ng-deep alignment overrides never fixed it.
+  const htmlBare = `<uii-table [rows]="rows" [columns]="columns" [paginationOptions]="true"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlBare, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_FOOTER_SPACE_BETWEEN,
+  });
+  const check = r.checks.find((c) => c.name === "tableOptions");
+  assert.equal(check.status, "fail");
+  assert.ok(check.missing.includes("paginationAlign"), "paginationAlign reported missing");
+});
+
+test("verify: tableOptions accepts every quoting form of [paginationAlign]='right'", () => {
+  // Angular templates write the literal as "'right'", and an attribute may itself be single- or
+  // double-quoted — the check must normalize the VALUE rather than regex-match one quoting style
+  // (an earlier pattern rejected the first, most common form below).
+  for (const attr of [`[paginationAlign]="'right'"`, `[paginationAlign]='right'`, `[paginationAlign]="RIGHT"`]) {
+    const html = `<uii-table [rows]="rows" [columns]="columns" [paginationOptions]="true" ${attr}></uii-table>`;
+    const r = verifyComponent({
+      scss: GOOD_SCSS, html, ts: GOOD_TS,
+      conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_FOOTER_SPACE_BETWEEN,
+    });
+    const check = r.checks.find((c) => c.name === "tableOptions");
+    assert.equal(check.status, "pass", `${attr} should pass — ${check.detail}`);
+  }
+});
+
+test("verify: tableOptions rejects a right-aligned footer bound to a non-right alignment", () => {
+  const html = `<uii-table [rows]="rows" [columns]="columns" [paginationOptions]="true" [paginationAlign]="'left'"></uii-table>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_FOOTER_SPACE_BETWEEN,
+  });
+  assert.equal(r.checks.find((c) => c.name === "tableOptions").status, "fail");
+});
+
+test("verify: tableOptions does NOT require [paginationAlign] without distribution evidence", () => {
+  // A footer with no space-between auto-layout: the binding stays legal but is not demanded, and
+  // a centered table must not be forced right.
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: `<uii-table [rows]="rows" [columns]="columns" [paginationOptions]="true"></uii-table>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_FOOTER_FLAT,
+  });
+  assert.equal(r.checks.find((c) => c.name === "tableOptions").status, "pass");
+});
+
+test("verify: a design whose root frame is named 'Page' does not demand paginationAlign", () => {
+  // The hint must not match a bare "page" token — Figma roots are routinely named "Page".
+  const xml = `<frame id="1:1" name="Page" x="0" y="0" width="1200" height="800" layoutMode="HORIZONTAL" primaryAxisAlignItems="SPACE_BETWEEN" type="FRAME">
+  <children><Text id="1:2" name="title" x="0" y="0" width="100" height="20" characters="Daftar" type="TEXT" /></children>
+</frame>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: `<uii-table [rows]="rows" [columns]="columns"></uii-table>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: xml,
+  });
+  const check = r.checks.find((c) => c.name === "tableOptions");
+  assert.equal(check.status, "skip", `root 'Page' must not imply pagination evidence — ${check.detail}`);
+});
+
+// ---------- alignmentViaDeepCss (SUI006) ----------
+
+test("verify: SUI006 warns when pagination alignment is overridden through ::ng-deep", () => {
+  const scss = `${GOOD_SCSS}\n:host ::ng-deep .table-footer { justify-content: flex-end; }`;
+  const r = verifyComponent({
+    scss, html: `<uii-table [rows]="rows" [columns]="columns"></uii-table>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "alignmentViaDeepCss");
+  assert.equal(check.status, "warn", "deep-CSS alignment override must warn (report §7 SUI006)");
+  assert.ok(check.detail.includes("paginationAlign"), "warning names the public input to use instead");
+});
+
+test("verify: SUI006 does NOT warn on the corpus's VISUAL pagination ::ng-deep", () => {
+  // The reusable corpus styles .ugw-pagination-container li.page-box for borders/radius/weight.
+  // That is visual detail the public input cannot express — flagging it would be a false positive.
+  const scss = `${GOOD_SCSS}\n:host ::ng-deep .ugw-pagination-container li.page-box { font-weight: bold; border-radius: 5px 0 0 5px; }`;
+  const r = verifyComponent({
+    scss, html: `<uii-table [rows]="rows" [columns]="columns"></uii-table>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "alignmentViaDeepCss").status, "pass");
+});
+
+// ---------- requiredMarker (report §4.5) ----------
+
+test("verify: requiredMarker fails a marker that was emitted but hidden", () => {
+  // The defect: the agent reconstructs the design's hidden asterisk and re-hides it. The design
+  // states required-ness as an explicit XML attribute, so the marker should be rendered for a
+  // required field and not emitted at all for an optional one.
+  const html = `<label class="control-label">Program studi <span class="required-mark hidden">*</span></label>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "requiredMarker");
+  assert.equal(check.status, "fail");
+  assert.ok(check.detail.includes("hidden"), "failure names the hidden marker");
+});
+
+test("verify: requiredMarker passes a visible marker and skips when none is emitted", () => {
+  const visible = verifyComponent({
+    scss: GOOD_SCSS, html: `<label>Tahun akademik <span class="required-mark">*</span></label>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(visible.checks.find((c) => c.name === "requiredMarker").status, "pass");
+
+  const none = verifyComponent({
+    scss: GOOD_SCSS, html: `<label class="control-label">NIM</label>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(none.checks.find((c) => c.name === "requiredMarker").status, "skip");
+});
+
+// ---------- containerPadding (report §4.1) ----------
+
+const PADDING_TRANSCRIPT = {
+  layout: [{
+    type: "group",
+    padding: { top: 20, right: 20, bottom: 20, left: 20 },
+    children: [{ type: "text", text: "Tambah mahasiswa tarif" }],
+  }],
+};
+const PADDING_HTML = `<div class="content"><h1 class="h1">Tambah mahasiswa tarif</h1></div>`;
+
+const paddingCheck = (scss) => verifyComponent({
+  scss, html: PADDING_HTML, ts: GOOD_TS,
+  conventions: CONVENTIONS, transcript: PADDING_TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+}).checks.find((c) => c.name === "containerPadding");
+
+test("verify: containerPadding warns when the design's explicit padding is replaced by a fallback", () => {
+  // The 23 Sep 2026 defect (§4.1): XML says paddingTop=20, output shipped `padding: 5px 20px 20px 20px`.
+  const check = paddingCheck(`.content { padding: 5px 20px 20px 20px; }`);
+  assert.equal(check.status, "warn");
+  assert.ok(check.detail.includes("top=5px"), `names the offending side: ${check.detail}`);
+});
+
+test("verify: containerPadding passes the correct shorthand and per-side forms", () => {
+  for (const scss of [
+    `.content { padding: 20px; }`,
+    `.content { padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px; }`,
+    // A container may drop a side it hands to inner elements — `0` is an explicit value, not a
+    // fallback, so it must not be flagged as drift (nor silently skipped as unparseable).
+    `.content { padding: 0 20px; }`,
+  ]) {
+    assert.equal(paddingCheck(scss).status, "pass", `${scss} should pass`);
+  }
+});
+
+test("verify: containerPadding skips when it has no ground truth to judge against", () => {
+  // No padding in the design, a token value, and an unrelated class all lack the fact to compare.
+  assert.equal(paddingCheck(`.something-else { padding: 5px; }`).status, "skip");
+  assert.equal(paddingCheck(`.content { padding: $space-md; }`).status, "skip");
+  const noDesignPadding = verifyComponent({
+    scss: `.content { padding: 5px; }`, html: PADDING_HTML, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: { layout: [{ type: "text", text: "x" }] }, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(noDesignPadding.checks.find((c) => c.name === "containerPadding").status, "skip");
+});
+
 // ---------- gateway-table scssCoverage (reusable table shell) ----------
+
+test("verify: F6 — scssCoverage does not require search/pagination SCSS when bindings are OFF", () => {
+  // 2026-09-11 F6: a modal table with search/pagination/limit all false must NOT be forced to
+  // paste dead search-input/pagination SCSS.
+  const conventions = {
+    ...CONVENTIONS,
+    ngDeepCorpus: [
+      { selector: "filter-options .search-options .search-input", family: "table", block: "::ng-deep .filter-options .search-options .search-input { border: 1px solid; }" },
+      { selector: "ugw-pagination-container li.page-box", family: "table", block: "::ng-deep .ugw-pagination-container li.page-box { font-weight: bold; }" },
+      { selector: "gateway-table", family: "table", block: "::ng-deep.gateway-table { border-top-left-radius: 6px; }" },
+    ],
+  };
+  const htmlOff = `<uii-table [rows]="rows" [columns]="columns" [searchOptions]="false" [paginationOptions]="false" [limitOptions]="false"></uii-table>`;
+  const r = verifyComponent({
+    scss: "::ng-deep.gateway-table { border-top-left-radius: 6px; }", // shell present, search/pagination absent
+    html: htmlOff, ts: GOOD_TS,
+    conventions, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.notEqual(check.status, "fail", "dead search/pagination SCSS must not be required when OFF");
+  assert.ok(!(check.missing ?? []).some((s) => s.includes("search-input") || s.includes("pagination")), "search/pagination selectors not demanded");
+});
 
 test("verify: scssCoverage requires the bare .gateway-table shell when a table is in play", () => {
   const conventionsWithShell = {
@@ -842,6 +1335,25 @@ test("verify: styleFidelity passes when title + divider colors are preserved", (
   });
   const check = r.checks.find((c) => c.name === "styleFidelity");
   assert.equal(check.status, "pass", `faithful colors must pass: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity does not confuse .summary-row with .summary-row-danger (boundary)", () => {
+  // 2026-09-10 B5: `.summary-row-danger` used to satisfy the `.summary-row` lookup, so the
+  // `.summary-row` fact was mis-resolved to #f44444. The class boundary must be exact.
+  const transcript = {
+    layout: [
+      { type: "text", text: "Selisih", style: { color: "#555555" } },
+    ],
+  };
+  const scss = `.summary-row { color: #555555; }\n.summary-row-danger { color: #f44444; }`;
+  const html = `<div class="summary-row"><span>Selisih</span></div>`;
+  const r = verifyComponent({
+    scss, html, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.notEqual(check.status, "fail", ".summary-row must resolve to #555555, not #f44444");
+  assert.ok(!String(check.detail ?? "").includes("#f44444"), "must not report the danger color for .summary-row");
 });
 
 test("verify: styleFidelity skips when a variable token colors the title (cannot resolve, not a fail)", () => {
@@ -1291,4 +1803,69 @@ test("verify: loadedClass does NOT gate breakpoint grid columns against a scss (
   const check = r.checks.find((c) => c.name === "loadedClass");
   // col-md-4 is breakpoint-grid (not gated on scss); col-12 IS bare and absent → gated.
   assert.ok(!(check.dead ?? []).includes("col-md-4"), "col-md-4 must not false-fail on scss registry");
+});
+
+// ---------- inventedLayout (SUI-STRUCT-004) ----------
+
+test("verify: inventedLayout warns on a shadow/max-width/margin-auto with no design evidence", () => {
+  const scss = `${GOOD_SCSS}\n.content { box-shadow: 0 2px 4px rgba(0,0,0,.1); max-width: 1200px; margin: 0 auto; }`;
+  const r = verifyComponent({
+    scss, html: `<div class="content"></div>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "inventedLayout");
+  assert.equal(check.status, "warn", "layout effects without evidence warn");
+  assert.ok(check.detail.includes("SUI-STRUCT-004"), "names the SUI-STRUCT-004 code");
+});
+
+test("verify: inventedLayout passes when the design evidences the effect", () => {
+  // The transcript mentions a shadow/centering, so the effect is evidenced — not invented.
+  const t = { layout: [{ type: "text", text: "x" }], shadow: true, centered: true };
+  const scss = `${GOOD_SCSS}\n.content { box-shadow: 0 2px 4px rgba(0,0,0,.1); margin: 0 auto; }`;
+  const r = verifyComponent({
+    scss, html: `<div class="content"></div>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: t, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "inventedLayout").status, "pass");
+});
+
+test("verify: inventedLayout skips deep-CSS (library internal is judged elsewhere)", () => {
+  const scss = `${GOOD_SCSS}\n:host ::ng-deep .ugw-pagination-container { box-shadow: none; }`;
+  const r = verifyComponent({
+    scss, html: `<div></div>`, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "inventedLayout").status, "skip");
+});
+
+// ---------- deadCode (unused import / injected dependency) ----------
+
+test("verify: deadCode warns on an unused import and injected-but-unused service", () => {
+  const ts = `import { AuthorizationModel } from "@uiigateway/core";
+@Component({ selector: "x", template: "" })
+export class X {
+  constructor(private unusedSvc: FooService) {}
+}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: `<div></div>`, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "deadCode");
+  assert.equal(check.status, "warn", "dead code warns");
+  assert.ok(check.problems.some((p) => p.includes("AuthorizationModel")), "names the unused import");
+  assert.ok(check.problems.some((p) => p.includes("unusedSvc")), "names the injected-but-unused service");
+});
+
+test("verify: deadCode passes a clean component", () => {
+  const ts = `import { Component } from "@angular/core";
+@Component({ selector: "x", template: "" })
+export class X {
+  constructor(private svc: FooService) {}
+  ngOnInit() { this.svc.load(); }
+}`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: `<div></div>`, ts,
+    conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_NO_CHECKBOX,
+  });
+  assert.equal(r.checks.find((c) => c.name === "deadCode").status, "pass");
 });

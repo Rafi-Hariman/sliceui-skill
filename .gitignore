@@ -2,7 +2,6 @@ node_modules/
 .DS_Store
 .env.local
 *.log
-.sliceui/
 *.tgz
 
 # Local test/session artifacts — not part of the published package

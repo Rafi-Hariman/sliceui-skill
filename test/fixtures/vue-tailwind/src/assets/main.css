@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-500: #465fff;
+  --color-brand-600: #3641f5;
+  --color-gray-900: #101828;
+  --color-gray-500: #667085;
+  --breakpoint-sm: 640px;
+}

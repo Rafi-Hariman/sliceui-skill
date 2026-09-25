@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { refereeArtifacts } from "../src/lib/referee.mjs";
+import { refereeArtifacts, classNameToFileStem } from "../src/lib/referee.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +22,53 @@ function tmpProject(files) {
 const XML = `<frame name="Page" width="600" height="400" type="FRAME"><children>
 <Text id="t1" name="T" x="10" y="10" width="100" height="16" fontSize="14" fontWeight="500" characters="Ubah tagihan" type="TEXT"><fills><fill color="#000000"/></fills></Text>
 </children></frame>`;
+
+test("referee: flags duplicate component selectors (silent hazard)", () => {
+  // 2026-09-10 C2: two components with the same selector is a latent bug Angular won't error on.
+  const root = tmpProject({
+    "src/app/a.component.ts": `@Component({ selector: "app-edit-bill" })\nexport class AComponent {}`,
+    "src/app/b.component.ts": `@Component({ selector: "app-edit-bill" })\nexport class BComponent {}`,
+    "src/app/c.component.ts": `@Component({ selector: "app-unique" })\nexport class CComponent {}`,
+  });
+  const ctx = { cwd: root, conventions: { ngDeepCorpus: [] }, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null);
+  const dup = r.findings.find((f) => f.artifact === "component selectors");
+  assert.equal(dup.status, "fail", "duplicate selector is a fail finding");
+  assert.ok(dup.detail.includes("app-edit-bill"), "names the duplicate selector");
+  assert.ok(!dup.detail.includes("app-unique"), "unique selector is not reported");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: no duplicate-selector finding when all selectors are unique", () => {
+  const root = tmpProject({
+    "src/app/a.component.ts": `@Component({ selector: "app-a" })\nexport class AComponent {}`,
+    "src/app/b.component.ts": `@Component({ selector: "app-b" })\nexport class BComponent {}`,
+  });
+  const ctx = { cwd: root, conventions: { ngDeepCorpus: [] }, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null);
+  assert.equal(r.findings.some((f) => f.artifact === "component selectors"), false, "no duplicate → no finding");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: F12 — duplicate selectors are repo-preexisting (non-blocking), target-exists is blocking", () => {
+  // Duplicate selectors are pre-existing debt; they must not block the slice (exit stays 0).
+  // A target that already has code IS blocking.
+  const root = tmpProject({
+    "src/app/a.component.ts": `@Component({ selector: "app-edit-bill" })\nexport class AComponent {}`,
+    "src/app/b.component.ts": `@Component({ selector: "app-edit-bill" })\nexport class BComponent {}`,
+    "src/app/edit-bill.component.ts": `import { HttpClient } from "@angular/common/http";\n@Component({ selector: "app-edit-bill" })\nexport class EditBillComponent { constructor(private http: HttpClient) {} load() { this.http.get("/api/bill").subscribe(); } }`,
+  });
+  const ctx = { cwd: root, conventions: { ngDeepCorpus: [] }, sampleComponents: [] };
+  // No target → only the duplicate-selector finding, which is non-blocking.
+  const noTarget = refereeArtifacts(root, ctx, XML, "x.xml", null);
+  assert.equal(noTarget.pass, true, "repo-preexisting duplicate selectors do not block the slice");
+  assert.equal(noTarget.blockingRedCount, 0);
+  // With a target that already exists → blocking red.
+  const withTarget = refereeArtifacts(root, ctx, XML, "x.xml", null, "edit-bill");
+  assert.equal(withTarget.pass, false, "target-exists is slice-blocking");
+  assert.ok(withTarget.blockingRedCount >= 1);
+  rmSync(root, { recursive: true, force: true });
+});
 
 test("referee: wellAvailable=stale when claimed but absent from templates", () => {
   const root = tmpProject({
@@ -170,6 +217,42 @@ test("referee: target-exists flags a mock-data component", () => {
   assert.equal(finding.status, "fail");
   assert.equal(finding.mode, "mock data");
   rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: target-exists fires on a CLASS name, not just the file basename", () => {
+  // 2026-09-24 field bug: the agent passed the class name `TestingcomponentComponent`, but the
+  // file is `testingcomponent.component.ts`. locateTargetTs never normalized, so the STOP gate
+  // stayed inert and the agent nearly overwrote an existing component without knowing.
+  const root = tmpProject({
+    "src/app/testingcomponent.component.ts": `@Component({ selector: "app-testingcomponent" })\nexport class TestingcomponentComponent { rows = []; }`,
+  });
+  const ctx = { cwd: root, componentDir: "src/app", conventions: {}, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null, "TestingcomponentComponent");
+  const finding = r.findings.find((f) => f.artifact === "component target");
+  assert.ok(finding, "class name is normalized and the component is found");
+  assert.equal(finding.status, "fail", "an existing component named by class name halts");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: target-exists finds a component outside componentDir (monorepo library)", () => {
+  // componentDir may point at the wrong tree in a monorepo; the repo-wide fallback must still
+  // locate the component when the name is right.
+  const root = tmpProject({
+    "projects/uiigateway/bill/src/lib/testingcomponent/testingcomponent.component.ts": `@Component({ selector: "ugw-bill-testingcomponent" })\nexport class TestingcomponentComponent { rows = []; }`,
+  });
+  const ctx = { cwd: root, componentDir: "src/app", conventions: {}, sampleComponents: [] };
+  const r = refereeArtifacts(root, ctx, XML, "x.xml", null, "testingcomponent");
+  const finding = r.findings.find((f) => f.artifact === "component target");
+  assert.ok(finding, "monorepo library component found via fallback");
+  assert.equal(finding.status, "fail");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("referee: classNameToFileStem normalizes Angular class names to kebab stems", () => {
+  assert.equal(classNameToFileStem("TestingcomponentComponent"), "testingcomponent");
+  assert.equal(classNameToFileStem("testingcomponent"), "testingcomponent", "kebab passes through");
+  assert.equal(classNameToFileStem("EditBillComponent"), "edit-bill");
+  assert.equal(classNameToFileStem("HTTPClientComponent"), "http-client", "acronym run collapsed");
 });
 
 test("referee: no target-exists when --target is a NEW component", () => {

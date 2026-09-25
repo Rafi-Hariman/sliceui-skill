@@ -71,7 +71,7 @@ Start: 2026-09-06 (a0f4506 lineage) → End: 2026-09-06 (f2e4e1f, 6de3acf).
 
 ## 11. Sprint Tracker
 
-All 5 tasks complete — see task list above; detail in `docs/HANDOFF-pilar-sliceui-2026-09-06.md`.
+All 5 tasks complete — see task list above; detail in `docs/archive/HANDOFF-pilar-sliceui-2026-09-06.md`.
 
 ## 12. Acceptance Criteria
 

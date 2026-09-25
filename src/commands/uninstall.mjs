@@ -1,7 +1,8 @@
 // sliceui uninstall — remove a SliceUI setup in one command.
 // Project scope (default): remove .sliceui/, remove .env.local ONLY if it is
 //   sliceui-owned (our header + only the Gemini key), and drop the .sliceui/ gitignore line.
-// --skill / --global: remove the installed skill dir (~/.claude/skills/sliceui).
+// --skill / --global: remove the installed skill dirs (~/.claude/skills/sliceui AND the
+//   companion ~/.claude/skills/sliceui-handoff).
 // Never removes a .env.local that isn't ours (safety: don't nuke a user's other keys).
 
 import { existsSync, readFileSync, rmSync, writeFileSync, readdirSync, statSync } from "node:fs";
@@ -10,6 +11,7 @@ import { join, resolve } from "node:path";
 import { parseEnvContent } from "../lib/env.mjs";
 
 const DEFAULT_SKILL_DIR = join(homedir(), ".claude", "skills", "sliceui");
+const HANDOFF_SKILL_DIR = join(homedir(), ".claude", "skills", "sliceui-handoff");
 
 /** True if the .env.local was created by sliceui (our header + only the Gemini key). */
 function isSliceuiOwnedEnv(content) {
@@ -63,6 +65,10 @@ export function uninstallSkill() {
   if (existsSync(DEFAULT_SKILL_DIR)) {
     rmSync(DEFAULT_SKILL_DIR, { recursive: true, force: true });
     removed.push(DEFAULT_SKILL_DIR);
+  }
+  if (existsSync(HANDOFF_SKILL_DIR)) {
+    rmSync(HANDOFF_SKILL_DIR, { recursive: true, force: true });
+    removed.push(HANDOFF_SKILL_DIR);
   }
   return { ok: true, removed };
 }

@@ -77,6 +77,53 @@ test("fails gracefully on non-FIGML XML", () => {
   assert.equal(r.reason, "no-root");
 });
 
+// --- glyph identity: empty-TEXT icon glyphs carry the node name as glyphName ---
+
+const GLYPH_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="g:1" name="Actions" x="0" y="0" width="600" height="200" type="FRAME">
+  <children>
+    <Instance_toggle id="g:2" name="Icon_Font_Awesome_Free_Solid_T_toggle-on" x="0" y="0" width="16" height="16" type="INSTANCE">
+      <children>
+        <Text id="g:3" name="glyph" x="0" y="0" width="16" height="16" fontSize="15" fontWeight="900" characters="" type="TEXT">
+          <fills><fill blendMode="NORMAL" color="#1b3680" /></fills>
+        </Text>
+      </children>
+    </Instance_toggle>
+    <Vector id="g:4" name="Icon_Font_Awesome_Free_Solid_C_caret-down" x="0" y="40" width="12" height="12" type="VECTOR">
+      <fills><fill blendMode="NORMAL" color="#03337b" /></fills>
+    </Vector>
+    <Text id="g:5" name="Real label" x="0" y="80" width="200" height="18" fontSize="14" fontWeight="500" characters="Ubah tagihan" type="TEXT">
+      <fills><fill blendMode="NORMAL" color="#03337b" /></fills>
+    </Text>
+  </children>
+</frame>`;
+
+test("glyph: empty-TEXT inside a named icon INSTANCE keeps type/style and gains glyphName", () => {
+  const r = parseFigml(GLYPH_XML, "glyph.xml");
+  assert.equal(r.ok, true, r.message);
+  const nodes = [];
+  const walk = (ns) => { for (const n of ns) { nodes.push(n); if (n.children) walk(n.children); } };
+  walk(r.transcript.layout);
+  const glyphText = nodes.find((n) => n.id === "g_3");
+  assert.ok(glyphText, "glyph text node present");
+  assert.equal(glyphText.type, "text", "stays a text node (fidelity style preserved)");
+  assert.equal(glyphText.glyphName, "Icon_Font_Awesome_Free_Solid_T_toggle-on", "inherits the wrapper glyph name");
+  assert.equal(glyphText.style.color, "#1b3680", "style.color untouched");
+  assert.equal(glyphText.style.size, 15, "style.size untouched");
+  const label = nodes.find((n) => n.id === "g_5");
+  assert.equal(label.glyphName, undefined, "real text does NOT get a glyphName");
+});
+
+test("glyph: VECTOR node carries its Figma name as glyphName", () => {
+  const r = parseFigml(GLYPH_XML, "glyph.xml");
+  const nodes = [];
+  const walk = (ns) => { for (const n of ns) { nodes.push(n); if (n.children) walk(n.children); } };
+  walk(r.transcript.layout);
+  const vector = nodes.find((n) => n.id === "g_4");
+  assert.equal(vector.glyphName, "Icon_Font_Awesome_Free_Solid_C_caret-down");
+});
+
 // --- v3 regressions: frame fills, colored dividers, hidden layers ---
 
 const FILLS_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
@@ -455,3 +502,63 @@ test("design-2/3/7: SPACE_BETWEEN + wide itemSpacing → justify, NOT gap:497", 
   assert.equal(toolbar.justify, "space-between", "primaryAxisAlignItems SPACE_BETWEEN → justify:space-between");
   assert.equal(toolbar.gap, undefined, "wide itemSpacing (497) is NOT emitted as a literal gap");
 });
+
+// --- B1: hidden-by-override (FIGML encodes visibility as <override overriddenField="visible">) ---
+
+const OVERRIDE_HIDDEN_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<?figml version="1.0"?>
+<frame id="oh:1" name="Page" x="0" y="0" width="400" height="200" type="FRAME">
+  <children>
+    <Frame id="oh:2" name="Hidden section" x="0" y="0" width="400" height="50" type="FRAME">
+      <overrides>
+        <override overriddenField="visible" value="false" />
+      </overrides>
+    </Frame>
+    <Frame id="oh:3" name="Visible section" x="0" y="50" width="400" height="50" type="FRAME">
+      <overrides>
+        <override overriddenField="fill" value="#000000" />
+      </overrides>
+    </Frame>
+  </children>
+</frame>`;
+
+test("B1: override overriddenField=visible false marks the node hidden; other overrides do not", () => {
+  const r = parseFigml(OVERRIDE_HIDDEN_FIXTURE, "oh.xml");
+  assert.equal(r.ok, true, r.message);
+  const hidden = r.transcript.layout.find((n) => n.id === "oh_2");
+  const visible = r.transcript.layout.find((n) => n.id === "oh_3");
+  assert.equal(hidden.hidden, true, "visible=false override → hidden:true");
+  assert.equal(visible.hidden, undefined, "a fill override must NOT hide the node");
+});
+
+const REQUIRED_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
+<frame id="1:1" name="Page" x="0" y="0" width="400" height="300" type="FRAME">
+  <children>
+    <Field id="1:2" name="Field" required="true" x="0" y="0" width="400" height="60" type="INSTANCE">
+      <children><Text id="1:3" name="label" x="0" y="0" width="200" height="18" fontSize="14" characters="Tahun akademik" type="TEXT" /></children>
+    </Field>
+    <Field id="1:4" name="Field" required="false" x="0" y="60" width="400" height="60" type="INSTANCE">
+      <children><Text id="1:5" name="label" x="0" y="0" width="200" height="18" fontSize="14" characters="Program studi" type="TEXT" /></children>
+    </Field>
+    <Field id="1:6" name="Field" x="0" y="120" width="400" height="60" type="INSTANCE">
+      <children><Text id="1:7" name="label" x="0" y="0" width="200" height="18" fontSize="14" characters="NIM" type="TEXT" /></children>
+    </Field>
+  </children>
+</frame>`;
+
+test("required: the XML's explicit required flag is surfaced (absent stays distinguishable)", () => {
+  // 2026-09-24 (report §4.5): the generator reconstructed the design's HIDDEN asterisk and shipped
+  // it as `<span class="required-mark hidden">*</span>` on an optional field. The flag must reach
+  // the transcript so the generator emits a marker for `true` and nothing at all for `false`.
+  const r = parseFigml(REQUIRED_FIXTURE, "req.xml");
+  assert.equal(r.ok, true, r.message);
+  const byId = new Map(r.transcript.layout.map((n) => [n.id, n]));
+  assert.equal(byId.get("1_2").required, true, "required=\"true\" → true");
+  assert.equal(byId.get("1_4").required, false, "required=\"false\" → false");
+  assert.equal("required" in byId.get("1_6"), false, "an absent attribute must not be invented as false");
+});
+
+// The real field export (root <frame> padding + <variantProperties required>) lives in
+// test/fixtures/mahasiswa-tarif/raw.xml and is exercised end-to-end by
+// test/mahasiswa-tarif.test.mjs — those shapes are no longer re-approximated here as synthetic
+// fixtures, so the parser and the regression can never drift from the field data.

@@ -69,8 +69,11 @@ export function renderTranscript(t) {
       } else if (n.type === "icon") {
         text = n.description ? ` (${n.description})` : "";
       }
+      // Glyph identity (the FA glyph name) — an empty text node is an icon glyph rendered as
+      // font text; without the name the agent only sees `"" {15px w900 #…}` (2026-09-10 §1.1).
+      const glyph = n.glyphName ? ` glyph:${n.glyphName}` : "";
       const style = n.style ? styleSummary(n.style) : "";
-      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${hidden}${radius}${corners}${gap}${justify}${padStr}${align}${border}${text}${style}`);
+      lines.push(`${pad}${n.type}#${n.id}${geom}${bg}${axis}${table}${hidden}${radius}${corners}${gap}${justify}${padStr}${align}${border}${text}${glyph}${style}`);
       if (n.children?.length) walk(n.children, depth + 1);
     }
   };

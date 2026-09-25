@@ -1,0 +1,8 @@
+{
+  "name": "vue-el-fixture",
+  "version": "0.0.0",
+  "dependencies": {
+    "vue": "3.4.0",
+    "element-plus": "2.7.0"
+  }
+}
