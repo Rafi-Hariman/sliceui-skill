@@ -46,6 +46,7 @@ Does not duplicate the changelog (releases) or phase trackers (per-phase task st
 - **v0.15.0 released** (2026-09-05/06 lineage): verify gate catching real render defects; headless render probes (cascade + Angular mount) in CI; resolve keyed by Figma name not just color; public package stripped of org-private source.
 - **Pilar integration complete:** 47-component catalog + showcase (generated, extractor-regenerated), policy gate, typecheck, mount, version drift guard, publish guard.
 - **Docs:** SDD doc set created 2026-09-10 (this doc set) — first `docs/project-docs/` in the repo.
+- **Pipeline optimization (PR 1–3) complete (2026-09-25):** compact agent context (PR 1), snapshot dedup + canonical ownership (PR 2 + corrective patch), referee cold/hot separation (PR 3). Hot-path `referee --target` reads zero project-source files; deep parity preserved; no pass-by-absence. Verification: PR 1 `CONDITIONAL PASS`, PR 2 `FAIL`→corrected→`PASS`, PR 3 `CONDITIONAL PASS`. Known limitation: snapshot-mode freshness does not detect uncommitted source edits — use `referee --deep` after source changes.
 - **In flight (uncommitted):** modifications across verify/resolve/referee/fidelity/figml-parse + 5 test files + skill/SKILL.md + angular conventions/uii-profile — described in `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` as the false-positive-gate fixes.
 - **Pending plan:** `docs/phases/REMEDIATION-PLAN-2026-09-11.md` (F1–F14, DRAFT) — not yet fully landed.
 

@@ -131,7 +131,7 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ### 5. `referee`
 
-`sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). It flags stale or incorrect claims before they reach the agent. The codebase head also runs automatically at `sliceui init`, surfacing the corruption map at setup time. The full run is a mandatory pre-generate step in the skill: if anything is red, the artifacts are refreshed before codegen.
+`sliceui referee` validates every ground-truth artifact against the two sources of truth: the design (fidelity) and the codebase (whether each claim traces to a real occurrence). By default it runs in **snapshot mode** — it reads the stored codebase-evidence verdict written by `sliceui init` and performs bounded target/design checks, without scanning repository source. Use `sliceui referee --target <name> --deep` to re-scan the repository explicitly and refresh the verdict. If anything is red, the artifacts are refreshed before codegen. See `docs/project-docs/development/api-contract.md` §10.4b for the freshness boundary (snapshot mode does not detect uncommitted source edits).
 
 ### 6. Project-specific features
 

@@ -21,7 +21,8 @@ Usage:
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui fidelity <xml>        Score visual-attribute preservation (FIGML → transcript)
   sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions (--xml/--transcript/--conventions)
-  sliceui referee [root]        Validate ground-truth artifacts (XML + codebase) — the corruption map
+  sliceui referee [root] [--target <name>]   Validate ground-truth artifacts (snapshot mode; no repo scan)
+  sliceui referee [root] [--target <name>] --deep   Live full repo scan + refresh the stored verdict
   sliceui resolve <xml|json>    Resolve styled leaves → exact idiom candidates (resolve-then-assemble)
   sliceui spec <xml|json>       One-pass render doc: elements + inline idioms + copy-targets
   sliceui timing                Per-stage wall-clock from .sliceui/runs.jsonl (where the minutes go)

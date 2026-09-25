@@ -7,6 +7,7 @@ import { join, resolve, dirname } from "node:path";
 import { verifyComponent } from "../framework/angular/verify.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 import { tracedReadFileSync, allowRoot } from "../lib/fs-trace.mjs";
+import { loadConventionsSnapshot } from "../lib/snapshot.mjs";
 
 export async function main(argv) {
   const opts = parseArgs(argv);
@@ -23,18 +24,11 @@ export async function main(argv) {
   allowRoot(dir);
   const { scss, html, ts } = readComponent(dir, name);
   // An explicit --conventions path wins over root-walk (escape hatch when auto-detect is wrong).
+  // Otherwise load the canonical conventions snapshot (conventions.json) with legacy fallback to
+  // project-context.json for pre-PR-2 snapshots that carry loadedClassRegistry there (PR 2).
   let conventions = opts.conventions
     ? readJsonSafe(resolve(opts.conventions))
-    : readJsonSafe(join(root, ".sliceui", "conventions.json")) ?? null;
-  // loadedClassRegistry lives top-level in project-context.json (detect), not in conventions.json.
-  // When conventions doesn't carry it (a `sliceui detect` run without init, or older init), pull it
-  // from project-context so checkLoadedClass is live — not silently skipped.
-  if (conventions && !conventions.loadedClassRegistry) {
-    const pctx = readJsonSafe(join(root, ".sliceui", "project-context.json"));
-    if (pctx?.loadedClassRegistry) {
-      conventions = { ...conventions, loadedClassRegistry: pctx.loadedClassRegistry };
-    }
-  }
+    : loadConventionsSnapshot(root).conventions ?? null;
   // Ground truth pairing: explicit --xml/--transcript flags win; else pair by component name;
   // else LOUD warn (never silently fall back to the wrong design's file — Report #1 §6.2).
   // Flags override an unpaired state — explicit evidence always wins.

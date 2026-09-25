@@ -13,10 +13,12 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { detectProject, writeContextSectionFiles } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
-import { renderConventionsMd, mergeGoldenClasses, goldenCompanionFiles } from "../framework/angular/conventions.mjs";
+import { renderConventionsMd, mergeGoldenReferences } from "../framework/angular/conventions.mjs";
 import { renderConventionsMd as renderVueConventionsMd } from "../framework/vue-sfc/conventions.mjs";
-import { refereeArtifacts } from "../lib/referee.mjs";
+import { refereeArtifacts, codebaseEvidenceFindings } from "../lib/referee.mjs";
+import { buildRefereeVerdict, REFEREE_VERDICT_FILE } from "../lib/referee-verdict.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
+import { splitProjectContext } from "../lib/snapshot.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -111,8 +113,11 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   // --- 5. detect + conventions (persist all 3 artifacts, so the agent can read them right after init) ---
   // --framework / --profile force detection; null = auto-detect.
   const ctx = await detectProject(root, { frameworkId, profile });
+  // PR 2: split — project-context.json keeps only the WHAT facts; the duplicate
+  // loadedClassRegistry + conventions blobs move to conventions.json (single owner).
+  const { projectContext, conventions: baseConventions } = splitProjectContext(ctx);
   const ctxPath = join(sliceuiDir, "project-context.json");
-  writeFileSync(ctxPath, JSON.stringify(ctx, null, 2) + "\n");
+  writeFileSync(ctxPath, JSON.stringify(projectContext, null, 2) + "\n");
   created.push(".sliceui/project-context.json");
   // Agent-readable context sections (.sliceui/context/*.md) — project-context.json can exceed
   // the agent's Read cap (479 KB in the 2026-09-10 run); these are additive slices of the same
@@ -121,26 +126,16 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
     created.push(toRelCreated(root, p));
   }
 
-  // conventions.json — deterministic facts (machine-readable, the verify gate's ground truth)
+  // conventions.json — deterministic facts (machine-readable, the verify gate's ground truth),
+  // canonical owner of loadedClassRegistry + classVocabulary + ngDeepCorpus + anatomy + naming.
   // Golden references (config.json `references`) are the user's hand-curated canonical pattern:
   // their classes are merged into the vocabulary so verify never flags a mirrored golden idiom
   // (mt-4 / col-12 / p-0) as invented.
-  const conventions = { ...(ctx.conventions ?? {}) };
+  let conventions = { ...baseConventions };
   // profile gates the org-private grammar: conventions consumers (verify/conventions-mining)
   // must know whether pilar/@uiigateway idiom is in play.
   if (ctx.profile) conventions.profile = ctx.profile;
-  // The loaded-class registry is detect's ground truth for "which utility/grid classes actually
-  // resolve in a LOADED stylesheet". It lives top-level in project-context.json (detect) but the
-  // verify gate reads conventions.json — carry it here so checkLoadedClass is live in production
-  // (it was built but never wired: conventions.json never carried it → always skip).
-  if (ctx.loadedClassRegistry) conventions.loadedClassRegistry = ctx.loadedClassRegistry;
-  const refs = readJsonSafe(join(root, ".sliceui", "config.json"))?.references ?? [];
-  if (Array.isArray(refs) && refs.length) {
-    const { html } = goldenCompanionFiles(root, refs);
-    if (html.length) {
-      conventions.classVocabulary = mergeGoldenClasses(conventions.classVocabulary ?? [], html);
-    }
-  }
+  conventions = mergeGoldenReferences(root, conventions);
   const convPath = join(sliceuiDir, "conventions.json");
   writeFileSync(convPath, JSON.stringify({ ...conventions, generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   created.push(".sliceui/conventions.json");
@@ -183,6 +178,17 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
     ? [`referee: ${redCount} ground-truth claim(s) fail/stale — run \`sliceui referee\` for the corruption map.`]
     : [];
 
+  // PR 3: persist the codebase-evidence verdict (the repository-scanning head) so the hot-path
+  // `referee --target` reads it instead of re-scanning. Bound it to the just-written snapshot.
+  try {
+    const codebase = codebaseEvidenceFindings(root, baseConventions, projectContext);
+    const verdict = buildRefereeVerdict({ ctx: projectContext, codebaseFindings: codebase.findings, evidence: codebase.evidence });
+    writeFileSync(join(sliceuiDir, REFEREE_VERDICT_FILE), JSON.stringify(verdict, null, 2) + "\n");
+    created.push(".sliceui/referee-verdict.json");
+  } catch (err) {
+    warnings.push(`referee verdict not written: ${err?.message ?? err}`);
+  }
+
   // Drift guard (UII only): the pilar catalogs are a snapshot at PILAR_VERSION. When the
   // project's installed pilar differs, surface the regeneration command — a stale snapshot
   // generates against the wrong API and nothing else fails until runtime.
@@ -206,16 +212,12 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   };
 }
 
-/** Read GEMINI_API_KEY / VITE_GEMINI_API_KEY from another env file. Returns the value or null. */
-function readJsonSafe(p) {
-  try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; }
-}
-
 /** Absolute path under root → the `.sliceui/...` shape the `created[]` list uses. */
 function toRelCreated(root, abs) {
   return abs.startsWith(root) ? "." + abs.slice(root.length) : abs;
 }
 
+/** Read GEMINI_API_KEY / VITE_GEMINI_API_KEY from another env file. Returns the value or null. */
 function extractKeyFrom(path) {
   try {
     const env = parseEnvContent(readFileSync(resolve(path), "utf8"));

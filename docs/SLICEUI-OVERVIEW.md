@@ -178,7 +178,7 @@ Two gates bracket the codegen:
 | `sliceui transcribe <input>` | `.xml`/`.figml` → exact parse; image → Gemini → static fallback |
 | `sliceui resolve <xml\|json>` | Map every styled leaf to exact idiom candidates → `resolved.json` |
 | `sliceui spec <input>` | Merge inventory + resolved idioms + layout rules into one `spec.md` |
-| `sliceui referee [--target N]` | Pre-generate gate: validate ground truth vs design + codebase |
+| `sliceui referee [--target N]` | Pre-generate gate: validate ground truth vs design + codebase (snapshot mode; `--deep` re-scans) |
 | `sliceui verify <dir> [name]` | Post-generate blocking gate: fidelity + conventions + structure; exit 0/1 |
 | `sliceui fidelity <xml>` | Score visual-attribute preservation (FIGML → transcript) as a % |
 | `sliceui doctor` | Diagnose install (Node, platform, key, skill, live Gemini) |

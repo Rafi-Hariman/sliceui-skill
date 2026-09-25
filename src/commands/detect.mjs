@@ -14,6 +14,8 @@ import { extractLoadedClasses } from "../lib/loaded-classes.mjs";
 import { extractConventions } from "../framework/angular/conventions.mjs";
 import { extractConventions as extractVueConventions } from "../framework/vue-sfc/conventions.mjs";
 import { detectAngularDetails } from "../framework/angular/detect-angular.mjs";
+import { mergeGoldenReferences } from "../framework/angular/conventions.mjs";
+import { splitProjectContext } from "../lib/snapshot.mjs";
 import { walkFiles, readJsonSafe, readFileSyncSafe, toRel, extractTsconfigPaths } from "../lib/detect-utils.mjs";
 
 export async function detectProject(rootDir, { frameworkId = null, profile = null } = {}) {
@@ -479,7 +481,13 @@ export async function main(argv) {
 
   const ctx = await detectProject(root);
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(outPath, JSON.stringify(ctx, null, 2) + "\n");
+  // PR 2: split — project-context.json keeps only the WHAT facts; loadedClassRegistry +
+  // conventions move to conventions.json (single owner). Standalone `detect` must write the
+  // canonical conventions.json too, with golden references merged (parity with `init`).
+  const { projectContext, conventions } = splitProjectContext(ctx);
+  const mergedConventions = mergeGoldenReferences(root, conventions);
+  writeFileSync(outPath, JSON.stringify(projectContext, null, 2) + "\n");
+  writeFileSync(join(outDir, "conventions.json"), JSON.stringify({ ...mergedConventions, profile: ctx.profile ?? "generic", generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   writeContextSectionFiles(outDir, ctx);
   console.log(JSON.stringify({
     ok: true,

@@ -14,6 +14,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
 import { parseFigml } from "../lib/figml-parse.mjs";
 import { resolveTranscript } from "../lib/resolve.mjs";
+import { loadPilar } from "../lib/pilar-loader.mjs";
+import { buildAgentContext } from "../lib/agent-context.mjs";
 
 /** Walk the layout tree, yielding every node in document order. */
 function walkNodes(nodes, out = []) {
@@ -206,7 +208,7 @@ function layoutVerdicts(layout) {
   return out;
 }
 
-export function main(argv) {
+export async function main(argv) {
   const path = argv[0];
   if (!path) {
     console.error("usage: sliceui spec <transcript|xml>");
@@ -233,8 +235,37 @@ export function main(argv) {
   const out = join(outDir, `spec.md`);
   writeFileSync(out, spec);
 
+  // PR 1 — design-scoped agent context. Built only from the design artifacts + `.sliceui`
+  // snapshot (no repository read). A failure here must not break `spec.md`; it degrades to a
+  // diagnostic and leaves the primary artifact valid.
+  let ctxNote = "";
+  try {
+    const pilar = await loadPilar();
+    const projectContext = readProjectContext(process.cwd());
+    const { manifest, markdown, metrics } = buildAgentContext({
+      transcript,
+      conventions,
+      projectContext,
+      pilar,
+      design: stem,
+    });
+    writeFileSync(join(outDir, "context-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+    writeFileSync(join(outDir, "agent-context.md"), markdown);
+    ctxNote = `\nAgent context\n` +
+      `  characters             : ${metrics.characters}\n` +
+      `  estimated tokens       : ${metrics.estimatedTokens}\n` +
+      `  capabilities selected  : ${metrics.capabilityCount}\n` +
+      `  style recipes selected : ${metrics.styleRecipeCount}\n` +
+      `  unused capabilities    : ${metrics.unusedCapabilityCount}\n` +
+      `  raw source examples    : ${metrics.rawSourceExampleCount}\n` +
+      `  budget exceeded        : ${metrics.budgetExceeded ? "yes" : "no"}`;
+  } catch (err) {
+    ctxNote = `\n⚠ agent context not written: ${err?.message ?? err}`;
+  }
+
   console.log(`SliceUI spec → ${out}`);
   console.log(`  ${(spec.match(/\n/g) ?? []).length + 1} lines — one pass to render, no cross-referencing.`);
+  console.log(ctxNote);
   return 0;
 }
 
@@ -244,6 +275,12 @@ function readConventions(cwdDir) {
   return {};
 }
 
+function readProjectContext(cwdDir) {
+  const p = join(cwdDir, ".sliceui", "project-context.json");
+  if (existsSync(p)) { try { return JSON.parse(readFileSync(p, "utf8")); } catch {} }
+  return {};
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  process.exit(main(process.argv.slice(2)) ?? 0);
+  main(process.argv.slice(2)).then((code) => process.exit(code ?? 0));
 }

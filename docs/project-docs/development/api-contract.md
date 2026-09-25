@@ -60,7 +60,8 @@ Commands are argument-driven; results are either stdout text (human/agent-readab
 | `sliceui detect` | CWD project | `.sliceui/project-context.json` + `.sliceui/context/*.md` | 0/1 |
 | `sliceui transcribe <input>` | `.xml`/`.figml` file or image | `.sliceui/transcript/<name>.transcript.{md,json}` + `.transcript.meta.json` (input-stamped) | 0/1 |
 | `sliceui resolve <xml\|json>` | FIGML XML or transcript JSON | `.sliceui/resolve/<name>.resolved.json` | 0/1 |
-| `sliceui referee [root]` | ground-truth artifacts | stdout verdict per claim (green/red per check) | 0/1 |
+| `sliceui referee [root] [--target <name>]` | ground-truth artifacts | stdout verdict per claim (green/red per check) — **snapshot mode** (reads `.sliceui` + design input, no repo scan) | 0/1 |
+| `sliceui referee [root] [--target <name>] --deep` | ground-truth artifacts + live repo | stdout verdict per claim + writes `.sliceui/referee-verdict.json` | 0/1 |
 | `sliceui verify <dir> [name] [--xml F] [--transcript F] [--conventions F]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 / 1 (gate) / 2 (usage/framework) |
 | `sliceui doctor` | — | environment diagnosis (Node, platform, sips/swiftc, key, skill, live Gemini) | 0/1 |
 | `sliceui fidelity <xml>` | FIGML XML | stdout % + per-attribute breakdown | 0/1 |
@@ -102,6 +103,47 @@ agent's Read cap).
 ### 10.4 `.sliceui/conventions.json`
 
 Deterministic facts (the verify gate's ground truth): `classVocabulary`, deep-selector override corpus (scoped by capability family), `componentAnatomy`, `naming` (selector prefix + event-handler pattern), plus the loaded-class registry the verify gate reads (wired in 8a1628d).
+
+**Single-owner (PR 2):** `conventions.json` is the canonical owner of `loadedClassRegistry` and
+the convention facts. `project-context.json` no longer carries `loadedClassRegistry` or a nested
+`conventions` object. Readers use `src/lib/snapshot.mjs` (`loadConventionsSnapshot`): canonical
+first, then legacy fallback to the pre-PR-2 `project-context.json` location, with a conflict
+diagnostic when the two copies disagree (canonical wins). No repository scan is ever performed as
+a fallback.
+
+`loadConventionsSnapshot` returns three explicit states:
+- `source: "canonical"` — `conventions.json` present (even if its collections are empty); `conventions` is the parsed object.
+- `source: "legacy"` — `conventions.json` absent/invalid but `project-context.json` carries the pre-PR-2 fields; `conventions` is recovered in-memory.
+- `source: "none"` — no canonical and no legacy data; `conventions` is **`null`** (never a truthy empty object), with a `SUI-SNAPSHOT-001` diagnostic. A malformed canonical file that has no legacy fallback is also `none` (corruption diagnostic, not silent empty).
+
+`sliceui verify` treats `source: "none"` as missing ground truth: it prints "NO GROUND TRUTH …
+NOT verifiable" and exits non-zero — a run with no conventions/transcript/XML can never be green.
+
+### 10.4b `.sliceui/referee-verdict.json` (PR 3)
+
+The stored codebase-evidence verdict, written by `sliceui init` (cold path) and `sliceui referee
+--deep` (explicit live scan). It carries the codebase-head findings (duplicate selectors, convention
+provenance, well/corpus claims) as a small summary — never source bodies. It is bound to two
+fingerprints (`projectFingerprint` = detect `inputHash`; `snapshotFingerprint` = sha256 of
+`conventions.json` + `project-context.json`). The default `referee --target` reads it (snapshot mode,
+**zero project-source reads**); `--deep` re-scans and refreshes it. A missing/stale/invalid verdict
+is **non-green** (exit non-zero) with a diagnostic — never a silent re-scan, never a pass-by-absence.
+
+**Freshness boundary (what "fresh" means).** Snapshot mode never reads repository source, so it
+cannot detect working-tree edits that its fingerprint anchors do not cover:
+
+- `snapshotFingerprint` covers `conventions.json` + `project-context.json` — a change to either makes
+  the verdict **stale**.
+- `projectFingerprint` is detect's `inputHash` (`package.json`, `angular.json`, `tsconfig.json`,
+  `package-lock.json`, `git HEAD`) — it does **not** cover uncommitted HTML/SCSS/CSS/component-`.ts`
+  edits. Such edits can leave the verdict assessed as `fresh` even though the source changed.
+- A `fresh` verdict therefore means "the stored fingerprints still match the bounded anchors snapshot
+  mode checks", **not** "the working tree is proven identical to the deep-scan state".
+
+**Remediation.** After a relevant source edit, after a component/library usage change not yet reflected
+in the snapshot, or whenever freshness is in doubt, re-validate explicitly — `sliceui referee --target
+<name> --deep` — which re-scans and refreshes the verdict. Snapshot mode never silently falls back to
+deep mode.
 
 ### 10.5 `.sliceui/resolve/<name>.resolved.json`
 

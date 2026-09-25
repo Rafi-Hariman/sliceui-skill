@@ -103,16 +103,23 @@ Then read `capabilities.<category>` from `project-context.json` — it names the
 
 **`sampleScss` is a hint, not a copy source.** It shows which `::ng-deep` / `:host ::ng-deep` blocks the project reaches for (`.ngx-select__toggle-caret`, `.ugw-pagination-container li.page-box`, `.search-options`, `.filter-options .limit-options select`, `.dropdown-menu > li > a:hover`, …). The authoritative copy source is `conventions.md`'s **Reusable** section (and the `sliceui spec` "Copy verbatim" section) — not the sample component's own stylesheet, which may be stale.
 
-### Step 2b — Read the conventions (HOW this team writes)
+### Step 2b — Read the design-scoped agent context (HOW this team writes)
 
-`sliceui init` also wrote `.sliceui/conventions.json` + `.sliceui/conventions.md`. These capture **the codebase's unwritten rules** — the reusable classes, the `::ng-deep` corpus, the page anatomy, the naming — that a WHAT-only project-context can't express. Read both before generating:
+`sliceui init` also wrote `.sliceui/conventions.json` + `.sliceui/conventions.md`, and `sliceui spec` writes a per-design `.sliceui/artifacts/<name>/agent-context.md` that prunes the snapshot to **only what THIS design uses**. Read it as your primary convention input:
 
-- `conventions.json` — deterministic facts (class vocabulary, `::ng-deep` corpus, anatomy, naming). The verify gate's ground truth.
-- `conventions.md` — the same facts as narrative, plus the `::ng-deep` blocks to copy verbatim.
+- **`agent-context.md`** — the design-scoped context: framework constraints, verified component APIs (exact inputs/outputs + defaults), relevant dangerous defaults, and the reusable `::ng-deep` recipes in play. **Read this first** (it is the whole point of the pruned context).
+- `conventions.md` — the full narrative projection (the same facts, not design-scoped) plus the `::ng-deep` blocks to copy verbatim. Read it only for the verbatim blocks the agent-context references.
+- `conventions.json` — **machine-only**: the verify gate's ground truth and the CLI's contract. Do **NOT** read it during normal generation — it can be ~450 KB of class registry you don't need.
+
+> **Fallback for an older snapshot** (no `agent-context.md`): read `.sliceui/context/INDEX.md` + `.sliceui/conventions.md` + the one relevant `capabilities.<category>`, and do a targeted lookup — never read the full `conventions.json`.
 
 If `.sliceui/conventions.json` is missing, **stop and run `sliceui init`** — you cannot generate adaptive code without it.
 
-**UII projects only** — if `.sliceui/pilar-reference.md` exists (a UII fingerprint), consult it before emitting any `uii-*` tag: it carries the exact `@Input`/`@Output` typing and real template shape for every pilar component, plus the models/services/directives/pipes/modules. `.sliceui/uii-profile.md` holds the table action→authKey→icon truth table. `.sliceui/pilar-showcase.md` holds the org's complete working examples (every `doc-*` showcase with real markup/TypeScript/SCSS) — mirror the wiring of the entry for the component you're emitting.
+**UII projects only** — the pruned `agent-context.md` already carries the exact `@Input`/`@Output` typing, defaults, and forbidden inputs for every pilar component this design uses (from the machine catalog, not a guess). Consult it first. The full docs are **targeted fallback only**, for a component or fact the agent-context does not carry:
+
+- `.sliceui/pilar-reference.md` — exact typing + template shape for every pilar component, plus models/services/directives/pipes/modules.
+- `.sliceui/uii-profile.md` — the table action→authKey→icon truth table.
+- `.sliceui/pilar-showcase.md` — complete working examples (every `doc-*` showcase).
 
 > **⚠ Context economy — read TARGETED, never full-file.** `pilar-reference.md` (~54KB) + `pilar-showcase.md` (~184KB) ≈ 60k tokens if read whole — that would consume most of your context. Instead:
 > 1. Read ONLY the **Index** of `pilar-showcase.md` (first ~40 lines) to learn what exists.
@@ -136,7 +143,9 @@ sliceui resolve <path>          # .xml/.figml → .sliceui/artifacts/<name>/reso
 
 For every styled leaf (status badge, icon, caret), `resolve` maps the XML evidence (colors, icons)
 to **exact idiom candidates** from the project corpus — the correct `label-custom-*` + `fa-*`
-combination. Read `.sliceui/artifacts/<name>/resolved.json` before generating:
+combination. `resolved.json` is a diagnostic/ambiguity source, **not** required reading when
+`spec.md` is available (the spec already carries every resolved idiom inline). Read it only to
+disambiguate a specific idiom:
 
 - The file is a **`groups[]` array** of unique leaf facts — identical table rows are deduped into
   one entry with a `count` + `ids[]` (a 10-row table repeats one status/icon 10×; reading it
@@ -154,12 +163,14 @@ combination. Read `.sliceui/artifacts/<name>/resolved.json` before generating:
 ### Step 3c — Build the spec (one-pass render doc)
 
 ```bash
-sliceui spec <path>            # .xml/.figml → .sliceui/artifacts/<name>/spec.md
+sliceui spec <path>            # .xml/.figml → .sliceui/artifacts/<name>/spec.md (+ agent-context.md + context-manifest.json)
 ```
 
 Merges the transcript inventory + the resolved idioms (inline per element) + the reusable
 `::ng-deep` copy-targets + the layout rules into ONE document. This is what you render in
 Step 4 — run it right after `resolve` so generate never cross-references three inputs again.
+`sliceui spec` also writes the pruned `agent-context.md` (read it first) and a machine-readable
+`context-manifest.json` (for the CLI, not your reading material).
 
 ### Step 3.5 — Validate ground truth (pre-generate gate)
 
@@ -167,14 +178,21 @@ Step 4 — run it right after `resolve` so generate never cross-references three
 sliceui referee --target <component-name>
 ```
 
-Before generating, run `sliceui referee --target <component-name>`. It cross-checks every
-ground-truth artifact (`project-context.json`, `conventions.json`, the transcript) against the
-two sources of truth — the XML (fidelity) and the codebase (does each convention claim trace to
-a real occurrence). It prints a red list of `✗` (fail) / `△` (stale) findings.
-
-`--target <component-name>` additionally runs the **target-exists** check: if
+Before generating, run `sliceui referee --target <component-name>`. It validates the
+ground-truth artifacts against the two sources of truth — the XML (fidelity) and the codebase
+(via the **stored codebase-evidence verdict** written by `sliceui init`). It prints a red list of
+`✗` (fail) / `△` (stale) findings, and runs the **target-exists** check: if
 `<componentDir>/<component-name>.component.ts` **already exists** in the project, the referee
 reports it as red with its mode (`mock data` / `real API`) and line count.
+
+**This is snapshot mode — it never scans the repository.** It reads `.sliceui/` + the design
+input only. Because it does not read source, a `fresh` verdict does **not** prove the working tree
+is unchanged: uncommitted HTML/SCSS/CSS/component-`.ts` edits are invisible to its fingerprint.
+After a relevant source edit, re-validate with `sliceui referee --target <name> --deep`.
+
+**If the referee reports `missing` / `stale` / `invalid` (NOT VERIFIABLE):** do **not** generate,
+and do **not** silently re-scan. Re-run `sliceui init` (or `sliceui referee --target <name> --deep`
+for an explicit live scan) to rebuild the verdict, then re-run the normal referee.
 
 **If anything is red, STOP before generating.** Two distinct red causes, two fixes:
 
@@ -190,15 +208,16 @@ without an explicit choice.
 
 ### Step 4 — Generate the component (one pass)
 
-```bash
-sliceui spec <path>            # .xml/.figml → .sliceui/artifacts/<name>/spec.md
-```
-
 **Run `sliceui spec` right after `resolve`, then render the spec in ONE pass.** The spec already
 contains the element inventory (every node in order), each element's **resolved idiom inline**
 (`→ <resolved>` / `CANDIDATES:` / `FALLBACK:`), the **reusable `::ng-deep` blocks to copy
 verbatim**, and the **layout rules**. The 3-pass inventory→layout→styling loop was the single
 biggest time sink — the agent re-derived, by guessing, what `resolve` had already computed.
+
+**Reading order:** `.sliceui/artifacts/<name>/agent-context.md` → `spec.md`. Read the agent-context
+first for the pruned framework constraints + verified APIs + dangerous defaults; then render the
+spec. Use `transcript.md` only to inspect literal design details the spec does not show, and
+`resolved.json` only for ambiguity diagnostics.
 Generate FROM the spec; the sections below are the rendering rules, not separate passes.
 
 The numbered checklist below is a sanity check against the spec's Elements section, not a first pass.
@@ -247,7 +266,7 @@ Place every element with the exact geometry from the transcript. The transcript 
 After the structure matches the XML, style it. **If the project already styles a component, copy its styles — don't invent your own:**
 
 - For every capability in play, read `conventions.md`'s **`::ng-deep` corpus** and **copy only the REUSABLE blocks** (the "Reusable (copy when the capability is in play)" section) verbatim and complete: `.ngx-select__choices`, `.ngx-select__item_active`, `.dropdown-menu > li > a:hover`, `.label-custom-success`/`-warning`, `.fa-check-circle`, pagination `li.page-box`, `.search-options`, `.gateway-table`, … Do NOT drop reusable selectors you don't recognize — a dropped selector = a lost design effect (blue hover, open-state dropdown, status-label colors, table radius). **Skip the "Component-specific" blocks** — a block that nulls out a control (e.g. `.ngx-select .form-control { border: none }`) is a spreadsheet/table-cell idiom, not a page-filter idiom; copying it globally makes a page-filter select lose its border. The corpus is authoritative because it survives the "which single component is the exemplar" problem.
-- **Reuse the project's classes** from `conventions.json` `classVocabulary` — `.well`, `.control-label`, and the deliberate status-label taxonomy (`.label-custom-success`/`-warning`) — instead of inventing new ones (`label-custom-unpaid` is wrong). Same for **buttons, table, icons**: reuse `.btn`, `uii-table` overrides, status-label classes.
+- **Reuse the project's classes** from `conventions.md`'s reusable-classes list (projected from `conventions.json` `classVocabulary`) — `.well`, `.control-label`, and the deliberate status-label taxonomy (`.label-custom-success`/`-warning`) — instead of inventing new ones (`label-custom-unpaid` is wrong). Same for **buttons, table, icons**: reuse `.btn`, `uii-table` overrides, status-label classes.
 - **`.well` reconciliation** (the two gates, stated once): apply `.well` only when BOTH hold — the project's templates actually use it (`wellAvailable`, not just a similarly named class) AND the XML/transcript shows a container to style. When the project has no `.well` idiom, never emit one; a filter/card container gets a descriptive class (`.filter-card`). Structure still comes from the XML alone — `.well` is a styling choice for a container the design already shows, never a wrapper you add.
 - **Modals — keep the `.modal-*` idiom, neutralize conflicting defaults.** The project's modals use `.modal-header` / `.modal-body` / `.modal-footer` (its pilar confirm/alert components, and `BsModalService.show()`). Do **not** avoid those classes — that would make your modal diverge from every other modal in the app. Three rules:
   1. **Confirm/alert/success/danger dialogs** → do not hand-roll. Use the existing pilar component (`ConfirmdialogComponent` / `Successdialog2Component` / `Warningdialog2Component` / `Dangerdialog2Component` via `BsModalService.show()`); the markup comes from that component, not your slice.
@@ -295,7 +314,7 @@ Copy-first; invent only where the project has no prior art. Colors come from the
 
 14. **Bulk action buttons are always rendered.** A row of bulk/action buttons in the XML ("Ubah massal tgl akhir bayar", "Ubah status bayar", …) is rendered unconditionally. Do NOT gate them behind `*ngIf` row-selection state or a loading flag — that hides buttons the design always shows.
 
-> **UII-profile gate:** the org's pilar/`@uiigateway` grammar (action→authKey→icon, uii-table auth semantics) lives in `.sliceui/uii-profile.md`; the FULL pilar API reference (every `uii-*` component with exact `@Input`/`@Output` typing + template shape, plus models/services/directives/pipes/modules) lives in `.sliceui/pilar-reference.md`; and the complete working examples live in `.sliceui/pilar-showcase.md`. All three are written by `sliceui init` ONLY for projects that fingerprint as UII. If `.sliceui/pilar-reference.md` is absent, the project is not UII — emit the generic `capabilities.<category>` wiring instead, never pilar/uii idiom. When it IS present, read it (and the matching showcase entry) before writing any `uii-*` tag so binding names and types are exact.
+> **UII-profile gate:** the org's pilar/`@uiigateway` grammar (action→authKey→icon, uii-table auth semantics) lives in `.sliceui/uii-profile.md`; the FULL pilar API reference (every `uii-*` component with exact `@Input`/`@Output` typing + template shape, plus models/services/directives/pipes/modules) lives in `.sliceui/pilar-reference.md`; and the complete working examples live in `.sliceui/pilar-showcase.md`. All three are written by `sliceui init` ONLY for projects that fingerprint as UII. If `.sliceui/pilar-reference.md` is absent, the project is not UII — emit the generic `capabilities.<category>` wiring instead, never pilar/uii idiom. When it IS present, the pruned `agent-context.md` carries the exact binding names + types for the components this design uses; open a pilar doc (grep the matching section) only for a component or fact the agent-context does not carry.
 11. **Literal text, no translation — ALWAYS.** Emit the transcript's exact strings directly as content, in HTML and TS alike. Do **NOT** grep `id-lang.ts`/`en-lang.ts`, do NOT add dictionary keys, do NOT wrap in a `| translate` pipe — even though this codebase's own templates use `{{ '…' | translate }}`. **The `sampleHtml`/`conventions.md` you read will contain `| translate`; that is the ONE idiom you must NOT copy.** Slicing is mock/placeholder code, not production i18n — literal text is a deliberate, correct deviation from the codebase.
 
 ## Quality Check

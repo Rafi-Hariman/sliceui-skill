@@ -41,6 +41,22 @@ export function mergeGoldenClasses(classVocabulary, goldenHtml) {
   return out;
 }
 
+/** Merge the project's golden references (`.sliceui/config.json` `references`) into a
+ *  conventions object: each golden component's classes become legal vocabulary so verify never
+ *  flags a mirrored golden idiom as invented. Shared by `init` and standalone `detect` so both
+ *  write a conventions.json with the same golden-merged vocabulary (PR 2). */
+export function mergeGoldenReferences(root, conventions) {
+  let refs = [];
+  try {
+    const cfg = JSON.parse(readFileSync(join(root, ".sliceui", "config.json"), "utf8"));
+    refs = Array.isArray(cfg?.references) ? cfg.references : [];
+  } catch { /* no/unreadable config.json → no golden refs */ }
+  if (!refs.length) return conventions;
+  const { html } = goldenCompanionFiles(root, refs);
+  if (!html.length) return conventions;
+  return { ...conventions, classVocabulary: mergeGoldenClasses(conventions.classVocabulary ?? [], html) };
+}
+
 /** Resolve a `.sliceui/config.json` `references` entry to its companion HTML/SCSS file contents,
  *  so the golden vocabulary merge has real markup to mine. A reference points at a `.component.ts`
  *  (or its directory); the `.html`/`.scss` live alongside it (templateUrl/styleUrls resolve too,

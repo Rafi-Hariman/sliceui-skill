@@ -68,6 +68,15 @@ test("init writes loadedClassRegistry into conventions.json (verify gate wiring)
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("init does NOT write the duplicate blobs into project-context.json (PR 2 dedup)", async () => {
+  const dir = scaffold();
+  await initProject(dir);
+  const ctx = JSON.parse(readFileSync(join(dir, ".sliceui", "project-context.json"), "utf8"));
+  rmSync(dir, { recursive: true, force: true });
+  assert.ok(!("loadedClassRegistry" in ctx), "project-context.json no longer carries loadedClassRegistry");
+  assert.ok(!("conventions" in ctx), "project-context.json no longer carries nested conventions");
+});
+
 test("init is idempotent and does not crash on a re-run (referee head runs twice)", async () => {
   const dir = scaffold();
   await initProject(dir);

@@ -39,6 +39,17 @@ The product's core value is a trustworthy gate: red must mean real defect, green
 - `development/testing.md` — suite policy protecting the gate
 - `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` — the field evidence that motivated R2
 
-## 7. Open Questions
+## 7. Referee Snapshot-Mode Trust Boundary (PR 3)
+
+The default `referee --target` is **snapshot mode**: it reads the stored `referee-verdict.json`
+(fingerprinted against the snapshot + the detect `inputHash` anchors) and performs bounded
+target/design checks — it never scans repository source. This is a deliberate freshness trade-off:
+snapshot mode does not detect uncommitted HTML/SCSS/CSS/component-`.ts` edits (the `inputHash`
+anchor does not cover them). A `fresh` verdict means the stored fingerprints still match the bounded
+anchors, not that the working tree is proven unchanged. When source has changed since the last deep
+scan, run `sliceui referee --target <name> --deep` to re-validate explicitly; snapshot mode never
+silently re-scans. See `development/api-contract.md` §10.4b for the exact fingerprint inputs.
+
+## 8. Open Questions
 
 - Should `resolve`'s `resolved[]` constraint be formally versioned as a gate surface (agents may depend on it)? (See P4.)
