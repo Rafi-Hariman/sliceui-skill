@@ -2,7 +2,7 @@
 // Reads the component files (html/scss/ts) and their ground truth (conventions.json +
 // transcript + raw XML) and prints a structured verdict. Exit 0 = all checks pass.
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { verifyComponent } from "../framework/angular/verify.mjs";
@@ -26,6 +26,9 @@ export async function main(argv) {
   allowRoot(dir);
   const component = readComponent(dir, name);
   const { scss, html, ts } = component;
+  // The resolved on-disk component stem — used to locate the bounded fixture-scoped selector map
+  // (PR 6Cc MAP-002) and as the artifact stem fallback.
+  const componentStem = component.stem ?? name ?? "component";
   // An explicit --conventions path wins over root-walk (escape hatch when auto-detect is wrong).
   // Otherwise load the canonical conventions snapshot (conventions.json) with legacy fallback to
   // project-context.json for pre-PR-2 snapshots that carry loadedClassRegistry there (PR 2).
@@ -113,7 +116,7 @@ export async function main(argv) {
 
   // PR 6 — opt-in rendered visual-fidelity gate. Static verify runs first and short-circuits on a
   // blocking static fail/unverifiable state (never spend browser time on an invalid foundation).
-  if (opts.render) return runRender(opts, { dir, name, root, scss, html, ts, transcript, staticExit, staticPass: result.pass, staticUnverifiable: unpaired || malformedSnapshot });
+  if (opts.render) return runRender(opts, { dir, name, root, scss, html, ts, transcript, staticExit, staticPass: result.pass, staticUnverifiable: unpaired || malformedSnapshot, componentStem });
 
   return staticExit;
 }
@@ -123,6 +126,7 @@ export async function main(argv) {
  *  exit. */
 async function runRender(opts, ctx) {
   const { renderVerify, DEFAULT_VIEWPORT } = await import("../framework/angular/render-verify.mjs");
+  const { validateSelectorMap } = await import("../framework/angular/selector-map.mjs");
 
   // Invalid viewport is invalid-input — reject before launching a browser.
   const viewport = opts.viewport ? parseViewport(opts.viewport) : DEFAULT_VIEWPORT;
@@ -137,13 +141,26 @@ async function runRender(opts, ctx) {
     return ctx.staticUnverifiable ? 3 : 1;
   }
 
+  // PR 6Cc (MAP-002) — the fixture-scoped, LOCATOR-ONLY selector map. Ownership is bounded and
+  // deterministic: ONE fixed sibling filename next to the component (`<stem>.map.json`). No
+  // recursive search, no repository scan, no arbitrary user-supplied path, no path traversal — the
+  // path derives from the component directory the caller already addressed. The map names elements
+  // for design nodes that have no text/role signal; it never supplies an expected value.
+  const selectorMap = loadSelectorMap(ctx.dir, ctx.componentStem, validateSelectorMap);
+  if (selectorMap.error) {
+    console.log(`\nSliceUI render — invalid-input`);
+    console.log(`  SUI-RENDER-MAP-001 [mapping] fail: ${selectorMap.error}`);
+    console.log(`       → fix the fixture locator map (locators only, versioned schema, no expected values)`);
+    return 2; // invalid-input — before any browser launch or render workspace
+  }
+
   // Artifact destination: preserve under .sliceui/artifacts/<name>/render when requested, else /tmp.
-  const stem = ctx.name ?? "component";
+  const stem = ctx.name ?? ctx.componentStem ?? "component";
   const screenshotPath = opts.preserveRenderArtifacts
     ? join(ctx.root, ".sliceui", "artifacts", stem, "render", "actual.png")
     : join(tmpdir(), `sliceui-render-verify-${Date.now()}.png`);
 
-  const r = await renderVerify({ html: ctx.html, scss: ctx.scss, ts: ctx.ts, transcript: ctx.transcript, viewport, screenshotPath });
+  const r = await renderVerify({ html: ctx.html, scss: ctx.scss, ts: ctx.ts, transcript: ctx.transcript, viewport, screenshotPath, selectorMap: selectorMap.map });
 
   console.log(`\nSliceUI render — ${r.state}${r.metrics?.totalMs != null ? ` (${r.metrics.totalMs}ms)` : ""}`);
   for (const c of r.checks) {
@@ -158,10 +175,51 @@ async function runRender(opts, ctx) {
       if (d.remediation && d.remediation !== d.detail) console.log(`       → ${d.remediation}`);
     }
   }
-  if (r.artifacts?.screenshot) console.log(`\nscreenshot: ${r.artifacts.screenshot}`);
-  else if (r.artifacts?.screenshotError) console.log(`\n⚠ screenshot failed: ${r.artifacts.screenshotError}`);
+  // PR 6Cc (ISO-001) — documented screenshot lifecycle: `--preserve-render-artifacts` keeps the
+  // PNG at the .sliceui path; otherwise the screenshot is TEMPORARY supporting evidence under /tmp,
+  // removed when the render passes and retained (path printed) when it does not, so a failure keeps
+  // its evidence.
+  if (r.artifacts?.screenshot) {
+    if (opts.preserveRenderArtifacts) {
+      console.log(`\nscreenshot: ${r.artifacts.screenshot}`);
+    } else if (r.state === "pass") {
+      try { rmSync(r.artifacts.screenshot, { force: true }); } catch {}
+    } else {
+      console.log(`\nscreenshot (temporary evidence, not preserved): ${r.artifacts.screenshot}`);
+    }
+  } else if (r.artifacts?.screenshotError) console.log(`\n⚠ screenshot failed: ${r.artifacts.screenshotError}`);
   console.log(`render state: ${r.state} · exit ${r.exitCode}`);
   return r.exitCode;
+}
+
+/** Resolve + validate the fixture-scoped selector map for a component (`<stem>.map.json`).
+ *
+ *  Ownership contract (PR 6Cc MAP-002): the map lives at ONE bounded, deterministic location — a
+ *  sibling of the component files, named after the resolved component stem. There is no recursive
+ *  search and no repository scan; the directory is the one the caller already addressed, so path
+ *  traversal is not expressible. The map is read at most once, parsed safely, and validated with the
+ *  same strict locator-only validator the render layer uses — an unreadable, unparseable, or
+ *  schema-invalid map is an `invalid-input` (exit 2) BEFORE any browser launch, never a silent
+ *  degradation into unmeasured checks.
+ *
+ *  Absence is legal and map-optional: without a map the text/role mappings still run, the structural
+ *  families emit nothing (no compiled selector exists for a design node we cannot identify), and the
+ *  zero-required protection stays active — a missing map can never produce a false pass.
+ * @returns {{ map: object|null, error: string|null }}
+ */
+export function loadSelectorMap(componentDir, componentStem, validate) {
+  if (!componentDir || !componentStem) return { map: null, error: null };
+  const mapPath = join(resolve(componentDir), `${componentStem}.map.json`);
+  if (!existsSync(mapPath)) return { map: null, error: null };
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSyncSafe(mapPath));
+  } catch {
+    return { map: null, error: `${componentStem}.map.json is not valid JSON` };
+  }
+  const v = validate(parsed);
+  if (!v.ok) return { map: null, error: `${componentStem}.map.json is invalid: ${v.errors.slice(0, 3).join("; ")}` };
+  return { map: parsed, error: null };
 }
 
 /** Parse `verify [dir] [name] [--xml F] [--transcript F] [--conventions F] [--render]
@@ -286,15 +344,20 @@ function readComponent(dir, name) {
   if (name) {
     norm = normalizeComponentName(name);
     if (!norm.ok) {
-      return { scss: "", html: "", ts: "", error: `invalid component name: ${norm.reason}` };
+      return { scss: "", html: "", ts: "", stem: null, error: `invalid component name: ${norm.reason}` };
     }
   }
+  let matchedStem = null;
   const stem = norm?.stem ?? null;
   const pick = (ext) => {
     const match = files.find((f) => f.endsWith(`.component.${ext}`) && (!stem || f.startsWith(`${stem}.`)));
+    if (match && !matchedStem) matchedStem = match.replace(/\.component\.[a-z]+$/, "");
     return match ? readFileSyncSafe(join(dir, match)) : "";
   };
-  return { scss: pick("scss"), html: pick("html"), ts: pick("ts") };
+  const out = { scss: pick("scss"), html: pick("html"), ts: pick("ts") };
+  // PR 6Cc (MAP-002): the resolved FILE stem (not the user-supplied name, which may be a PascalCase
+  // class) is what the fixture-scoped selector map is named after. Null when no component matched.
+  return { ...out, stem: stem ?? matchedStem };
 }
 
 /** Workspace-aware project root for ground truth. Priority (highest first):

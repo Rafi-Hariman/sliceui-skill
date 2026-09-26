@@ -1,0 +1,31 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "geometry-fixture.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    {
+      "id": "root", "type": "group", "w": 800, "h": 400,
+      "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+      "children": [
+        {
+          "id": "toolbar", "type": "group", "axis": "row", "gap": 12, "w": 760, "h": 40,
+          "children": [
+            { "id": "search", "type": "input", "label": "Pencarian", "w": 300, "h": 40 },
+            { "id": "btn1", "type": "button", "text": "Cari", "w": 80, "h": 40 }
+          ]
+        },
+        {
+          "id": "panel", "type": "group", "w": 760, "h": 120,
+          "radius": 6,
+          "border": { "color": "#b1bccc", "width": 1 },
+          "children": [
+            { "id": "panelTitle", "type": "text", "text": "Judul Panel", "w": 300, "h": 20,
+              "style": { "size": 16, "weight": 500, "color": "#000000", "family": "Inter", "lineHeight": 20, "letterSpacing": 0.5 } }
+          ]
+        }
+      ]
+    }
+  ],
+  "images": [],
+  "icons": []
+}

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { nearestProjectRoot, parseArgs, pairGroundTruth, readOwningModules } from "../src/commands/verify.mjs";
+import { nearestProjectRoot, parseArgs, pairGroundTruth, readOwningModules, loadSelectorMap } from "../src/commands/verify.mjs";
+import { validateSelectorMap } from "../src/framework/angular/selector-map.mjs";
 
 test("nearestProjectRoot: skips projects/*/package.json and finds the workspace .sliceui/", () => {
   const root = mkdtempSync(join(tmpdir(), "sliceui-root-"));
@@ -231,8 +232,12 @@ test("PR5: resolveComponentStem surfaces true ambiguity, never first-picks", () 
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { readFileSync as readFileSyncRaw, existsSync as existsSyncRaw } from "node:fs";
 
 const CLI_ENTRY = fileURLToPath(new URL("../src/cli.mjs", import.meta.url));
+const REPO = dirname(dirname(CLI_ENTRY)); // src/cli.mjs → the repository root
+const readFileSyncCli = (p) => readFileSyncRaw(p, "utf8");
+const existsSyncCli = existsSyncRaw;
 
 function runVerify(dir, name) {
   return spawnSync(process.execPath, [CLI_ENTRY, "verify", dir, name], { encoding: "utf8" });
@@ -287,6 +292,168 @@ test("PR5c EXT-001: invalid input headline/exit unchanged", () => {
     const r = runVerify(dir, "../evil");
     assert.equal(r.status, 2);
     assert.match(r.stdout + r.stderr, /invalid component name/, "invalid-input reason visible");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---------- PR 6Cc corrective (MAP-002): production selector-map integration ----------
+
+test("PR6Cc MAP-002: loadSelectorMap resolves the bounded sibling map and validates it strictly", () => {
+  const root = mkdtempSync(join(tmpdir(), "pr6cc-map-"));
+  try {
+    const dir = join(root, "comp");
+    mkdirSync(dir, { recursive: true });
+    // Absent map is legal (map-optional) — no error, no map.
+    assert.deepEqual(loadSelectorMap(dir, "widget", validateSelectorMap), { map: null, error: null }, "absent map → null/null");
+    // A valid map loads.
+    writeFileSync(join(dir, "widget.map.json"), JSON.stringify({
+      version: 1,
+      mappings: [{ designNodeId: "toolbar", renderLocator: { strategy: "css", selector: "[data-fx='toolbar']" } }],
+    }));
+    const ok = loadSelectorMap(dir, "widget", validateSelectorMap);
+    assert.equal(ok.error, null);
+    assert.equal(ok.map.mappings[0].designNodeId, "toolbar");
+    // An expected-value field is rejected (the locator-only contract is enforced on this path too).
+    writeFileSync(join(dir, "widget.map.json"), JSON.stringify({
+      version: 1,
+      mappings: [{ designNodeId: "toolbar", renderLocator: { strategy: "css", selector: ".toolbar" }, expectedGap: 12 }],
+    }));
+    const bad = loadSelectorMap(dir, "widget", validateSelectorMap);
+    assert.equal(bad.map, null, "invalid map is not passed through");
+    assert.match(bad.error, /invalid/, "invalid map reports a bounded error");
+    // Unparseable JSON is invalid-input, never a silent skip.
+    writeFileSync(join(dir, "widget.map.json"), "{ NOT VALID");
+    const unparsed = loadSelectorMap(dir, "widget", validateSelectorMap);
+    assert.match(unparsed.error, /not valid JSON/);
+    // A traversal-shaped stem cannot escape: the resolved path stays inside the component dir.
+    const trav = loadSelectorMap(dir, "../evil", validateSelectorMap);
+    assert.equal(trav.map, null, "no map found at a traversal path");
+    assert.equal(trav.error, null, "absence — not an error, and no read outside the component dir");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR6Cc MAP-002 (process): the CLI structural defect visual-fails when a map is present; direct and CLI paths agree", async (t) => {
+  const mountReady = existsSyncCli(join(REPO, "test", "fixtures", "angular-mount", "node_modules", "@angular", "core"));
+  if (!mountReady) { t.skip("angular-mount fixture deps missing — render path not exercised"); return; }
+  const root = mkdtempSync(join(tmpdir(), "pr6cc-cli-"));
+  try {
+    // A production-shaped project: .sliceui ground truth + a component dir with its sibling map.
+    mkdirSync(join(root, ".sliceui", "artifacts", "geometry"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "conventions.json"), '{"classVocabulary":[],"ngDeepCorpus":[]}');
+    const S = join(REPO, "test", "fixtures", "render-geometry", "structural");
+    writeFileSync(join(root, ".sliceui", "artifacts", "geometry", "transcript.json"), readFileSyncCli(join(S, "transcript.json")));
+    mkdirSync(join(root, ".sliceui", "inputs", "xml"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "inputs", "xml", "geometry.xml"), '<frame name="geometry"></frame>');
+    const dir = join(root, "comp");
+    mkdirSync(dir, { recursive: true });
+    for (const ext of ["html", "scss", "ts"]) {
+      writeFileSync(join(dir, `geometry.component.${ext}`), readFileSyncCli(join(S, "defect", `geometry.component.${ext}`)));
+    }
+    writeFileSync(join(dir, "geometry.map.json"), readFileSyncCli(join(S, "geometry.map.json")));
+
+    // Production path: the defect fixture (gap 20 vs 12, radius 16 vs 6, border #000 vs #b1bccc)
+    // MUST visual-fail now that the CLI passes the map.
+    const r = spawnSync(process.execPath, [CLI_ENTRY, "verify", dir, "geometry", "--render"], { encoding: "utf8" });
+    assert.equal(r.status, 1, `CLI defect → exit 1 (got ${r.status})`);
+    assert.match(r.stdout, /SliceUI render — visual-fail/, "CLI render headline");
+    for (const fam of ["gap", "border-color", "radius"]) {
+      assert.ok(r.stdout.includes(`${fam}: actual`), `CLI reports the ${fam} mismatch`);
+    }
+    assert.match(r.stdout, /SUI-RENDER-GAP-001/, "stable diagnostic id present");
+
+    // Path parity: the same defect through direct renderVerify with the map fails identically.
+    const { renderVerify } = await import("../src/framework/angular/render-verify.mjs");
+    const direct = await renderVerify({
+      html: readFileSyncCli(join(S, "defect", "geometry.component.html")),
+      scss: readFileSyncCli(join(S, "defect", "geometry.component.scss")),
+      ts: readFileSyncCli(join(S, "defect", "geometry.component.ts")),
+      transcript: JSON.parse(readFileSyncCli(join(S, "transcript.json"))),
+      fixtureDir: join(REPO, "test", "fixtures", "angular-mount"),
+      selectorMap: JSON.parse(readFileSyncCli(join(S, "geometry.map.json"))),
+    });
+    assert.equal(direct.state, "visual-fail");
+    assert.deepEqual(direct.checks.filter((c) => c.status === "fail").map((c) => c.family).sort(),
+      ["border-color", "gap", "radius"], "direct and CLI paths agree on the failing families");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR6Cc MAP-002 (process): the CLI known-good structural fixture passes with a map", async (t) => {
+  const mountReady = existsSyncCli(join(REPO, "test", "fixtures", "angular-mount", "node_modules", "@angular", "core"));
+  if (!mountReady) { t.skip("angular-mount fixture deps missing — render path not exercised"); return; }
+  const root = mkdtempSync(join(tmpdir(), "pr6cc-cli-kg-"));
+  try {
+    mkdirSync(join(root, ".sliceui", "artifacts", "geometry"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "conventions.json"), '{"classVocabulary":[],"ngDeepCorpus":[]}');
+    const S = join(REPO, "test", "fixtures", "render-geometry", "structural");
+    writeFileSync(join(root, ".sliceui", "artifacts", "geometry", "transcript.json"), readFileSyncCli(join(S, "transcript.json")));
+    mkdirSync(join(root, ".sliceui", "inputs", "xml"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "inputs", "xml", "geometry.xml"), '<frame name="geometry"></frame>');
+    const dir = join(root, "comp");
+    mkdirSync(dir, { recursive: true });
+    for (const ext of ["html", "scss", "ts"]) {
+      writeFileSync(join(dir, `geometry.component.${ext}`), readFileSyncCli(join(S, "known-good", `geometry.component.${ext}`)));
+    }
+    writeFileSync(join(dir, "geometry.map.json"), readFileSyncCli(join(S, "geometry.map.json")));
+
+    const r = spawnSync(process.execPath, [CLI_ENTRY, "verify", dir, "geometry", "--render"], { encoding: "utf8" });
+    assert.equal(r.status, 0, `CLI known-good → exit 0 (got ${r.status})\n${r.stdout}\n${r.stderr}`);
+    // The map-bound structural families EXECUTED on the shipped path (not merely passed).
+    for (const fam of ["gap", "border-width", "border-color", "radius", "element-overflow", "off-viewport"]) {
+      assert.ok(r.stdout.includes(`${fam} matches`), `${fam} executed and passed via the CLI`);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR6Cc MAP-002 (process): an invalid map is invalid-input, exit 2, before any browser", async (t) => {
+  const mountReady = existsSyncCli(join(REPO, "test", "fixtures", "angular-mount", "node_modules", "@angular", "core"));
+  if (!mountReady) { t.skip("angular-mount fixture deps missing — render path not exercised"); return; }
+  const root = mkdtempSync(join(tmpdir(), "pr6cc-cli-badmap-"));
+  try {
+    mkdirSync(join(root, ".sliceui", "artifacts", "geometry"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "conventions.json"), '{"classVocabulary":[],"ngDeepCorpus":[]}');
+    const S = join(REPO, "test", "fixtures", "render-geometry", "structural");
+    writeFileSync(join(root, ".sliceui", "artifacts", "geometry", "transcript.json"), readFileSyncCli(join(S, "transcript.json")));
+    mkdirSync(join(root, ".sliceui", "inputs", "xml"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "inputs", "xml", "geometry.xml"), '<frame name="geometry"></frame>');
+    const dir = join(root, "comp");
+    mkdirSync(dir, { recursive: true });
+    for (const ext of ["html", "scss", "ts"]) {
+      writeFileSync(join(dir, `geometry.component.${ext}`), readFileSyncCli(join(S, "known-good", `geometry.component.${ext}`)));
+    }
+    // Semantic-exception field → the strict validator rejects it; the CLI must exit 2 with the
+    // stable SUI-RENDER-MAP-001 diagnostic and never reach a browser launch.
+    writeFileSync(join(dir, "geometry.map.json"), JSON.stringify({
+      version: 1,
+      mappings: [{ designNodeId: "panel", renderLocator: { strategy: "css", selector: ".panel" }, allowOverflow: true }],
+    }));
+    const r = spawnSync(process.execPath, [CLI_ENTRY, "verify", dir, "geometry", "--render"], { encoding: "utf8" });
+    assert.equal(r.status, 2, `invalid map → exit 2 (got ${r.status})`);
+    assert.match(r.stdout, /invalid-input/);
+    assert.match(r.stdout, /SUI-RENDER-MAP-001/);
+    assert.doesNotMatch(r.stdout, /SliceUI render — pass|visual-fail \(/, "no browser render ran");
+    assert.doesNotMatch(r.stdout, /screenshot/, "no screenshot artifact was produced");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR6Cc MAP-002 (process): static verify without --render reads no selector map and launches no browser", () => {
+  const root = mkdtempSync(join(tmpdir(), "pr6cc-cli-static-"));
+  try {
+    const dir = writeFixture(root, { valid: true });
+    // A map that WOULD be invalid — a static run must not care (it must not read it at all).
+    writeFileSync(join(dir, "x.map.json"), "{ NOT VALID");
+    const r = runVerify(dir, "x");
+    assert.equal(r.status, 0, "static verify passes without touching the map");
+    assert.doesNotMatch(r.stdout, /SUI-RENDER-MAP-001/, "no map diagnostics on the static path");
+    assert.doesNotMatch(r.stdout, /SliceUI render/, "no render ran");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -119,13 +119,64 @@ failed" alone: a required mismatch is `visual-fail`; a required `missing`/`ambig
 non-green; an optional mismatch/ambiguity is a non-blocking `warn`. Critically, when geometry facts
 exist but **none is required** (a transcript whose only design fact is an optional button frame — a
 button's design-frame height can never be blocking), there is nothing left to prove, so the run is
-**`unverifiable` (exit 3)**, never `pass`. A runtime or network failure still outranks all geometry
-results.
+**`unverifiable` (exit 3)**, never `pass`.
 
-**Not implemented (PR 6C scope):** button proportions/width, flex `gap`, table header/row/cell
-density, pagination geometry, relative alignment, overflow/clipping, border-width/style, and radius.
-These lack a transcript-derivable DOM target without adding fixture selector maps or production test
-IDs (which PR 6B does not add); measuring them from tag/semantic guesses would be a fake oracle.
+**Verdict precedence (explicit).** `1.` build/browser/mount/runtime/setup or blocked-network failure
+→ `visual-fail`/`runtime-fail`; `2.` invalid input/map → exit 2 before any browser; `3.` required
+comparison **and** required mapping failures → `visual-fail`; `4.` no required fact at all →
+`unverifiable`; `5.` required passes + optional warnings → `pass`. The zero-required guard is applied
+**after** fail aggregation and only when nothing failed: a real required mismatch — including a
+required *style* fact (a design text color/size/weight with an authored rule) — is never downgraded
+to `unverifiable` merely because no required geometry check happened to exist. Per-run metrics expose
+`requiredFactCount` / `requiredExecutedCount` / `requiredPassCount` / `requiredFailureCount`; a
+required comparison that executed and **failed** counts as executed evidence, never as passed
+evidence, and optional/unsupported rows never increment a required counter.
+
+**PR 6C extension (locator-only maps + structural families).** Families whose design node cannot be
+identified by text/role are bound through a fixture `geometry.map.json` — a **locator-only** map
+validated by `validateSelectorMap`. The validator enforces a **strict schema allowlist**
+(root: `version`/`mappings`; mapping: `designNodeId`/`renderLocator`/`required`; locator:
+`strategy`/`selector`) and rejects any unknown field, plus a recursive, case- and
+separator-insensitive scan that rejects any `expected*`/`actual*` or named semantic-exception field
+(`expectedScroll`, `allowOverflow`, `validTruncation`, etc.) anywhere in the payload — including
+nested objects and array items. Non-`css` strategies, script/URL/path selector content, and
+>200-char selectors are also rejected. The map identifies an element; the expected value is always
+the transcript fact. Implemented: flex/structural `gap` (axis-correct), uniform border width/color
+on **all four sides**, uniform and per-corner radius, letter-spacing, role font-size/weight, font
+family, objective overflow (page container x+y, mapped-element content overflow, off-viewport), and
+optional table frame. Exact-match families (border color, font family) carry **no** pixel tolerance.
+An invalid map is `invalid-input` (exit 2) before any browser launch.
+
+**Map ownership and the production path.** `verify --render` loads the map from ONE bounded,
+deterministic location: a sibling of the component files named after the resolved component stem
+(`geometry.component.ts` → `geometry.map.json`). No recursive search, no repository scan, no
+arbitrary user-supplied path (a fixture-derived path cannot traverse outside the component
+directory). The map is read at most once per render and validated before any browser launches.
+Absence is legal: without a map the text/role mappings still run, structural families emit nothing,
+and the zero-required protection stays active, so a missing map cannot create a false pass — but it
+also means structural families only execute when the fixture supplies the locators.
+
+**Required border presence.** A required evidenced border with a positive expected width that
+renders at 0px is **absent**, decided *before* the numeric comparison — the general `±1px` tolerance
+can never swallow a missing border (`1px` design vs `0px` actual fails, as does `border: none` or a
+missing rule). Normal tolerance is untouched for present borders (`2px` within `±1px` passes, `2.1px`
+fails). Border **color** is only meaningful where a side renders with positive width: a zero-width
+side measures as unmeasured (non-green) instead of comparing the browser's default `rgb(0,0,0)`, and
+a fully transparent computed color (`alpha 0`) never equals an opaque design value. Divider facts
+stay side-specific.
+
+**Explicitly unsupported — no design fact exists (not a deferral).** Table **row height** and **cell
+padding** cannot be derived: `figml-parse.mjs` emits no row/cell node type (a Figma table arrives as
+group → row groups → text nodes), so inferring padding from row height would admit many box-model
+explanations. Also unsupported: border *style* (not emitted), alignment other than the emitted
+`space-between`, and an explicit expected-scroll / valid-truncation contract. Defect-side overflow
+is implemented and blocking, measured objectively: the page container's `scrollWidth−clientWidth` /
+`scrollHeight−clientHeight` beyond tolerance, plus each locator-bound required element's own content
+overflow and its position outside the viewport. `overflow: hidden` alone never fails — only a
+measured overflow or out-of-viewport loss does. Uniform evidenced borders check all four sides for
+width and color.
+
+**Still out of scope:** button proportions/width, table footer/pagination *alignment* relations.
 
 **Fixture ownership:** the real `tester.xml` design contains PII (student names, NIM IDs, amounts)
 and is intentionally **not** a repository fixture. The checked-in synthetic fixture

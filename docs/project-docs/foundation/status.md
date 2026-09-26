@@ -47,7 +47,11 @@ Does not duplicate the changelog (releases) or phase trackers (per-phase task st
 - **Pilar integration complete:** 47-component catalog + showcase (generated, extractor-regenerated), policy gate, typecheck, mount, version drift guard, publish guard.
 - **Docs:** SDD doc set created 2026-09-10 (this doc set) — first `docs/project-docs/` in the repo.
 - **Pipeline optimization (PR 1–3) complete (2026-09-25):** compact agent context (PR 1), snapshot dedup + canonical ownership (PR 2 + corrective patch), referee cold/hot separation (PR 3). Hot-path `referee --target` reads zero project-source files; deep parity preserved; no pass-by-absence. Verification: PR 1 `CONDITIONAL PASS`, PR 2 `FAIL`→corrected→`PASS`, PR 3 `CONDITIONAL PASS`. Known limitation: snapshot-mode freshness does not detect uncommitted source edits — use `referee --deep` after source changes.
-- **Resolve provenance (PR 4) implemented (2026-09-26), uncommitted:** `resolved.json` is now schemaVersion 2 — every entry typed (`classification`/`authority`/`confidence`/`provenance`), semantic hypotheses can no longer render as design facts, icon metadata outranks color/text, public API outranks behavioral CSS (`behaviorBindings`), and `spec.md`/`agent-context.md` label hints vs facts. Snapshot-only preserved (0 project-source reads); artifact growth 2.94× (within the 3× budget). Awaits independent verification.
+- **Resolve provenance (PR 4) committed (`a6fd181`):** `resolved.json` is schemaVersion 2 — every entry typed (`classification`/`authority`/`confidence`/`provenance`), semantic hypotheses can no longer render as design facts, icon metadata outranks color/text, public API outranks behavioral CSS (`behaviorBindings`), and `spec.md`/`agent-context.md` label hints vs facts. Snapshot-only preserved (0 project-source reads); artifact growth 2.94× (within the 3× budget).
+- **PR 5–6B committed (`2617638`, `0394317`, `60a0835`):** verify reliability + independent gate safety (PR 5: stable `SUI-VERIFY-*` diagnostics, lexical masking, exit-code contract 0/1/2/3); safe opt-in rendered verification (PR 6A: isolated `/tmp` Angular 13 mount, headless Chromium, active network interception); ambiguity-safe geometry verification (PR 6B: `render-geometry.mjs`, explicit `unique`/`missing`/`ambiguous` mapping with no first-pick, required control-height contract, zero-required guard → `unverifiable`).
+- **PR 6C implemented (2026-09-26), uncommitted:** locator-only selector maps (`selector-map.mjs`, expected-value fields rejected) + structural geometry families (flex `gap`, border width/color, corner radius, letter-spacing, role font-size/weight, font family, table frame, unintended horizontal overflow). Explicitly **unsupported** because no design fact exists: table row height, cell padding, border style, non-`space-between` alignment, expected-scroll/valid-truncation.
+- **PR 6C independent verification → `CONDITIONAL PASS` (2026-09-26):** three blocking findings — MAP-002 (the CLI never passed the selector map, leaving structural families dead on the shipped path), BOR-001 (a required 1px border rendered at 0px passed inside the `±1px` tolerance), AGG-001 (a required style mismatch was downgraded to `unverifiable` by a guard that ran before fail aggregation). Report: `docs/SLICEUI-PR6C-FRESH-INDEPENDENT-VERIFICATION-REPORT.md`.
+- **PR 6C corrective patch applied (2026-09-26), uncommitted:** bounded production selector-map loading (`<stem>.map.json` sibling, validated before any browser) · required-border **presence** decided before the numeric tolerance + color gated on positive width · explicit verdict precedence with required counters so a real required failure can never be downgraded to `unverifiable` · diagnostic `detail` carried through (no literal `undefined`) · temporary `/tmp` screenshot removed on pass, retained as evidence on failure. **Awaits a fresh independent re-verification before checkpoint; full PR 6 is not complete.**
 - **In flight (uncommitted):** modifications across verify/resolve/referee/fidelity/figml-parse + 5 test files + skill/SKILL.md + angular conventions/uii-profile — described in `docs/archive/SLICEUI-EXPERIENCE-REPORT-2.md` as the false-positive-gate fixes.
 - **Pending plan:** `docs/phases/REMEDIATION-PLAN-2026-09-11.md` (F1–F14, DRAFT) — not yet fully landed.
 
@@ -61,10 +65,11 @@ Does not duplicate the changelog (releases) or phase trackers (per-phase task st
 
 ## 9. Upcoming Focus
 
-1. Land the in-flight uncommitted quality pass (verify/referee false-positive fixes) as v0.15.1 or v0.16.0.
-2. render-probe follow-up issue from the reorg handoff (memory: 1 issue remaining).
-3. Reduce gate friction documented in experience reports (15–20 min false-positive fights).
-4. Decide React deep-adaptation start (ADR-2 constraint: extraction only after React proves fields).
+1. Fresh independent re-verification of PR 6C after the corrective patch, then its checkpoint commit; full **PR 6 remains incomplete** until that verification passes.
+2. Land the in-flight uncommitted quality pass (verify/referee false-positive fixes) as v0.15.1 or v0.16.0.
+3. render-probe follow-up issue from the reorg handoff (memory: 1 issue remaining).
+4. Reduce gate friction documented in experience reports (15–20 min false-positive fights).
+5. Decide React deep-adaptation start (ADR-2 constraint: extraction only after React proves fields).
 
 ## 10. Key Metrics
 

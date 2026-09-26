@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "mappings": [
+    { "designNodeId": "toolbar", "renderLocator": { "strategy": "css", "selector": "[data-fx='toolbar']" } },
+    { "designNodeId": "panel", "renderLocator": { "strategy": "css", "selector": "[data-fx='panel']" } }
+  ]
+}

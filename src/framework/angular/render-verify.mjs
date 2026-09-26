@@ -78,12 +78,30 @@ export const GEOMETRY_TOLERANCE_PX = GEOMETRY_TOLERANCE.box;
  */
 export async function renderVerify({
   html = "", scss = "", ts = "", transcript = null, fixtureDir = DEFAULT_FIXTURE,
-  viewport = DEFAULT_VIEWPORT, screenshotPath = null, launch = null,
+  viewport = DEFAULT_VIEWPORT, screenshotPath = null, launch = null, selectorMap = null,
 } = {}) {
   const t0 = performance.now();
   // Static-fast-path: no design facts to compare → unverifiable (never a silent pass).
   if (!transcript?.layout?.length) {
     return result("unverifiable", [{ name: "renderVerify", status: "skip", detail: "no transcript design facts to render against" }], [], {}, {});
+  }
+
+  // PR 6C: a fixture-scoped, locator-only map binding design nodes to rendered elements. It is
+  // validated before use — an invalid map is `invalid-input` (a malformed fixture map must never
+  // silently degrade into unmeasured checks). It never supplies an expected value.
+  let mapIndex = null;
+  if (selectorMap) {
+    const { validateSelectorMap, indexSelectorMap } = await import("./selector-map.mjs");
+    const v = validateSelectorMap(selectorMap);
+    if (!v.ok) {
+      return result("invalid-input", [], [{
+        id: "SUI-RENDER-MAP-001", category: "mapping", severity: "error", status: "fail",
+        detail: `selector map is invalid: ${v.errors.slice(0, 3).join("; ")}`,
+        trust: "independent",
+        remediation: "fix the fixture locator map (locators only, versioned schema, no expected values)",
+      }], {}, {});
+    }
+    mapIndex = indexSelectorMap(selectorMap);
   }
 
   if (!existsSync(join(fixtureDir, "node_modules", "@angular", "core"))) {
@@ -94,7 +112,7 @@ export async function renderVerify({
     }], {}, {});
   }
 
-  const { styleFacts, geometryFacts } = collectDesignFacts(scss, html, transcript);
+  const { styleFacts, geometryFacts } = collectDesignFacts(scss, html, transcript, mapIndex);
   if (!styleFacts.length && !geometryFacts.length) {
     return result("unverifiable", [{ name: "renderVerify", status: "skip", detail: "no authored-rule or geometry design facts to render (slice reuses project classes)" }], [], {}, {});
   }
@@ -186,24 +204,42 @@ export async function renderVerify({
     }
 
     const checks = [...styleResults, ...geometryResults];
-    // No false green: if geometry facts exist but NONE is required, the render gate has nothing
-    // blocking to prove — an optional-only result is `unverifiable`, never a `pass`. Mirrors the
-    // exit-3 contract for skipped required checks. Checked before the fail aggregation so a
-    // required mismatch still wins as `visual-fail`.
-    const requiredGeom = geometryFacts.filter((f) => f.required).length;
-    if (geometryFacts.length && !requiredGeom) {
+    // PR 6Cc AGG-001 — VERDICT PRECEDENCE (§19/§21). Aggregation order is explicit and load-bearing:
+    //   1. build/browser/mount/runtime/setup failure   (applied below, outranks everything)
+    //   2. invalid input/map                          (returned before any browser launch)
+    //   3. required comparison failures               (fails → visual-fail)
+    //   4. required mapping missing/ambiguous          (also `fail` → visual-fail, never hidden)
+    //   5. zero required facts / zero executed required evidence → unverifiable
+    //   6. required passes + optional warnings → pass
+    // The zero-required guard MUST NOT pre-empt a real required failure: a style fact can be
+    // required and measurably wrong while the only geometry fact is optional, and downgrading that
+    // to `unverifiable` would mask a defect (§21 critical invariant).
+    const fails = checks.filter((c) => c.status === "fail");
+    // Required counters (§20). Every `fail` is a required fact by construction (optional mismatches
+    // are `warn`, optional misses are `skip`), so requiredFailureCount === fails.length.
+    const requiredGeomFacts = geometryFacts.filter((f) => f.required).length;
+    const requiredFactCount = styleFacts.length + requiredGeomFacts;
+    const requiredExecuted = checks.filter((c) => c.required !== false && c.status !== "skip" && (c.mapping ?? "unique") === "unique");
+    const counters = {
+      requiredFactCount, requiredExecutedCount: requiredExecuted.length,
+      requiredPassCount: requiredExecuted.filter((c) => c.status === "pass").length,
+      requiredFailureCount: fails.length,
+    };
+    if (!requiredFactCount && !fails.length) {
+      // Nothing required was even available to prove — never a silent pass (exit-3 contract).
       return result("unverifiable", checks, [{
         id: "SUI-RENDER-GEOMETRY-000", category: "ground-truth", severity: "error", status: "skip",
-        detail: `${geometryFacts.length} geometry fact(s) exist but none is required — no blocking geometry check to prove`,
+        detail: `${geometryFacts.length} geometry fact(s) exist but none is required, and no authored style fact is required either — no blocking check to prove`,
         trust: "independent",
-        remediation: "add a required geometry fact (root padding, control height, line-height, or divider) or treat this render as unverifiable",
+        remediation: "add a required design fact (root padding, control height, line-height, divider, or an authored text style) or treat this render as unverifiable",
       }], artifacts, { totalMs: Math.round(performance.now() - t0), runtimeErrors: runtimeErrors.length, blockedRequests: blockedRequests.length });
     }
-    const fails = checks.filter((c) => c.status === "fail");
     // An external request attempt or a captured runtime error invalidates the rendered evidence:
     // the environment is no longer self-contained. These are non-green, never trusted geometry.
+    // DIA-001: `detail` is part of the diagnostic contract (commands/verify.mjs prints it) — it
+    // must be carried through, not dropped (a missing field printed as literal "undefined").
     const diagnostics = fails.map((c) => ({
-      id: c.id, category: c.category, severity: "error", status: "fail",
+      id: c.id, category: c.category, severity: "error", status: "fail", detail: c.detail ?? null,
       designNodeId: c.designNodeId ?? null, selector: c.selector ?? null,
       expected: c.expected ?? null, actual: c.actual ?? null, delta: c.delta ?? null,
       tolerance: c.tolerance ?? null, unit: c.unit ?? "px", trust: c.trust, remediation: c.remediation,
@@ -220,9 +256,11 @@ export async function renderVerify({
     if (runtimeErrors.length) {
       diagnostics.push(renderDiag("SUI-RENDER-RUNTIME-002", "runtime",
         `uncaught runtime error(s): ${runtimeErrors[0]}`));
-      if (!fails.length && !blockedRequests.length) state = "runtime-fail";
+      // A runtime error invalidates the rendered evidence regardless of what geometry measured, so
+      // runtime/setup precedence (§19 r1) outranks a geometry `visual-fail`.
+      state = "runtime-fail";
     }
-    return result(state, checks, diagnostics, artifacts, { totalMs: Math.round(performance.now() - t0), runtimeErrors: runtimeErrors.length, blockedRequests: blockedRequests.length });
+    return result(state, checks, diagnostics, artifacts, { totalMs: Math.round(performance.now() - t0), runtimeErrors: runtimeErrors.length, blockedRequests: blockedRequests.length, ...counters });
   } catch (err) {
     // The single deterministic boundary: every render-stage exception maps to a non-green state.
     const msg = String(err?.message ?? err).slice(0, 200);
@@ -271,10 +309,10 @@ function renderDiag(id, category, detail, remediation) {
 /** Reuse the exact authored-rule facts static verify judges (PR 6A), plus the geometry facts from
  *  render-geometry.mjs (PR 6B — control/button height, line-height, table box, root padding).
  *  Preserve each style fact's own `kind` ("text"/"divider") — the rendered reader dispatches on it. */
-function collectDesignFacts(scss, html, transcript) {
+function collectDesignFacts(scss, html, transcript, mapIndex = null) {
   const { comparable } = collectStyleFacts(scss, html, transcript);
   const styleFacts = comparable.map((f) => ({ ...f }));
-  const geometryFacts = collectGeometryFacts(transcript);
+  const geometryFacts = collectGeometryFacts(transcript, mapIndex);
   return { styleFacts, geometryFacts };
 }
 
@@ -287,6 +325,9 @@ async function measureStyleFacts(page, facts) {
     checks.push({
       name: "renderStyle", id: `SUI-RENDER-STYLE-${fact.prop === "color" ? "001" : fact.prop === "font-size" ? "002" : "003"}`,
       category: "typography", status: ok ? "pass" : "fail", trust: "literal-design",
+      // Every authored-rule style fact is a literal design fact backed by an authored rule — it is
+      // required evidence, and the aggregation counters (§20) must treat it as such.
+      required: true,
       detail: ok ? `${fact.where} ${fact.prop} matches (${actual})` : `${fact.where} ${fact.prop}: actual ${actual}, design ${fact.design}`,
       designNodeId: fact.where, expected: fact.design, actual, delta: null, tolerance: null, unit: null,
       remediation: ok ? null : `set ${fact.prop} to ${fact.design}`,

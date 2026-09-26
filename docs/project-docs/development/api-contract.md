@@ -121,21 +121,79 @@ against the transcript.
   a correct implementation legitimately reaches via font+padding, or a table container frame) that
   mismatches is a non-blocking `warn`; a `missing` optional fact skips. Tolerances are centralized
   (`GEOMETRY_TOLERANCE`): box `±2px`, line-height `±1px`, divider `±1px`.
-- **Required-count guard (no false green):** if geometry facts exist but **none is required** (e.g.
-  a transcript whose only design fact is an optional button frame), the run is `unverifiable`
-  (exit 3) with a bounded `SUI-RENDER-GEOMETRY-000` diagnostic — an optional-only render proves
-  nothing blocking, so it can never be `pass`. Mirrors §9.1's exit-3 rule for skipped required
-  checks. The guard runs **before** the fail aggregation, so a required mismatch still wins as
-  `visual-fail`, and it does not disturb the runtime/network precedence.
+- **Required-count guard (no false green):** when **no required fact exists at all** (style or
+  geometry — e.g. a transcript whose only design fact is an optional button frame), the run is
+  `unverifiable` (exit 3) with a bounded `SUI-RENDER-GEOMETRY-000` diagnostic — an optional-only
+  render proves nothing blocking, so it can never be `pass`. Mirrors §9.1's exit-3 rule for skipped
+  required checks.
+- **Verdict precedence (explicit, PR 6C corrective):** `1.` build/browser/mount/runtime/setup or
+  blocked-network failure (highest) → `visual-fail`/`runtime-fail`; `2.` invalid input/map → exit 2
+  before any browser; `3.` required comparison **and** required mapping failures → `visual-fail`;
+  `4.` zero required facts → `unverifiable`; `5.` required passes + optional warnings → `pass`. The
+  zero-required guard runs **after** fail aggregation and only fires when nothing failed, so a real
+  required mismatch can never be downgraded to `unverifiable` — a required style failure outranks a
+  zero-required-geometry state. Per-run metrics expose `requiredFactCount`,
+  `requiredExecutedCount`, `requiredPassCount`, `requiredFailureCount` (a required comparison that
+  *executed and failed* counts as executed evidence, never as passed evidence; optional and
+  unsupported rows never increment a required counter).
+- **Required border presence (PR 6C corrective):** a required evidenced border with a **positive
+  expected width** that renders at **0px** is *absent*, not approximately correct — the presence
+  rule is applied **before** the numeric comparison, so the general `±1px` tolerance can never
+  swallow a missing border (design `1px` vs actual `0px` fails). Normal tolerance is preserved for
+  present borders (`2px` at `±1px` passes, `2.1px` fails). Border **color** is only meaningful where
+  the side renders with positive width: a zero-width side measures as unmeasured (non-green) rather
+  than comparing the browser's default `rgb(0,0,0)`, and a fully transparent computed color
+  (`alpha 0`) never compares equal to an opaque design value. Divider facts remain side-specific.
 - **Mapping contract:** a fact resolves to `unique` (one visible candidate → measured), `missing`,
   or `ambiguous` (>1 visible candidate). A mapper **never first-picks**: required `missing`/
   `ambiguous` → non-green with a *mapping* diagnostic; optional `missing` → skip, optional
   `ambiguous` → non-blocking warn. Non-rendered elements are filtered before counting (a hidden
   duplicate cannot create false ambiguity); a nested text duplicate uses one documented deterministic
   refinement, never DOM order.
+- **PR 6C families:** flex/structural `gap` (`SUI-RENDER-GAP-001`, axis-correct), uniform border
+  width (`-BORDER-001`, **all four sides**) and color (`-BORDER-002`, **all four sides**), uniform
+  radius (`-RADIUS-001`) and per-corner (`-RADIUS-002`), letter-spacing (`-TYPO-001`), role
+  font-size (`-TYPO-002`) and font-weight (`-TYPO-003`), font family (`-FONT-001`), objective
+  overflow (`-OVERFLOW-001` x / `-002` y on the page container, `-003` mapped-element content
+  overflow, `-004` off-viewport), and optional table frame (`-TABLE-001`). Exact-match families
+  (border color, font family) compare by equality with no pixel tolerance; the diagnostic reports
+  `exact match` rather than a bound.
+- **Selector map (PR 6C, fixture-scoped):** a design node whose fact cannot be identified by text or
+  role (pagination items, footer frames) may be bound through a fixture's `geometry.map.json`. The
+  map is **locator-only** and strictly validated: an explicit schema allowlist (root/mapping/
+  locator) rejects any unknown field, and a recursive, case-/separator-insensitive scan rejects any
+  `expected*`/`actual*` or named semantic-exception field (`expectedScroll`, `allowOverflow`,
+  `validTruncation`, …) anywhere in the payload. Non-`css` strategy, script/URL/absolute-path
+  content, and selectors over 200 chars are also rejected. An invalid map is `invalid-input` (exit 2)
+  before a browser launches, with a bounded `SUI-RENDER-MAP-001` diagnostic. The map identifies an
+  element; **every expected value still comes from the transcript/XML**. A missing or ambiguous
+  required target stays non-green — the map does not bypass the PR 6B contract.
+- **Selector-map ownership & loading (production path):** `verify --render` resolves the map at ONE
+  bounded, deterministic location — a **sibling of the component files named after the resolved
+  component stem** (`<stem>.map.json`), i.e. `geometry.component.ts` → `geometry.map.json`. There is
+  no recursive search and no repository scan; the path derives from the component directory the
+  caller already addressed, so traversal is not expressible and no arbitrary user-supplied path is
+  accepted. The map is read **at most once per render**, parsed safely, and validated before any
+  browser launch — an unreadable, unparseable, or schema-invalid map exits `2` with
+  `SUI-RENDER-MAP-001` and launches **zero** browsers. Absence is legal and map-optional: without a
+  map the text/role mappings still run, structural families emit nothing (a design node that cannot
+  be identified is not guessed at), and the zero-required protection stays active — a missing map can
+  never produce a false pass. Static verify (no `--render`) never reads the map and never loads
+  browser tooling.
+- **Mapping ambiguity stays non-green for locator-bound facts** — a selector matching several
+  elements is not resolved by DOM order.
+- **Honest unsupported (no design fact in the transcript format):** table row height and cell
+  padding (the parser emits no row/cell node type — only container frames), border *style*,
+  non-`space-between` alignment, and an explicit "expected scroll"/"valid truncation" contract.
+  `overflow: hidden` alone never fails. These are declared, not approximated.
 - **Artifacts:** PNG + report under `.sliceui/artifacts/<name>/render/` only with
-  `--preserve-render-artifacts`; otherwise `/tmp` and cleaned on success. Never writes the target
-  project, never installs dependencies, never commits screenshots.
+  `--preserve-render-artifacts`. Otherwise the screenshot is **temporary supporting evidence under
+  `/tmp`**: removed when the render passes, and retained (with its path printed) when it does not, so
+  a failure keeps its evidence. Never writes the target project, never installs dependencies, never
+  commits screenshots.
+- **Diagnostics:** every projected diagnostic carries its bounded `detail` sentence alongside
+  `expected`/`actual`/`delta`/`tolerance`/`unit`/`trust`/`remediation`. A missing optional bound
+  prints as `null` (an explicit "no bound"), never as a literal `undefined`.
 
 ## 9. Endpoints (CLI Commands)
 
