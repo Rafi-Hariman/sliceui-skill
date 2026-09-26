@@ -16,6 +16,7 @@ import { parseFigml } from "../lib/figml-parse.mjs";
 import { resolveTranscript } from "../lib/resolve.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 import { buildAgentContext } from "../lib/agent-context.mjs";
+import { confidenceLevel } from "../lib/resolution-policy.mjs";
 
 /** Walk the layout tree, yielding every node in document order. */
 function walkNodes(nodes, out = []) {
@@ -52,11 +53,26 @@ function summarize(n) {
   return parts.join(" ");
 }
 
-/** Render a resolved idiom (or the honest fallback) for one element line. */
+/** Render a resolved idiom (or the honest fallback) for one element line. PR 4: a non-exact
+ *  resolution is LABELLED — `hint:` / `CANDIDATES:` / `FALLBACK:` — so a corpus co-occurrence
+ *  can never read like a design fact. Exact/high-confidence idioms stay unlabelled (the common
+ *  case stays compact; the label is the warning, not the norm). An AMBIGUOUS status (multiple
+ *  equal candidates, no selection) shows the bounded candidate list and says NOT to guess. */
 function renderIdiom(leaf) {
   if (!leaf) return "";
+  // A status leaf can have a resolved ICON while its LABEL taxonomy is ambiguous. Surface both:
+  // the resolved icon inline, and the ambiguous label as an explicit UNRESOLVED candidate list.
+  const hasClass = (leaf.resolved ?? []).some((x) => x.kind === "class");
+  const ambiguousLabel = (leaf.candidates?.length ?? 0) > 0 && !hasClass;
+  if (ambiguousLabel) {
+    const cands = leaf.candidates.join(" / ");
+    const iconPart = (leaf.resolved ?? []).filter((x) => x.kind !== "class").map((x) => x.value).join(" + ");
+    return `UNRESOLVED (ambiguous taxonomy): ${cands}${iconPart ? `; icon: ${iconPart}` : ""} — pick from the design's status text, do not guess`;
+  }
   if (leaf.resolved?.length) {
-    return leaf.resolved.map((x) => x.value).join(" + ");
+    const vals = leaf.resolved.map((x) => x.value).join(" + ");
+    const level = confidenceLevel(leaf.confidence ?? 0);
+    return level === "high" ? vals : `hint(${level}): ${vals}`;
   }
   if (leaf.candidates?.length) {
     return `CANDIDATES: ${leaf.candidates.join(" / ")} — pick by action/status context`;
@@ -67,8 +83,20 @@ function renderIdiom(leaf) {
   return "";
 }
 
-export function buildSpec(transcript, conventions = {}) {
-  const { groups } = resolveTranscript(transcript, conventions);
+/** Render a behavior binding with its authority — facts vs capability vs hint stay visually
+ *  distinct, and the rejected CSS alternative is named so the agent knows it is not an option. */
+function renderBehavior(b) {
+  const level = confidenceLevel(b.confidence ?? 0);
+  const cap = b.evidence?.find((e) => e.type === "project-capability");
+  return [
+    `${b.property} = ${b.value} → ${b.implementation.expression} on <${b.implementation.component}>  (recommendation — hint)`,
+    cap ? `verified capability: ${cap.component}.${cap.api}` : `capability NOT machine-verified in this run — confirm the input name before emitting`,
+    `confidence: ${level} · rejected: ${b.rejected?.[0]?.value ?? "(none)"} (${b.rejected?.[0]?.reason ?? "-"})`,
+  ].join("\n");
+}
+
+export function buildSpec(transcript, conventions = {}, pilar = null) {
+  const { groups, behaviorBindings } = resolveTranscript(transcript, conventions, pilar);
 
   // id → resolved leaf, so every element carries its idiom inline.
   const idiomByNode = new Map();
@@ -99,7 +127,10 @@ export function buildSpec(transcript, conventions = {}) {
   L.push("");
 
   // --- unique resolved idioms (the deduped facts) ---
-  L.push("## Resolved idioms (unique facts)");
+  // PR 4: every idiom carries its authority inline. Design facts live above (Elements — the
+  // transcript itself); what resolve emits is a mapping FROM those facts, so the line states
+  // the kind of mapping (recommendation vs hypothesis) and its confidence.
+  L.push("## Resolved idioms (project mappings — NOT design facts)");
   L.push("");
   for (const g of groups) {
     const idiom = renderIdiom(g);
@@ -110,6 +141,17 @@ export function buildSpec(transcript, conventions = {}) {
     L.push(`- \`${g.kind}\` ${evidence} → **${idiom}**${times}`);
   }
   L.push("");
+
+  // --- behavior bindings (public API beats behavioral CSS — PR 4 §13) ---
+  if ((behaviorBindings ?? []).length) {
+    L.push("## Behavior bindings (use the public component API)");
+    L.push("");
+    L.push("The design evidences a BEHAVIOR a verified public input controls. Bind the input;");
+    L.push("the rejected `::ng-deep` alternative is listed — do not emit it for this behavior.");
+    L.push("");
+    for (const b of behaviorBindings) L.push(renderBehavior(b).split("\n").map((l, i) => (i === 0 ? `- ${l}` : `  ${l}`)).join("\n"));
+    L.push("");
+  }
 
   // --- copy verbatim (pruned to the design's own capabilities) ---
   // P0-4: the corpus holds every reusable ::ng-deep block the project has ever needed, across all
@@ -227,7 +269,10 @@ export async function main(argv) {
   }
 
   const conventions = readConventions(process.cwd());
-  const spec = buildSpec(transcript, conventions);
+  // Loaded once, shared by buildSpec and buildAgentContext — an in-memory import, never a repo
+  // read. Null on public installs (behavior bindings degrade to unverified hints).
+  const pilar = await loadPilar().catch(() => null);
+  const spec = buildSpec(transcript, conventions, pilar);
 
   const stem = basename(abs).replace(/\.(xml|figml|json)$/i, "");
   const outDir = join(process.cwd(), ".sliceui", "artifacts", stem);
@@ -240,7 +285,6 @@ export async function main(argv) {
   // diagnostic and leaves the primary artifact valid.
   let ctxNote = "";
   try {
-    const pilar = await loadPilar();
     const projectContext = readProjectContext(process.cwd());
     const { manifest, markdown, metrics } = buildAgentContext({
       transcript,

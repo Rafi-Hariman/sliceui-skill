@@ -212,7 +212,8 @@ test("agent-context: renderAgentContext does not leak the full machine registry"
   assert.match(markdown, /uii-table/, "selected table component documented");
   assert.match(markdown, /spec\.md/, "primary generation input names spec.md");
   assert.match(markdown, /Do \*\*not\*\* read `conventions\.json`/, "conventions.json marked machine-only");
-  assert.equal(manifest.schemaVersion, 1, "schema version present");
+  // PR 4: v2 adds implementationHints (bounded, authority-labelled resolved mappings).
+  assert.equal(manifest.schemaVersion, 2, "schema version present (v2 = +implementationHints)");
   assert.ok(manifest.metrics, "metrics present");
 });
 
@@ -269,4 +270,135 @@ test("skill contract: primary skill no longer defaults to reading conventions.js
   assert.match(skill, /agent-context\.md/, "agent-context.md is the primary convention input");
   assert.match(skill, /resolved\.json.*diagnostic|diagnostic\/ambiguity/, "resolved.json is a diagnostic source");
   assert.match(skill, /targeted fallback|targeted lookup/, "pilar docs are targeted fallback only");
+});
+
+// --- PR 4: implementation hints (bounded, authority-labelled) ---
+
+import { selectImplementationHints } from "../src/lib/agent-context.mjs";
+import { resolveTranscript } from "../src/lib/resolve.mjs";
+
+test("PR4 agent-context: hints include behavior bindings and exclude high-confidence idioms", () => {
+  const transcript = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "d.xml", width: 100, height: 100, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      // high-confidence icon (named glyph) — already inline in spec, must NOT become a hint
+      { id: "caret", type: "icon", bg: "#03337b", description: "Icon_Font_Awesome_Free_Solid_C_caret-down" },
+      // medium button heuristic — must become a hint
+      { id: "btn", type: "button", text: "Batal", bg: "#ffffff" },
+      // behavior evidence — must become a behavior-binding hint
+      { id: "footer", type: "group", justify: "space-between", children: [
+        { id: "info", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+      ] },
+    ],
+    images: [], icons: [],
+  };
+  const conventions = { ...CONVENTIONS, classVocabulary: [...CONVENTIONS.classVocabulary, { name: "btn-secondary", family: "btn" }] };
+  const pilar = { pilarComponents: [{ selector: "uii-table", inputs: [{ name: "paginationAlign", default: "'center'" }] }] };
+  const r = resolveTranscript(transcript, conventions, pilar);
+  const hints = selectImplementationHints(r.groups, r.behaviorBindings);
+
+  assert.ok(hints.some((h) => h.kind === "behavior-binding" && h.expression === "[paginationAlign]=\"'right'\""), "behavior binding present");
+  assert.ok(hints.some((h) => h.kind === "button" && h.confidence === "medium"), "medium button heuristic surfaced");
+  assert.ok(!hints.some((h) => h.value === "fa-caret-down"), "high-confidence caret not duplicated as a hint");
+  assert.ok(hints.length <= 8, "hints bounded");
+});
+
+test("PR4 agent-context: fallback/unresolved groups always surface as hints", () => {
+  const transcript = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "d.xml", width: 100, height: 100, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "u", type: "icon", description: "Vector", bg: "#123456" }, // unresolved
+      { id: "g", type: "button", text: "Kirim", variant: "ghost" },    // fallback
+    ],
+    images: [], icons: [],
+  };
+  const r = resolveTranscript(transcript, CONVENTIONS);
+  const hints = selectImplementationHints(r.groups, []);
+  assert.ok(hints.some((h) => h.kind === "icon" && h.confidence === "none"), "unresolved icon surfaced");
+  assert.ok(hints.some((h) => h.kind === "button" && h.authority === "fallback"), "fallback button surfaced");
+  for (const h of hints) assert.match(h.note, /\S/, "every hint carries a note");
+});
+
+test("PR4 agent-context: markdown renders hints as non-authoritative with explicit instruction", () => {
+  const { markdown } = buildAgentContext({
+    transcript: {
+      version: 3,
+      meta: { source: "figml", tier: 0, image: "d.xml", width: 100, height: 100, textQuality: "exact" },
+      tokens: { colors: [], fonts: [] },
+      layout: [
+        { id: "footer", type: "group", justify: "space-between", children: [
+          { id: "info", type: "text", text: "Menampilkan 1-10 daari 20 data" },
+        ] },
+      ],
+      images: [], icons: [],
+    },
+    conventions: CONVENTIONS,
+    projectContext: PROJECT_CONTEXT,
+    pilar: null,
+    design: "design",
+    generatedAt: "2026-09-25T00:00:00.000Z",
+  });
+  // With no hints (this design yields none), the section is absent; with hints it carries the
+  // non-authoritative instruction. Assert the invariant: the markdown NEVER states a hint as fact.
+  assert.ok(!/"authority": "authoritative"/.test(markdown), "no authoritative hints in projection");
+});
+
+test("PR4 agent-context: context budget still respected with hints present", () => {
+  const { metrics, markdown } = buildAgentContext({
+    transcript: {
+      ...richTranscript(),
+      layout: [...richTranscript().layout,
+        { id: "footer", type: "group", justify: "space-between", children: [
+          { id: "info", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+        ] },
+        { id: "btn", type: "button", text: "Batal", bg: "#ffffff" },
+      ],
+    },
+    conventions: { ...CONVENTIONS, classVocabulary: [...CONVENTIONS.classVocabulary, { name: "btn-secondary", family: "btn" }] },
+    projectContext: PROJECT_CONTEXT,
+    pilar: PILAR,
+    design: "design",
+    generatedAt: "2026-09-25T00:00:00.000Z",
+  });
+  assert.ok(metrics.characters < DEFAULT_CONTEXT_BUDGET.maxCharacters, "under budget with hints");
+  assert.match(markdown, /Implementation Hints \(non-authoritative\)/, "hints section rendered");
+  assert.match(markdown, /never\s+treat one as fact/, "explicit do-not-treat-as-fact instruction");
+});
+
+test("skill contract: PR 4 — skill teaches authority typing and public-API precedence", () => {
+  const skill = readFileSync(join(HERE, "..", "skill", "SKILL.md"), "utf8");
+  assert.match(skill, /classification` \+ `authority` \+ `confidence`/, "skill states entries are typed");
+  assert.match(skill, /authority: hint` means "project idiom recommendation", not fact/, "hint is non-authoritative");
+  assert.match(skill, /fallbackUsed: true`?\s*and\s*`?classification: unresolved/, "fallback/unresolved handling stated");
+  assert.match(skill, /never invent one/, "unresolved must not be guessed");
+  assert.match(skill, /behaviorBindings/, "public-API precedence surfaced");
+  assert.match(skill, /the split is behavior vs visual, never "no ::ng-deep"/, "visual-style exception preserved");
+});
+
+test("PR4-corrective agent-context: ambiguous taxonomy is non-authoritative, no guessed class", () => {
+  const corpus = [
+    { selector: "label-custom-waiting .fa-exclamation-circle", block: "::ng-deep .label-custom-waiting .fa-exclamation-circle { color: #f44444; }" },
+    { selector: "label-custom-warning .fa-exclamation-circle", block: "::ng-deep .label-custom-warning .fa-exclamation-circle { color: #f44444; }" },
+    { selector: "label-custom-new-student .fa-exclamation-circle", block: "::ng-deep .label-custom-new-student .fa-exclamation-circle { color: #f44444; }" },
+  ];
+  const { markdown, manifest } = buildAgentContext({
+    transcript: { version: 3, meta: { source: "figml", tier: 0, image: "d.xml", width: 100, height: 100, textQuality: "exact" },
+      tokens: { colors: [], fonts: [] }, layout: [
+        { id: "badge", type: "group", bg: "#fef2f2", children: [{ id: "ic", type: "icon", bg: "#f44444" }] },
+      ], images: [], icons: [] },
+    conventions: { ngDeepCorpus: corpus, classVocabulary: [] },
+    projectContext: PROJECT_CONTEXT,
+    pilar: null,
+    design: "d",
+    generatedAt: "2026-09-25T00:00:00.000Z",
+  });
+  const hint = manifest.implementationHints.find((h) => h.kind === "status");
+  assert.ok(hint, "ambiguous status surfaces as a hint");
+  assert.equal(hint.value, "(ambiguous — no class selected)", "no guessed class");
+  assert.match(hint.note, /do NOT guess/, "explicit no-guess instruction");
+  assert.match(markdown, /do NOT guess/, "markdown carries the no-guess instruction");
 });

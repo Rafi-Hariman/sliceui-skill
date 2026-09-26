@@ -19,8 +19,9 @@
 //   context-manifest   = design-scoped projection of the above (this file builds it)
 
 import { resolveTranscript } from "./resolve.mjs";
+import { confidenceLevel } from "./resolution-policy.mjs";
 
-export const CONTEXT_SCHEMA_VERSION = 1;
+export const CONTEXT_SCHEMA_VERSION = 2;
 export const DEFAULT_CONTEXT_BUDGET = { maxCharacters: 30_000, maxEstimatedTokens: 7_500 };
 
 // Roles a transcript node type maps to a capability CATEGORY (project-context.capabilities key).
@@ -246,7 +247,53 @@ export function frameworkConstraints(projectContext = {}) {
   return c;
 }
 
-// ---------- style recipes ----------
+// ---------- implementation hints (PR 4) ----------
+
+/**
+ * Select the resolved mappings worth the agent's attention — BOUNDED and authority-labelled.
+ * The full typed groups live in resolved.json (diagnostic); this projection carries only:
+ *   - behavior bindings (public API beats behavioral CSS — always material), and
+ *   - status/idiom hints at exactly the two attention grades: non-high confidence (the agent
+ *     must treat them as suggestions, not facts) and anything fallback/unresolved (conservative
+ *     handling required). High-confidence idioms are already inline in spec.md — repeating them
+ *     here would duplicate, not inform. Never candidates lists or provenance arrays.
+ * @param {Array} groups — resolveTranscript().groups
+ * @param {Array} behaviorBindings — resolveTranscript().behaviorBindings
+ * @returns {Array} bounded hint entries
+ */
+export function selectImplementationHints(groups = [], behaviorBindings = []) {
+  const out = [];
+  for (const b of behaviorBindings) {
+    out.push({
+      kind: "behavior-binding",
+      property: b.property,
+      value: b.value,
+      expression: b.implementation?.expression ?? null,
+      authority: b.authority,
+      confidence: confidenceLevel(b.confidence ?? 0),
+      note: `public API supersedes behavioral CSS — ${b.rejected?.[0]?.value ?? "css override"} rejected`,
+    });
+  }
+  for (const g of groups) {
+    const level = confidenceLevel(g.confidence ?? 0);
+    const needsAttention = level !== "high" || g.fallbackUsed || g.classification === "unresolved";
+    if (!needsAttention) continue;
+    const ambiguousTaxonomy = g.kind === "status" && (g.candidates?.length ?? 0) > 1 && !(g.resolved ?? []).some((x) => x.kind === "class");
+    const value = (g.resolved ?? []).map((x) => x.value).join(" + ") || "(unresolved)";
+    out.push({
+      kind: g.kind,
+      property: g.kind,
+      value: ambiguousTaxonomy ? "(ambiguous — no class selected)" : value,
+      authority: g.authority ?? "hint",
+      confidence: level,
+      note: ambiguousTaxonomy
+        ? `multiple taxonomy candidates (${g.candidates.length}) — do NOT guess; pick from the design's status text`
+        : (g.fallback?.note
+          ?? (g.candidates?.length ? `ambiguous (${g.candidates.length} candidates) — pick from the design evidence` : `non-exact mapping — treat as suggestion, not design fact`)),
+    });
+  }
+  return out.slice(0, 8);
+}
 
 /** The corpus families whose blocks may be pruned by the design (mirrors spec's familiesInPlay). */
 const PRUNABLE_FAMILIES = new Set(["select", "table"]);
@@ -281,7 +328,7 @@ export function selectStyleRecipes(inventory, conventions = {}) {
 // ---------- manifest + render ----------
 
 /** Assemble the machine-readable manifest. */
-export function buildContextManifest({ design, generatedAt, sources, framework, inventory, capabilities, dangerousDefaults, styleRecipes, constraints, metrics }) {
+export function buildContextManifest({ design, generatedAt, sources, framework, inventory, capabilities, dangerousDefaults, styleRecipes, implementationHints, constraints, metrics }) {
   return {
     schemaVersion: CONTEXT_SCHEMA_VERSION,
     design,
@@ -292,6 +339,7 @@ export function buildContextManifest({ design, generatedAt, sources, framework, 
     capabilities,
     dangerousDefaults,
     styleRecipes,
+    implementationHints,
     constraints,
     metrics,
   };
@@ -375,6 +423,19 @@ export function renderAgentContext(manifest) {
     L.push("");
   }
 
+  if ((manifest.implementationHints ?? []).length) {
+    L.push("## Implementation Hints (non-authoritative)");
+    L.push("");
+    L.push("Project-aware suggestions, NOT design facts. Hints at `medium`/`low` confidence or on");
+    L.push("fallback are suggestions only — verify against the transcript before emitting; never");
+    L.push("treat one as fact. Unresolved items must not be guessed.");
+    L.push("");
+    for (const h of manifest.implementationHints) {
+      L.push(`- \`${h.kind}\` → ${h.value} _(authority: ${h.authority}, confidence: ${h.confidence})_ — ${h.note}`);
+    }
+    L.push("");
+  }
+
   if ((manifest.styleRecipes ?? []).length) {
     L.push("## Relevant Style Recipes");
     L.push("");
@@ -447,13 +508,15 @@ export function measureContext(manifest, markdown, snapshotCapabilityCount = 0) 
  * @returns {{ manifest: object, markdown: string, metrics: object }}
  */
 export function buildAgentContext({ transcript, conventions = {}, projectContext = {}, pilar = null, design = "design", generatedAt = null }) {
-  const resolvedGroups = resolveGroupsOf(transcript, conventions);
+  const resolved = resolveGroupsOf(transcript, conventions, pilar);
+  const resolvedGroups = resolved.groups;
   const inventory = buildDesignInventory(transcript?.layout ?? [], resolvedGroups);
   const capabilities = selectCapabilities(inventory, projectContext.capabilities ?? {}, pilar);
   const framework = frameworkInfo(projectContext);
   const constraints = frameworkConstraints(projectContext);
   const dangerousDefaults = selectDangerousDefaults(inventory, capabilities, pilar, constraints);
   const styleRecipes = selectStyleRecipes(inventory, conventions);
+  const implementationHints = selectImplementationHints(resolvedGroups, resolved.behaviorBindings ?? []);
 
   const sources = {
     spec: "spec.md",
@@ -473,6 +536,7 @@ export function buildAgentContext({ transcript, conventions = {}, projectContext
     capabilities,
     dangerousDefaults,
     styleRecipes,
+    implementationHints,
     constraints,
     metrics: {},
   });
@@ -485,11 +549,11 @@ export function buildAgentContext({ transcript, conventions = {}, projectContext
 }
 
 /** Resolve styled leaves (reusing the same in-memory resolver as `spec`/`resolve`) for the
- *  semantic inventory signals (status-label). */
-function resolveGroupsOf(transcript, conventions) {
+ *  semantic inventory signals (status-label) + the bounded implementation hints. */
+function resolveGroupsOf(transcript, conventions, pilar = null) {
   try {
-    return resolveTranscript(transcript, conventions).groups ?? [];
+    return resolveTranscript(transcript, conventions, pilar);
   } catch {
-    return [];
+    return { groups: [], behaviorBindings: [] };
   }
 }

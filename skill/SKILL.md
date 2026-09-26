@@ -150,13 +150,33 @@ disambiguate a specific idiom:
 - The file is a **`groups[]` array** of unique leaf facts — identical table rows are deduped into
   one entry with a `count` + `ids[]` (a 10-row table repeats one status/icon 10×; reading it
   once and knowing it applies N times is the whole point). `meta` carries `totalLeaves`/`uniqueGroups`.
+- **Each group is TYPED — read `classification` + `authority` + `confidence` before trusting it.**
+  A resolved value is a **mapping from** design evidence, never the design fact itself (the design
+  facts live in the transcript). `authority: hint` means "project idiom recommendation", not fact;
+  `0.95`/`high` is a deterministic metadata alias (glyph name → FA class), while `0.7`/`medium` is a
+  color/co-occurrence guess and `0.5`/`low` is ambiguous — the last two are **suggestions only,
+  verify against the transcript's text/geometry before emitting**. `fallbackUsed: true` and
+  `classification: unresolved` mean the project has NO verified idiom: render the conservative
+  fallback and say so — never invent one. `rejected[]` names alternatives already ruled out (e.g. a
+  behavioral `::ng-deep` superseded by a public input) — do not emit them.
 - **Emit ONLY the strings in each group's `resolved[]`** (plus known glue). Never invent a hex,
   icon, or class that resolve didn't produce — a wrong icon (`fa-exclamation-triangle` for a red
-  `#f44444` badge) is exactly what resolve exists to prevent.
+  `#f44444` badge) is exactly what resolve exists to prevent. If `spec.md` labels an idiom
+  `hint(<level>):`, carry that caution into the code: match it to the design evidence, don't treat
+  the label as authoritative.
+- **`behaviorBindings[]` — use the public component API, not CSS.** When the design evidences a
+  behavior a verified input controls (a distributed pagination footer ⇒ `[paginationAlign]="'right'"`),
+  bind the input; the rejected `::ng-deep` alternative is recorded with its reason. Deep CSS stays
+  correct for *visual* detail no public input owns (open-state border, hover color, radius, internal
+  icon sizing) — the split is behavior vs visual, never "no ::ng-deep".
 - **`candidates` ≠ a single answer** — when several labels co-occur with an icon, resolve lists
   them all; pick using the transcript's status TEXT (e.g. "Belum bayar" → `-waiting`,
   "Dibatalkan" → `-rejected`), not by guess. If `resolved[]` holds more than one icon, the glyph
   name was unavailable — check the transcript's `glyph:<name>` / the raw XML to disambiguate.
+  When a status badge's taxonomy is **ambiguous** (a `SUI-RESOLVE-STATUS-AMBIGUOUS` diagnostic, or
+  `spec.md` shows `UNRESOLVED (ambiguous taxonomy)`), resolve selected **no** label class — do not
+  pick one; read the transcript's status text and map it, and if no text decides, flag it rather
+  than guess.
 - **`fallback: native-plain`** — the design has a styled element the project has no idiom for;
   render plain CSS and note it. Never silently drop it.
 
@@ -322,7 +342,8 @@ Copy-first; invent only where the project has no prior art. Colors come from the
 - [ ] **Done means:** files written from project-context (capabilities + read pointed-to sample files for wiring, not styling) + transcript, build/type-check passes. Everything else (endpoints, i18n, tests) is out of scope.
 - [ ] **Inventory list built and every node accounted for** — container/title/hr/selects (count)/buttons (count)/table (columns, icons, action, checkbox) each map to exactly one element in the output; nothing dropped silently.
 - [ ] Layout matches the XML geometry (container padding, title margin, `hr` under title, filter-row alignment) **before** styling.
-- [ ] **Component capabilities used before deep CSS** — a placement the component already exposes is set through its public input (`[paginationAlign]`), not a `::ng-deep` override on its internal DOM. Deep CSS is for visual detail only.
+- [ ] **Component capabilities used before deep CSS** — a placement the component already exposes is set through its public input (`[paginationAlign]`), not a `::ng-deep` override on its internal DOM. Deep CSS is for visual detail only. When `resolved.json`/`spec.md` carries a `behaviorBindings` entry, the input is binding and its rejected CSS alternative must not appear in the output.
+- [ ] **Resolved mappings treated by authority, not as facts** — `high` idioms emitted as-is; `medium`/`low` hints checked against the transcript before emitting; `fallbackUsed`/`unresolved` rendered conservatively and flagged, never guessed.
 - [ ] Project's existing `::ng-deep` styles copied verbatim from `conventions.md`'s **Reusable** corpus (ngx-select open-state, status labels, buttons, table overrides) — none dropped.
 - [ ] Generated files are in the right `componentDir` and follow sample-component structure.
 - [ ] Selector is registered (Angular: `declarations` in the owning NgModule).

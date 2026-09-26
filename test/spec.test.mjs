@@ -96,3 +96,110 @@ test("spec: F9 — inline geometry [x,y w×h] and a divider inset verdict", () =
   assert.match(s, /#div[^\n]*\[20,55 760×1\]/, "geometry [x,y w×h] is inline for the divider");
   assert.match(s, /divider#div: INSET 20px/, "divider inset verdict is emitted (not full-width)");
 });
+
+// --- PR 4: facts vs hints rendering + behavior bindings ---
+
+test("PR4 spec: corpus co-occurrence idiom renders as a labelled hint, not a bare fact", () => {
+  // A status resolved purely by co-occurrence (medium) must carry the hint label. This corpus
+  // pairs label-custom-waiting with the red exclamation icon, as the real project's does.
+  const conventions = {
+    ...CONVENTIONS,
+    ngDeepCorpus: [
+      ...CONVENTIONS.ngDeepCorpus,
+      { selector: "label-custom-waiting .fa-exclamation-circle", block: "::ng-deep .label-custom-waiting .fa-exclamation-circle { color: #f44444; }" },
+    ],
+  };
+  const t = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "design.xml", width: 400, height: 300, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "badge", type: "group", bg: "#fef2f2", children: [
+        { id: "ic", type: "icon", bg: "#f44444" },
+      ] },
+    ],
+    images: [], icons: [],
+  };
+  const s = buildSpec(t, conventions);
+  assert.match(s, /hint\(medium\): label-custom-waiting \+ fa-exclamation-circle/, "co-occurrence label rendered as hint(medium)");
+  assert.match(s, /Resolved idioms \(project mappings — NOT design facts\)/, "section header states these are mappings");
+});
+
+test("PR4 spec: behavior binding section names the API and the rejected CSS", () => {
+  const t = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "design.xml", width: 800, height: 600, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "footer", type: "group", justify: "space-between", children: [
+        { id: "info", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+      ] },
+    ],
+    images: [], icons: [],
+  };
+  const pilar = { pilarComponents: [{ selector: "uii-table", inputs: [{ name: "paginationAlign", default: "'center'" }] }] };
+  const s = buildSpec(t, CONVENTIONS, pilar);
+  assert.match(s, /## Behavior bindings/, "behavior section present");
+  assert.match(s, /\[paginationAlign\]="'right'"/, "exact binding expression present");
+  assert.match(s, /verified capability: uii-table\.paginationAlign/, "capability named");
+  assert.match(s, /rejected: .*::ng-deep/, "the rejected CSS alternative is named");
+});
+
+test("PR4 spec: FALLBACK stays visible (never silently dropped)", () => {
+  const t = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "design.xml", width: 400, height: 300, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "btn2", type: "button", text: "Kirim", variant: "ghost" },
+    ],
+    images: [], icons: [],
+  };
+  const s = buildSpec(t, CONVENTIONS);
+  assert.match(s, /FALLBACK: native-plain/, "fallback visible in spec");
+});
+
+test("PR4 spec: without pilar the behavior binding states it is unverified", () => {
+  const t = {
+    version: 3,
+    meta: { source: "figml", tier: 0, image: "design.xml", width: 800, height: 600, textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "footer", type: "group", justify: "space-between", children: [
+        { id: "info", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+      ] },
+    ],
+    images: [], icons: [],
+  };
+  const s = buildSpec(t, CONVENTIONS, null);
+  assert.match(s, /capability NOT machine-verified/, "unverified state explicit");
+});
+
+test("PR4-corrective spec: ambiguous status shows candidates, not a selected recommendation", () => {
+  const corpus = [
+    { selector: "label-custom-waiting .fa-exclamation-circle", block: "::ng-deep .label-custom-waiting .fa-exclamation-circle { color: #f44444; }" },
+    { selector: "label-custom-warning .fa-exclamation-circle", block: "::ng-deep .label-custom-warning .fa-exclamation-circle { color: #f44444; }" },
+    { selector: "label-custom-new-student .fa-exclamation-circle", block: "::ng-deep .label-custom-new-student .fa-exclamation-circle { color: #f44444; }" },
+  ];
+  const t = { meta: { image: "d.xml" }, layout: [
+    { id: "badge", type: "group", bg: "#fef2f2", children: [{ id: "ic", type: "icon", bg: "#f44444" }] },
+  ]};
+  const s = buildSpec(t, { ...CONVENTIONS, ngDeepCorpus: corpus, classVocabulary: [] });
+  assert.match(s, /UNRESOLVED \(ambiguous taxonomy\)/, "ambiguity visible in spec");
+  assert.match(s, /do not guess/, "spec forbids guessing");
+  assert.match(s, /label-custom-waiting \/ label-custom-warning/, "candidates bounded and named");
+  // The first candidate must NOT be rendered as a bare recommended value.
+  assert.ok(!/#badge[\s\S]*→\s*label-custom-waiting(?:\s|$)/.test(s), "no silent first-candidate recommendation");
+});
+
+test("PR4-corrective spec: behavior binding labels recommendation as hint, capability as verified", () => {
+  const t = { meta: { image: "d.xml" }, layout: [
+    { id: "footer", type: "group", justify: "space-between", children: [
+      { id: "info", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+    ]},
+  ]};
+  const pilar = { pilarComponents: [{ selector: "uii-table", inputs: [{ name: "paginationAlign", default: "'center'" }] }] };
+  const s = buildSpec(t, CONVENTIONS, pilar);
+  assert.match(s, /recommendation — hint/, "recommendation labelled hint");
+  assert.match(s, /verified capability: uii-table\.paginationAlign/, "capability labelled verified separately");
+});

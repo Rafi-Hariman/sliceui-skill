@@ -50,6 +50,27 @@ anchors, not that the working tree is proven unchanged. When source has changed 
 scan, run `sliceui referee --target <name> --deep` to re-validate explicitly; snapshot mode never
 silently re-scans. See `development/api-contract.md` §10.4b for the exact fingerprint inputs.
 
-## 8. Open Questions
+## 8. Resolve Output as a Gate Surface (PR 4)
 
-- Should `resolve`'s `resolved[]` constraint be formally versioned as a gate surface (agents may depend on it)? (See P4.)
+`resolved.json` is now **schemaVersion 2**: every group is explicitly typed (`classification` /
+`authority` / `confidence` / `provenance`), so a semantic hypothesis can never render like a design
+fact. The gate-relevant consequences:
+
+- **verify stays independent.** `verify.mjs` reads `transcript.json` + raw XML + `conventions.json`
+  — never `resolved.json` or `spec.md`. Typing the resolve output strengthens the *generator*, not
+  the gate. Do not make verify depend on resolved output; the shared-corpus risk (R2/VG-001) is
+  unchanged and remains a documented limitation.
+- **Low-confidence ≠ verified.** A `hint`-authority mapping (status taxonomy, color-inferred icon)
+  is not a ground-truth claim and must never be promoted to a green gate result.
+- **Public API before behavioral CSS** (`behaviorBindingRecommendations`): when a verified public
+  input covers a behavior, the resolver records the `::ng-deep` alternative as `rejected`. verify's
+  own behavioral checks (e.g. `checkTableOptions` / SUI006) remain the enforcement point — resolve
+  only recommends.
+- **Version bump policy.** A future change to the emitted field set bumps `RESOLVED_SCHEMA_VERSION`
+  (`src/lib/resolution-policy.mjs`) and documents it here + in `development/api-contract.md` §10.5.
+
+## 9. Open Questions
+
+- Should the emitter of `resolved.json` become a *consumed* gate surface (verify reading the typed
+  hints to cross-check generated classes)? Today verify stays independent by design — revisit only
+  with evidence that the shared-corpus blind spot (VG-001) causes real defects.

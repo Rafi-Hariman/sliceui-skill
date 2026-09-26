@@ -96,11 +96,19 @@ All inter-stage contracts are files under the target project's `.sliceui/` (sche
 
 ```
 design.xml / image
-  → .sliceui/transcript/<name>.transcript.{md,json} + .meta.json   (transcribe; stamped with input path)
-  → .sliceui/resolve/<name>.resolved.json                          (resolve)
-  → .sliceui/project-context.json + conventions.json               (init/detect)
+  → .sliceui/artifacts/<name>/transcript.{md,json} + .meta.json          (transcribe; input-stamped)
+  → .sliceui/artifacts/<name>/resolved.json                              (resolve; schemaVersion 2,
+                                                                          typed: classification /
+                                                                          authority / confidence /
+                                                                          provenance)
+  → .sliceui/artifacts/<name>/spec.md + agent-context.md                 (spec; facts vs hints)
+  → .sliceui/project-context.json + conventions.json                     (init/detect)
   → verify reads transcript + conventions + generated .ts/.html/.scss
 ```
+
+The resolve step stays snapshot-only: `resolve`/`spec`/`agent-context` read the design input plus
+`.sliceui` (never project source). Public-API precedence (`paginationAlign` over behavioral CSS) is
+verified against the in-memory pilar catalog, not a repository read.
 
 ## 11. Tools Integration
 
