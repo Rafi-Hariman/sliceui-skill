@@ -33,6 +33,7 @@ import { LIBRARY_INTERNAL, LIBRARY_INTERNAL_WRAPPER_GUARD, TRIVIAL_CLASS } from 
 import { walkNodes } from "../../lib/walk-nodes.mjs";
 import { parseFigml } from "../../lib/figml-parse.mjs";
 import { unusedImports, unusedConstructorParams } from "../../lib/ts-ast.mjs";
+import { decorateCheck, primaryState } from "../../lib/diagnostics.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
@@ -52,8 +53,8 @@ const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child",
  *   never crashes and never needs the private pilar modules.
  * @returns {{ checks: Array, pass: boolean, failCount: number, skipCount: number, warnCount: number }}
  */
-export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null, modules = "" } = {}) {
-  const checks = [
+export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null, modules = "", framework = null } = {}) {
+  const rawChecks = [
     checkScssCompiles(scss),
     checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
     checkTextCoverage(html, transcript),
@@ -71,6 +72,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkInventedLayout(scss, transcript),
     checkIconColor(ts + " " + scss, transcript),
     checkPhantomWrapper(html, transcript, conventions?.componentAnatomy),
+    checkModalWrapper(html, transcript),
     checkNgxSelectBinding(html),
     checkRowAuth(html, ts, rawXml, pilar),
     checkFilterRowButton(html, rawXml),
@@ -84,7 +86,11 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkLoadedClass(html, conventions?.loadedClassRegistry),
     checkPilarInjection(scss, html, ts, pilar),
     checkDeclaredInModule(ts, modules),
+    checkFrameworkSyntax(ts, html, framework),
   ];
+  // PR 5 — decorate each check with its stable diagnostic metadata (id / category / trust /
+  // severity). Additive: the original { name, status, detail, ... } fields are preserved.
+  const checks = rawChecks.map(decorateCheck);
   const failCount = checks.filter((c) => c.status === "fail").length;
   const warnCount = checks.filter((c) => c.status === "warn").length;
   const skipCount = checks.filter((c) => c.status === "skip").length;
@@ -96,7 +102,8 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
   // still "pass" tableBindings/anatomy/mockRowCount (self-verifiable), so we gate on the
   // reference, not the verdicts.
   const hasGroundTruth = Boolean(conventions || transcript || rawXml);
-  return { checks, pass: failCount === 0 && hasGroundTruth, failCount, skipCount, warnCount, hasGroundTruth };
+  const state = primaryState(checks, hasGroundTruth);
+  return { checks, pass: state === "pass", state, failCount, skipCount, warnCount, hasGroundTruth };
 }
 
 // ---------- 0. scssCompiles (structural smoke — unbalanced SCSS cannot exit green) ----------
@@ -796,6 +803,170 @@ function checkPhantomWrapper(html, transcript, anatomy = {}) {
     };
   }
   return { name: "phantomWrapper", status: "pass", detail: "no structural wrappers beyond the design" };
+}
+
+// ---------- 4d-ter. modalWrapper (modal semantics require design evidence) ----------
+
+/** Modal/card semantic wrappers are STRUCTURE (transcript-owned), never convention. A generated
+ *  `.modal-header`/`.modal-body`/`.modal-footer`, `.card`, `.modal-content`, or a `role="dialog"`
+ *  that the design never evidences is invented structure — the transcript must show a modal frame
+ *  (backdrop, dialog title + body + footer, or a `modal`-named node) for the output to use one.
+ *  Neutral Angular wrappers (a bare `<div>` for *ngFor or host layout) carry no such semantic
+ *  class and are NOT flagged — only the named modal/card idiom is. */
+function checkModalWrapper(html, transcript) {
+  const hasTranscript = Boolean(transcript);
+  if (!hasTranscript) {
+    return { name: "modalWrapper", status: "skip", detail: "no transcript to check modal structure against" };
+  }
+  const tx = JSON.stringify(transcript);
+  // Design evidence of a modal/dialog: a node named/naming modal, dialog, or a backdrop/overlay.
+  const designHasModal = /"(?:description|text|glyphName|name)"\s*:\s*"[^"]*(?:modal|dialog|backdrop|overlay|konfirmasi)/i.test(tx)
+    || /\bmodal\b/i.test(tx) || /\bdialog\b/i.test(tx);
+
+  // Generated modal/card semantic markers.
+  const markers = [];
+  for (const m of String(html ?? "").matchAll(/class\s*=\s*["']([^"']*)["']/gi)) {
+    for (const cls of m[1].split(/\s+/)) {
+      if (/^(?:modal|card)(?:-|$)|modal-(?:header|body|footer|content|dialog)|-modal\b/i.test(cls) && !markers.includes(cls)) {
+        markers.push(cls);
+      }
+    }
+  }
+  if (/role\s*=\s*["']dialog["']/i.test(html ?? "")) markers.push('role="dialog"');
+
+  if (markers.length && !designHasModal) {
+    return {
+      name: "modalWrapper",
+      status: "warn",
+      detail: `modal/card semantic wrapper(s) with no design evidence (the transcript shows no modal/dialog/backdrop frame): ${markers.join(", ")} — structure = XML/transcript only`,
+      markers,
+    };
+  }
+  if (!markers.length) {
+    return { name: "modalWrapper", status: "skip", detail: "no modal/card semantic wrapper in output" };
+  }
+  return { name: "modalWrapper", status: "pass", detail: "modal/card wrapper evidenced by the design" };
+}
+
+// ---------- 4d-quater. frameworkSyntax (Angular ≤13 compatibility) ----------
+
+/** Angular version-gated syntax. The project pins Angular ≤13 (module-based, no @if/@for/inject/
+ *  standalone/signals). The framework version comes from the canonical snapshot; without it the
+ *  check skips (never guesses the version). Bounded static diagnostics — not a compiler.
+ *
+ *  PR 5 corrective patch (FWK-001/FWK-002): matching runs against the LEXICALLY MASKED source, so
+ *  a comment ("do not use inject()") or a string/template literal never counts as executable
+ *  syntax — only real code does. `effect(` joins the signals family (FWK-002). The mask is a
+ *  same-length whitespace replacement, so line/column offsets are preserved. */
+function checkFrameworkSyntax(ts, html, framework) {
+  const isAngular = framework?.id === "angular" || framework?.label?.toLowerCase?.() === "angular";
+  if (!isAngular) {
+    return { name: "frameworkSyntax", status: "skip", detail: "not an Angular project (or no framework snapshot)" };
+  }
+  const major = Number(framework?.versionMajor ?? framework?.version?.match(/(\d+)/)?.[1] ?? 0);
+  // Only gate when the snapshot asserts an Angular ≤13 line (the org's actual version).
+  if (!(major > 0 && major <= 13)) {
+    return { name: "frameworkSyntax", status: "skip", detail: `no Angular ≤13 version evidence (major ${major || "unknown"})` };
+  }
+  // Mask comments + string/template LITERALS; keep template `${…}` interpolations and all real
+  // code. Same length + newlines → diagnostic offsets stay exact.
+  const src = maskNonExecutable(`${String(ts ?? "")}\n${String(html ?? "")}`);
+  const offenders = [];
+  if (/@if\s*\(|@for\s*\(|@switch\s*\(|@defer\b/.test(src)) offenders.push("control-flow block (@if/@for/@switch/@defer — v17+)");
+  if (/\binject\s*\(/.test(src)) offenders.push("inject() (v14+)");
+  if (/standalone\s*:\s*true/.test(src)) offenders.push("standalone: true component metadata (v14+)");
+  if (/\b(?:signal|computed|effect|input|model)\s*\(/.test(src)) offenders.push("signals API (v16+)");
+  if (offenders.length) {
+    return {
+      name: "frameworkSyntax",
+      status: "fail",
+      detail: `Angular ≤13 incompatible syntax: ${offenders.join("; ")} — use *ngIf/*ngFor, constructor DI, and NgModule registration`,
+      offenders,
+    };
+  }
+  return { name: "frameworkSyntax", status: "pass", detail: "no Angular ≤13 incompatible syntax" };
+}
+
+/** Mask comments and string/template literal text with same-length whitespace (newlines kept), so
+ *  framework-syntax matching sees only executable code. Template `${…}` interpolations stay
+ *  visible (they are executable expressions); their plain-text surroundings are masked. A bounded
+ *  state machine — deliberately not a full JS lexer. Regex literals are NOT masked: none of the
+ *  bounded framework patterns can match inside one, so masking them would add complexity for no
+ *  signal. Returns the masked string. */
+function maskNonExecutable(src) {
+  const out = src.split("");
+  const BLANK = (ch) => (ch === "\n" || ch === "\r" ? ch : " ");
+  const blank = (i) => { out[i] = BLANK(out[i]); };
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const c = src[i];
+    const d = src[i + 1];
+    // Line comment → newline.
+    if (c === "/" && d === "/") {
+      while (i < n && src[i] !== "\n") blank(i++);
+      continue;
+    }
+    // Block comment → closing `*/`.
+    if (c === "/" && d === "*") {
+      blank(i++); blank(i++);
+      while (i < n && !(src[i] === "*" && src[i + 1] === "/")) blank(i++);
+      if (i < n) { blank(i++); blank(i++); }
+      continue;
+    }
+    // Single/double-quoted string literal (with escapes).
+    if (c === "'" || c === '"') {
+      const q = c;
+      blank(i++);
+      while (i < n) {
+        if (src[i] === "\\") { blank(i++); if (i < n) blank(i++); continue; }
+        if (src[i] === q) { blank(i++); break; }
+        blank(i++);
+      }
+      continue;
+    }
+    // Template literal: mask plain text, keep `${…}` interpolation executable (with nesting).
+    if (c === "`") {
+      blank(i++);
+      const scanTemplate = () => {
+        while (i < n) {
+          if (src[i] === "\\") { blank(i++); if (i < n) blank(i++); continue; }
+          if (src[i] === "`") { blank(i++); return; }        // close template
+          if (src[i] === "$" && src[i + 1] === "{") {         // enter interpolation (keep executable)
+            i += 2;
+            const scanExpr = () => {
+              let depth = 1;
+              while (i < n && depth > 0) {
+                const e = src[i];
+                // nested template inside the expression → recurse
+                if (e === "`") { blank(i++); scanTemplate(); continue; }
+                if (e === "'" || e === '"') {
+                  const q2 = e; blank(i++);
+                  while (i < n) {
+                    if (src[i] === "\\") { blank(i++); if (i < n) blank(i++); continue; }
+                    if (src[i] === q2) { blank(i++); break; }
+                    blank(i++);
+                  }
+                  continue;
+                }
+                if (e === "{" ) depth++;
+                if (e === "}" ) depth--;
+                if (depth === 0) { i++; return; }
+                i++;
+              }
+            };
+            scanExpr();
+            continue;
+          }
+          blank(i++);
+        }
+      };
+      scanTemplate();
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
 }
 
 // ---------- 4d-bis. inventedLayout (SUI-STRUCT-004: layout effect with no design evidence) ----------

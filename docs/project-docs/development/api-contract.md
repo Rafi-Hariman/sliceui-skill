@@ -46,11 +46,38 @@ Does not document the Gemini HTTP API itself (external service; see `gemini-clie
 - **Invocation:** `sliceui <command> [args]` (bin `src/cli.mjs`) or `node src/cli.mjs <command>` from source.
 - **Working context:** commands operate on the CWD's `.sliceui/` directory (created by `init`).
 - **Auth:** none for XML/static tiers. Gemini tier reads `GEMINI_API_KEY` / `VITE_GEMINI_API_KEY` from env, `.env.local`, or `~/.sliceui/.env.local`.
-- **Exit codes:** `0` success; `1` gate failure (verify/referee red, doctor problems); `2` usage/framework-not-supported (e.g. verify on `.tsx`). Inferred from codebase (README + verify exit 2 note).
+- **Exit codes:** `0` success; `1` gate failure (verify/referee red, doctor problems); `2` usage/framework-not-supported (e.g. verify on `.tsx`); `3` **unverifiable** — verify ran but its required ground truth is missing/stale/malformed (PR 5). See §9.1.
 
 ## 8. Request/Response Format
 
 Commands are argument-driven; results are either stdout text (human/agent-readable) or files under `.sliceui/`. No JSON stdout contract is guaranteed except where stated.
+
+### 9.1 Verify trust and diagnostic contract (PR 5)
+
+`sliceui verify` distinguishes four evidence trust sources (see `technical-guidelines/verify-gate-trust.md` §2):
+
+| Trust source | Meaning | Can it block? |
+| :--- | :--- | :--- |
+| `literal-design` | raw XML / transcript facts (text, geometry, colors, node relationships) | yes |
+| `verified-capability` | exact Pilar catalog selector/input/output, framework version | yes |
+| `shared-assumption` | classVocabulary / ngDeepCorpus / loadedClassRegistry — the same corpus the generator copied | only against valid provenance, and it is labelled `shared-assumption`, never presented as independent design fidelity |
+| `independent` | generated-implementation structural facts (the subject under test, not ground truth) | — |
+
+Every check emits a **stable diagnostic record** — `id` (`SUI-VERIFY-<CATEGORY>-<NNN>`), `category`
+(bounded: `ground-truth`, `target`, `framework-syntax`, `component-api`, `template-structure`,
+`design-fidelity`, `layout`, `style`, `shared-convention`, `module-wiring`, `auth-wiring`), `trust`
+source, and `severity` (`error` = blocking, `warning` = material but non-blocking, `info` =
+completed/pass). The command's **primary state** is one of `pass` / `fail` / `unverifiable` /
+`invalid-input`, mapping to exit `0` / `1` / `3` / `2`.
+
+- **Target-name normalization:** `testingcomponent`, `TestingcomponentComponent`,
+  `testingcomponent.component`, `testingcomponent.component.ts` all address the same target;
+  path traversal and separators are rejected (`invalid-input`, exit 2); a genuinely ambiguous
+  name is surfaced, never first-picked.
+- **No false green:** missing/stale/malformed ground truth, a target-not-found, or an all-skip
+  run with required checks skipped is **non-green** — `unverifiable` (exit 3) or `invalid-input`
+  (exit 2). `resolved.json`/`spec.md`/`agent-context.md` are never verify ground truth; verify
+  stays independent of the resolve pipeline.
 
 ## 9. Endpoints (CLI Commands)
 
@@ -62,7 +89,7 @@ Commands are argument-driven; results are either stdout text (human/agent-readab
 | `sliceui resolve <xml\|json>` | FIGML XML or transcript JSON | `.sliceui/artifacts/<name>/resolved.json` | 0/1 |
 | `sliceui referee [root] [--target <name>]` | ground-truth artifacts | stdout verdict per claim (green/red per check) — **snapshot mode** (reads `.sliceui` + design input, no repo scan) | 0/1 |
 | `sliceui referee [root] [--target <name>] --deep` | ground-truth artifacts + live repo | stdout verdict per claim + writes `.sliceui/referee-verdict.json` | 0/1 |
-| `sliceui verify <dir> [name] [--xml F] [--transcript F] [--conventions F]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 / 1 (gate) / 2 (usage/framework) |
+| `sliceui verify <dir> [name] [--xml F] [--transcript F] [--conventions F]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 (pass) / 1 (fail) / 2 (invalid input/target) / 3 (unverifiable) |
 | `sliceui doctor` | — | environment diagnosis (Node, platform, sips/swiftc, key, skill, live Gemini) | 0/1 |
 | `sliceui fidelity <xml>` | FIGML XML | stdout % + per-attribute breakdown | 0/1 |
 | `sliceui install [--dir D]` | — | skill files into `~/.claude/skills/sliceui` (or D) | 0/1 |

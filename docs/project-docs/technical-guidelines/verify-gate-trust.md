@@ -13,6 +13,42 @@ The product's core value is a trustworthy gate: red must mean real defect, green
 
 `verify.mjs`, `referee.mjs`, `resolve.mjs`, and the render probes — the quality-gate surface. General test-suite policy is `development/testing.md`.
 
+### 2.1 Verify trust model (PR 5)
+
+Verify distinguishes four evidence trust sources; each check carries a `trust` label in its
+diagnostic record (see `development/api-contract.md` §9.1):
+
+1. **`literal-design`** (A) — independent design evidence: raw XML, transcript facts, geometry, visible text, node relationships.
+2. **`verified-capability`** (B) — exact Pilar selector/input/output, framework version, slice policy.
+3. **`shared-assumption`** (C) — classVocabulary / ngDeepCorpus / loadedClassRegistry / approved recipes. These may block only when ownership/provenance is valid, and are **always labelled `shared-assumption`** — a shared-corpus check (e.g. `scssCoverage`) catches drift but is never presented as independent design-fidelity proof (the VG-001 blind spot).
+4. **`independent`** (D) — generated-implementation facts: the *subject under test*, never ground truth.
+
+`resolved.json`, `spec.md`, and `agent-context.md` are **never** verify ground truth — verify stays
+independent of the resolve pipeline, re-deriving from transcript + raw XML + conventions.
+
+### 2.2 Verify result states and exit codes (PR 5)
+
+The command has one **primary state** with a deterministic exit mapping:
+
+| state | exit | meaning |
+| :--- | :--- | :--- |
+| `pass` | 0 | all required checks ran, no blocking failures |
+| `fail` | 1 | ≥1 blocking correctness failure |
+| `unverifiable` | 3 | required ground truth missing / stale / malformed / unpaired design |
+| `invalid-input` | 2 | bad component target, path traversal, or unsupported framework |
+
+Check-level `skip`/`warn` may remain, but they can never make a run with missing required ground
+truth read green. A malformed canonical snapshot is `unverifiable`, never silently treated as empty
+— its human headline reads `UNVERIFIED`, matching the exit-3 state.
+
+The `frameworkSyntax` check is a **bounded static check, not a compiler**: it inspects the
+*lexically masked* source (comments and string/template literal text are blanked, template `${…}`
+interpolations and real code remain), so a comment explaining "do not use inject()" or a string
+literal never counts as executable syntax. The detected set is the Angular ≤13-incompatible family:
+control-flow blocks (`@if`/`@for`/`@switch`/`@defer`), `inject()`, `standalone: true`, and the
+signals API (`signal`/`computed`/`effect`/`input`/`model`). It is version-gated: without an Angular
+≤13 snapshot it skips, never guesses.
+
 ## 3. Rules
 
 1. **R1 — No ground truth ⇒ never green.** A verify run that couldn't find its ground-truth artifacts exits non-zero (or at minimum is never reported green). Never "pass by absence."

@@ -8,6 +8,7 @@ import { verifyComponent } from "../framework/angular/verify.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 import { tracedReadFileSync, allowRoot } from "../lib/fs-trace.mjs";
 import { loadConventionsSnapshot } from "../lib/snapshot.mjs";
+import { normalizeComponentName } from "../lib/component-name.mjs";
 
 export async function main(argv) {
   const opts = parseArgs(argv);
@@ -22,13 +23,15 @@ export async function main(argv) {
   // owning-module root traversal, a source-file scan — counts as a "repo read" for --profile.
   allowRoot(join(root, ".sliceui"));
   allowRoot(dir);
-  const { scss, html, ts } = readComponent(dir, name);
+  const component = readComponent(dir, name);
+  const { scss, html, ts } = component;
   // An explicit --conventions path wins over root-walk (escape hatch when auto-detect is wrong).
   // Otherwise load the canonical conventions snapshot (conventions.json) with legacy fallback to
   // project-context.json for pre-PR-2 snapshots that carry loadedClassRegistry there (PR 2).
+  const snapshot = opts.conventions ? null : loadConventionsSnapshot(root);
   let conventions = opts.conventions
     ? readJsonSafe(resolve(opts.conventions))
-    : loadConventionsSnapshot(root).conventions ?? null;
+    : (snapshot?.conventions ?? null);
   // Ground truth pairing: explicit --xml/--transcript flags win; else pair by component name;
   // else LOUD warn (never silently fall back to the wrong design's file — Report #1 §6.2).
   // Flags override an unpaired state — explicit evidence always wins.
@@ -38,6 +41,16 @@ export async function main(argv) {
   // When an explicit name failed to pair AND no flags supplied the evidence, transcript/XML are
   // null — checks that depend on them skip as "unverified" instead of running against nothing.
   const unpaired = pairing.unpaired && !opts.transcript && !opts.xml;
+  // PR 5 — malformed canonical snapshot is a ground-truth state, not a silent skip: the loader
+  // reports it via diagnostics, and it must make the run unverifiable (non-green), never green.
+  const snapshotDiagnostics = snapshot?.diagnostics ?? [];
+  const malformedSnapshot = snapshotDiagnostics.some((d) => /malformed|conflicts/i.test(d));
+
+  if (component.error) {
+    console.error(component.error);
+    console.error("SliceUI verify only validates Angular-style components: *.component.{scss,html,ts}.");
+    return 2;
+  }
 
   if (!html && !scss && !ts) {
     console.error(`no component files found in ${dir}`);
@@ -49,16 +62,25 @@ export async function main(argv) {
   // pilar is present only when the private catalogs are installed (internal/UII build); a public
   // npm install has them stripped → loadPilar() returns null and the pilar checks skip gracefully.
   const pilar = await loadPilar();
+  // PR 5 — framework version from the canonical snapshot drives the Angular-version compatibility
+  // check (bounded static diagnostics, never a full compiler). Read-only; a missing project-context
+  // degrades the framework check to skip, not a crash.
+  const projectContext = readJsonSafe(join(root, ".sliceui", "project-context.json"));
+  const framework = projectContext?.framework ?? null;
   // The declaring module is at or above the COMPONENT's own directory (`dir`), so scope the walk
   // there rather than traversing the whole repo from `root`. See readOwningModules.
   const modules = readOwningModules(root, dir);
-  const result = verifyComponent({ scss, html, ts, conventions, transcript, rawXml, pilar, modules });
+  const result = verifyComponent({ scss, html, ts, conventions, transcript, rawXml, pilar, modules, framework });
 
   // Pairing warnings go FIRST — the agent reads the head of the output, and an unpaired run's
   // per-check verdicts are misleading until the reader knows the ground truth is missing (F1).
   for (const w of pairing.warnings) console.log(w);
+  // PR 5 corrective patch (EXT-001): a malformed canonical snapshot is UNVERIFIABLE too — its
+  // headline must say so (exit 3), not read like an ordinary verification run.
   if (unpaired) {
     console.log("SliceUI verify — UNVERIFIED (design pairing failed; XML/transcript-dependent checks skipped)\n");
+  } else if (malformedSnapshot) {
+    console.log("SliceUI verify — UNVERIFIED (required ground truth is malformed/invalid; see snapshot diagnostics below)\n");
   } else {
     console.log("SliceUI verify — generated component fidelity + conventions\n");
   }
@@ -79,10 +101,14 @@ export async function main(argv) {
   } else if (!conventions) {
     console.log("⚠ no .sliceui/conventions.json — run `sliceui init` first (convention checks may skip).");
   }
+  // PR 5 — surface snapshot loader diagnostics (malformed canonical / legacy conflict) so a
+  // corrupt-but-present snapshot is visible, never silently treated as a valid empty snapshot.
+  for (const d of snapshotDiagnostics) console.log(`⚠ ${d}`);
 
-  // An unpaired run must NOT exit 0 — it is "not verified", not "passed" (F1). Exit 3 keeps it
-  // distinct from 1 (check failures) and 2 (usage), so the agent can tell the cases apart.
-  if (unpaired) return 3;
+  // Exit-code contract (PR 5 §8):
+  //   0 = verified pass · 1 = verified fail · 2 = invalid input/target · 3 = unverifiable
+  // A malformed canonical snapshot is UNVERIFIABLE (3), not a pass — same as an unpaired design.
+  if (unpaired || malformedSnapshot) return 3;
   return result.pass ? 0 : 1;
 }
 
@@ -178,11 +204,22 @@ function tokenOverlapMatch(target, candidates) {
   return null;
 }
 
-/** Read a component's html/scss/ts from a directory (or explicit basename). */
+/** Read a component's html/scss/ts from a directory (or explicit basename). PR 5: the name is
+ *  normalized (PascalCase class → kebab stem) before matching, so `TestingcomponentComponent`
+ *  and `testingcomponent` address the same `testingcomponent.component.ts`. Traversal and
+ *  ambiguity are rejected (an explicit bad name → { error } rather than a silent wrong pick). */
 function readComponent(dir, name) {
   const files = existsSync(dir) ? readdirSync(dir) : [];
+  let norm = null;
+  if (name) {
+    norm = normalizeComponentName(name);
+    if (!norm.ok) {
+      return { scss: "", html: "", ts: "", error: `invalid component name: ${norm.reason}` };
+    }
+  }
+  const stem = norm?.stem ?? null;
   const pick = (ext) => {
-    const match = files.find((f) => f.endsWith(`.component.${ext}`) && (!name || f.startsWith(name)));
+    const match = files.find((f) => f.endsWith(`.component.${ext}`) && (!stem || f.startsWith(`${stem}.`)));
     return match ? readFileSyncSafe(join(dir, match)) : "";
   };
   return { scss: pick("scss"), html: pick("html"), ts: pick("ts") };

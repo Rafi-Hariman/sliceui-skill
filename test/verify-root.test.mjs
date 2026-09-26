@@ -174,3 +174,120 @@ test("readOwningModules: declines to read at all without componentDir (no silent
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// --- PR 5: name normalization + ground-truth states ---
+
+import { normalizeComponentName, resolveComponentStem } from "../src/lib/component-name.mjs";
+
+test("PR5: normalizeComponentName accepts all equivalent target forms", () => {
+  for (const [input, expected] of [
+    ["testingcomponent", "testingcomponent"],
+    ["TestingcomponentComponent", "testingcomponent"],
+    ["testingcomponent.component", "testingcomponent"],
+    ["testingcomponent.component.ts", "testingcomponent"],
+    ["billing-history", "billing-history"],
+    ["BillingHistoryComponent", "billing-history"],
+    ["billing-history.component", "billing-history"],
+    ["billing-history.component.ts", "billing-history"],
+    ["HTTPClientComponent", "http-client"],
+  ]) {
+    const r = normalizeComponentName(input);
+    assert.equal(r.ok, true, `${input} should normalize`);
+    assert.equal(r.stem, expected, `${input} → ${expected}`);
+  }
+});
+
+test("PR5: normalizeComponentName rejects path traversal and separators", () => {
+  for (const bad of ["../foo", "a/b", "a\\b", "..", "."]) {
+    assert.equal(normalizeComponentName(bad).ok, false, `${bad} rejected`);
+  }
+});
+
+test("PR5: normalizeComponentName rejects an ambiguous non-name", () => {
+  assert.equal(normalizeComponentName("not a name!").ok, false, "spaces/punctuation rejected");
+  assert.equal(normalizeComponentName("").ok, false, "empty rejected");
+});
+
+test("PR5: resolveComponentStem does not collide with a similarly-prefixed name (boundary)", () => {
+  // `billing-history.component.ts` resolves uniquely — `billing-history-extra` is a DIFFERENT
+  // component (the `.component.` boundary separates them), not an ambiguity.
+  const files = ["billing-history.component.ts", "billing-history-extra.component.ts", "billing-history.service.ts"];
+  const r = resolveComponentStem(files, "billing-history");
+  assert.equal(r.ok, true);
+  assert.equal(r.stem, "billing-history");
+  assert.equal(r.matches.length, 1);
+  assert.equal(r.matches[0], "billing-history.component.ts");
+});
+
+test("PR5: resolveComponentStem surfaces true ambiguity, never first-picks", () => {
+  const files = ["billing-history.component.ts", "billing-history.component.ts"];
+  const r = resolveComponentStem(files, "billing-history");
+  assert.equal(r.ok, false);
+  assert.equal(r.ambiguous, true);
+});
+
+// --- PR 5 corrective patch: EXT-001 (unverifiable headline) via the CLI process ---
+
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const CLI_ENTRY = fileURLToPath(new URL("../src/cli.mjs", import.meta.url));
+
+function runVerify(dir, name) {
+  return spawnSync(process.execPath, [CLI_ENTRY, "verify", dir, name], { encoding: "utf8" });
+}
+
+function writeFixture(root, { malformed = false, valid = false } = {}) {
+  const dir = join(root, "comp");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "x.component.ts"), "export class XComponent {}\n");
+  writeFileSync(join(dir, "x.component.html"), '<div class="x">hi</div>\n');
+  writeFileSync(join(dir, "x.component.scss"), ".x { color: red; }\n");
+  if (valid || malformed) {
+    mkdirSync(join(root, ".sliceui", "artifacts", "x"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "artifacts", "x", "transcript.json"), '{"layout":[]}');
+    mkdirSync(join(root, ".sliceui", "inputs", "xml"), { recursive: true });
+    writeFileSync(join(root, ".sliceui", "inputs", "xml", "x.xml"), '<frame name="x"></frame>');
+    writeFileSync(join(root, ".sliceui", "conventions.json"), malformed ? "{ NOT VALID" : '{"classVocabulary":[],"ngDeepCorpus":[]}');
+  }
+  return dir;
+}
+
+test("PR5c EXT-001: malformed snapshot headline says UNVERIFIED and exits 3", () => {
+  const root = mkdtempSync(join(tmpdir(), "pr5c-malformed-"));
+  try {
+    const dir = writeFixture(root, { malformed: true });
+    const r = runVerify(dir, "x");
+    assert.equal(r.status, 3, `malformed snapshot → exit 3 (got ${r.status})`);
+    assert.match(r.stdout, /UNVERIFIED/, "headline says UNVERIFIED");
+    assert.match(r.stdout, /malformed/, "malformed reason visible");
+    assert.doesNotMatch(r.stdout, /generated component fidelity/, "no clean-pass wording");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR5c EXT-001: valid pass headline unchanged, exit 0", () => {
+  const root = mkdtempSync(join(tmpdir(), "pr5c-valid-"));
+  try {
+    const dir = writeFixture(root, { valid: true });
+    const r = runVerify(dir, "x");
+    assert.equal(r.status, 0, `valid → exit 0 (got ${r.status})`);
+    assert.match(r.stdout, /generated component fidelity/, "valid headline unchanged");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("PR5c EXT-001: invalid input headline/exit unchanged", () => {
+  const root = mkdtempSync(join(tmpdir(), "pr5c-invalid-"));
+  try {
+    const dir = writeFixture(root);
+    const r = runVerify(dir, "../evil");
+    assert.equal(r.status, 2);
+    assert.match(r.stdout + r.stderr, /invalid component name/, "invalid-input reason visible");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
