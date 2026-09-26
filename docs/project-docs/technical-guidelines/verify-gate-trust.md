@@ -49,6 +49,48 @@ control-flow blocks (`@if`/`@for`/`@switch`/`@defer`), `inject()`, `standalone: 
 signals API (`signal`/`computed`/`effect`/`input`/`model`). It is version-gated: without an Angular
 ≤13 snapshot it skips, never guesses.
 
+### 2.3 Rendered gate trust and tolerance (PR 6A — development-only)
+
+`--render` adds a browser-backed gate that is **opt-in, never default**, **development-only**
+(requires the repo's Angular mount fixture + Chromium, not shipped in the npm tarball), and **never
+a replacement** for static verify. Its trust model:
+
+- **Oracle** = transcript literal/structural facts (root padding, divider thickness, text
+  color/size/weight), never `spec.md`/`resolved.json`/`agent-context.md` and never pixel similarity.
+  The screenshot is supporting evidence; a rendered check passes or fails on measured computed
+  style/geometry, not on a bitmap.
+- **Error boundary:** the entire render lifecycle is wrapped in a single phase-aware try/catch.
+  Every exception maps to a deterministic non-green state (`build-fail`/`browser-unavailable`/
+  `mount-fail`/`runtime-fail`/`visual-fail`) with a phase-tagged `SUI-RENDER-*` diagnostic — a
+  render-stage exception can never escape as an uncaught crash. Cleanup (browser close + workspace
+  removal) is unconditional in `finally`.
+- **Failure classes are distinguished, never collapsed into visual mismatch:** `build-fail`
+  (SCSS/esbuild), `mount-fail` (no `_nghost` within 15s), `runtime-fail` (uncaught page error OR a
+  blocked external request), `browser-unavailable`, `fixture-unavailable`, `unverifiable` (no
+  transcript/design facts). Each carries a distinct `SUI-RENDER-*` diagnostic; all are non-green.
+- **Network isolation (active, not accidental):** a `context.route` interceptor is installed before
+  any content loads; it aborts every non-`data:`/`blob:`/`about:` request. A blocked attempt produces
+  a sanitized diagnostic (scheme+host+resource-type — never query/headers/body) and makes the state
+  non-green (`runtime-fail`).
+- **Viewport bounds:** `--viewport WxH` accepts integers `200–7680`; anything else is
+  `invalid-input` (exit 2) before browser launch.
+- **Geometry tolerance (px, documented + evidence-based):** `±2` for root padding; `±1` for divider
+  line thickness. Button/control frame `w`/`h` in the transcript are **design-frame dimensions**,
+  not literal CSS width/height — they are deliberately NOT compared (a correct implementation
+  reaches them via font+padding or is fluid), avoiding the "canvas position → internal layout"
+  false-fail.
+- **Isolation:** render mounts a synthetic component in a `mkdtemp` under `/tmp`, never writes the
+  target project, never installs dependencies. Artifacts live under
+  `.sliceui/artifacts/<name>/render/` only with `--preserve-render-artifacts` (else `/tmp` + cleanup).
+
+### 2.4 PR 6A / PR 6B boundary
+
+PR 6A = render foundation + safety (opt-in mount, failure boundaries, network isolation, package
+contract, the current bounded geometry checks: root padding, divider thickness, text
+color/size/weight). PR 6B = geometry coverage expansion (control heights, button proportions, major
+gaps, table density, footer/pagination geometry, relative alignment, overflow/clipping, remaining
+border/radius + typography) — a separate required follow-up, not part of PR 6A.
+
 ## 3. Rules
 
 1. **R1 — No ground truth ⇒ never green.** A verify run that couldn't find its ground-truth artifacts exits non-zero (or at minimum is never reported green). Never "pass by absence."

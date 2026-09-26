@@ -79,6 +79,42 @@ completed/pass). The command's **primary state** is one of `pass` / `fail` / `un
   (exit 2). `resolved.json`/`spec.md`/`agent-context.md` are never verify ground truth; verify
   stays independent of the resolve pipeline.
 
+### 9.2 Rendered gate (PR 6A — development-only)
+
+`sliceui verify <dir> [name] --render` is an **opt-in, development-only** rendered visual-fidelity
+gate. Static verify runs first and short-circuits on a blocking static fail/unverifiable state
+(render is a superset, never a retry of an invalid foundation). When static passes, it mounts the
+component in an isolated `/tmp` Angular 13 workspace (real SCSS → Dart Sass → esbuild bundle →
+`platformBrowserDynamic` bootstrap in headless Chromium) and measures rendered style + geometry
+against the transcript.
+
+- **Availability:** `--render` requires the dev-only Angular mount fixture (`test/fixtures/
+  angular-mount`) and Playwright/Chromium. The published npm tarball ships the render source but
+  **not** the fixture or browser provisioning, so a packaged invocation deterministically returns
+  `fixture-unavailable` (exit 3) with "provision the mount fixture" guidance — it is never
+  advertised as working out of the box for public users.
+- **Result states → exit:** `pass` (0) · `visual-fail`/`build-fail`/`mount-fail`/`runtime-fail`/
+  `browser-unavailable` (1, each a distinct state) · `unverifiable`/`fixture-unavailable` (3) ·
+  `invalid-input` (2, bad target or `--viewport`). Every render-stage exception is caught by a
+  single phase-aware error boundary and mapped to a deterministic non-green state — no raw
+  uncaught crash.
+- **Viewport bounds:** default `1440×900`; `--viewport WxH` accepts integers `200–7680` on each
+  axis. Anything outside (including `99999x99999`) is `invalid-input` (exit 2) before any browser
+  launch.
+- **Deterministic environment:** animations/transitions disabled, `document.fonts.ready` awaited,
+  bounded timeouts. **Network is actively blocked**: a `context.route` interceptor aborts any
+  non-`data:`/`blob:`/`about:` request before it leaves the browser; a blocked external attempt
+  produces a sanitized `SUI-RENDER-NETWORK-001` diagnostic (scheme+host+resource-type only, never
+  the query string/headers/body) and flips the state to `runtime-fail` (non-green). A captured
+  page error also makes the state `runtime-fail` — rendered geometry is never trusted after an
+  invalid runtime/network state.
+- **Oracle:** transcript literal/structural facts (root padding, divider thickness, text
+  color/size/weight). `spec.md`/`resolved.json`/`agent-context.md` and pixel similarity are NOT the
+  oracle — screenshot is supporting evidence only.
+- **Artifacts:** PNG + report under `.sliceui/artifacts/<name>/render/` only with
+  `--preserve-render-artifacts`; otherwise `/tmp` and cleaned on success. Never writes the target
+  project, never installs dependencies, never commits screenshots.
+
 ## 9. Endpoints (CLI Commands)
 
 | Command | Input | Output | Exit |
@@ -90,6 +126,7 @@ completed/pass). The command's **primary state** is one of `pass` / `fail` / `un
 | `sliceui referee [root] [--target <name>]` | ground-truth artifacts | stdout verdict per claim (green/red per check) — **snapshot mode** (reads `.sliceui` + design input, no repo scan) | 0/1 |
 | `sliceui referee [root] [--target <name>] --deep` | ground-truth artifacts + live repo | stdout verdict per claim + writes `.sliceui/referee-verdict.json` | 0/1 |
 | `sliceui verify <dir> [name] [--xml F] [--transcript F] [--conventions F]` | generated `.ts/.html/.scss` | stdout per-check verdicts | 0 (pass) / 1 (fail) / 2 (invalid input/target) / 3 (unverifiable) |
+| `sliceui verify <dir> [name] --render [--viewport WxH] [--preserve-render-artifacts]` | generated component + transcript | **opt-in rendered gate** — mounts + renders in headless Chromium, measures geometry/computed styles against the transcript | 0 (pass) / 1 (visual/build/mount/runtime fail) / 2 (invalid input/viewport) / 3 (unverifiable) |
 | `sliceui doctor` | — | environment diagnosis (Node, platform, sips/swiftc, key, skill, live Gemini) | 0/1 |
 | `sliceui fidelity <xml>` | FIGML XML | stdout % + per-attribute breakdown | 0/1 |
 | `sliceui install [--dir D]` | — | skill files into `~/.claude/skills/sliceui` (or D) | 0/1 |

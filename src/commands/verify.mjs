@@ -3,6 +3,7 @@
 // transcript + raw XML) and prints a structured verdict. Exit 0 = all checks pass.
 
 import { existsSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { verifyComponent } from "../framework/angular/verify.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
@@ -108,13 +109,65 @@ export async function main(argv) {
   // Exit-code contract (PR 5 §8):
   //   0 = verified pass · 1 = verified fail · 2 = invalid input/target · 3 = unverifiable
   // A malformed canonical snapshot is UNVERIFIABLE (3), not a pass — same as an unpaired design.
-  if (unpaired || malformedSnapshot) return 3;
-  return result.pass ? 0 : 1;
+  const staticExit = (() => { if (unpaired || malformedSnapshot) return 3; return result.pass ? 0 : 1; })();
+
+  // PR 6 — opt-in rendered visual-fidelity gate. Static verify runs first and short-circuits on a
+  // blocking static fail/unverifiable state (never spend browser time on an invalid foundation).
+  if (opts.render) return runRender(opts, { dir, name, root, scss, html, ts, transcript, staticExit, staticPass: result.pass, staticUnverifiable: unpaired || malformedSnapshot });
+
+  return staticExit;
 }
 
-/** Parse `verify [dir] [name] [--xml F] [--transcript F] [--conventions F]`. Flags anywhere. */
+/** Rendered gate (PR 6): mount + render + measure against the transcript. Never mutates the
+ *  target; isolated under /tmp. Static blocking fail/unverifiable short-circuits to the static
+ *  exit. */
+async function runRender(opts, ctx) {
+  const { renderVerify, DEFAULT_VIEWPORT } = await import("../framework/angular/render-verify.mjs");
+
+  // Invalid viewport is invalid-input — reject before launching a browser.
+  const viewport = opts.viewport ? parseViewport(opts.viewport) : DEFAULT_VIEWPORT;
+  if (!viewport) {
+    console.error(`invalid --viewport "${opts.viewport}" — expected <width>x<height> (e.g. 1440x900), each 200–7680`);
+    return 2;
+  }
+
+  // Static short-circuit: a blocking static fail or unverifiable state skips render with a reason.
+  if (!ctx.staticPass || ctx.staticUnverifiable) {
+    console.log("\nSliceUI render — SKIPPED (static verify did not pass; render is a superset, never a retry of an invalid foundation)");
+    return ctx.staticUnverifiable ? 3 : 1;
+  }
+
+  // Artifact destination: preserve under .sliceui/artifacts/<name>/render when requested, else /tmp.
+  const stem = ctx.name ?? "component";
+  const screenshotPath = opts.preserveRenderArtifacts
+    ? join(ctx.root, ".sliceui", "artifacts", stem, "render", "actual.png")
+    : join(tmpdir(), `sliceui-render-verify-${Date.now()}.png`);
+
+  const r = await renderVerify({ html: ctx.html, scss: ctx.scss, ts: ctx.ts, transcript: ctx.transcript, viewport, screenshotPath });
+
+  console.log(`\nSliceUI render — ${r.state}${r.metrics?.totalMs != null ? ` (${r.metrics.totalMs}ms)` : ""}`);
+  for (const c of r.checks) {
+    const icon = c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : "·";
+    console.log(`  ${icon} ${(c.name).padEnd(16)} ${c.status.padEnd(4)} ${c.detail}`);
+  }
+  if (r.diagnostics.length) {
+    console.log("");
+    for (const d of r.diagnostics) {
+      console.log(`  ${d.id} [${d.category}] ${d.status}: ${d.detail}`);
+      if (d.expected != null && d.actual != null) console.log(`       expected ${d.expected} · actual ${d.actual} · delta ${d.delta} · tolerance ±${d.tolerance}${d.unit ?? ""}`);
+      if (d.remediation && d.remediation !== d.detail) console.log(`       → ${d.remediation}`);
+    }
+  }
+  if (r.artifacts?.screenshot) console.log(`\nscreenshot: ${r.artifacts.screenshot}`);
+  else if (r.artifacts?.screenshotError) console.log(`\n⚠ screenshot failed: ${r.artifacts.screenshotError}`);
+  console.log(`render state: ${r.state} · exit ${r.exitCode}`);
+  return r.exitCode;
+}
+
+/** Parse `verify [dir] [name] [--xml F] [--transcript F] [--conventions F] [--render]
+ *  [--viewport WxH] [--preserve-render-artifacts]`. Flags anywhere. */
 export function parseArgs(argv) {
-  const out = { dir: null, name: null, xml: null, transcript: null, conventions: null };
+  const out = { dir: null, name: null, xml: null, transcript: null, conventions: null, render: false, viewport: null, preserveRenderArtifacts: false };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -124,11 +177,30 @@ export function parseArgs(argv) {
     else if (a.startsWith("--transcript=")) { out.transcript = a.slice("--transcript=".length); }
     else if (a === "--conventions" && argv[i + 1]) { out.conventions = argv[++i]; }
     else if (a.startsWith("--conventions=")) { out.conventions = a.slice("--conventions=".length); }
+    else if (a === "--viewport" && argv[i + 1]) { out.viewport = argv[++i]; }
+    else if (a.startsWith("--viewport=")) { out.viewport = a.slice("--viewport=".length); }
+    else if (a === "--render") { out.render = true; }
+    else if (a === "--preserve-render-artifacts") { out.preserveRenderArtifacts = true; }
     else if (!a.startsWith("--")) { positional.push(a); }
   }
   out.dir = positional[0] ?? null;
   out.name = positional[1] ?? null;
   return out;
+}
+
+/** Parse `--viewport WxH` into { width, height }; null when absent or invalid. PR 6A: add an
+ *  UPPER bound (7680×4320, the largest common 8K frame) so an absurd-but-syntactically-valid
+ *  viewport (e.g. 99999x99999) is rejected as invalid-input before a browser can be launched,
+ *  rather than reaching a page that cannot render. */
+export function parseViewport(v) {
+  if (!v) return null;
+  const m = /^(\d{1,5})x(\d{1,5})$/.exec(String(v).trim());
+  if (!m) return null;
+  const width = Number(m[1]); const height = Number(m[2]);
+  const MIN = 200, MAX = 7680;
+  if (!Number.isInteger(width) || !Number.isInteger(height)) return null;
+  if (width < MIN || height < MIN || width > MAX || height > MAX) return null;
+  return { width, height };
 }
 
 /** Resolve transcript + rawXml by name; emit a loud warning (not a silent wrong-design fallback)

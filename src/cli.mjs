@@ -20,7 +20,7 @@ Usage:
   sliceui transcribe <img> --static   Force the static tier (no API key needed)
   sliceui doctor                Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini)
   sliceui fidelity <xml>        Score visual-attribute preservation (FIGML → transcript)
-  sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions (--xml/--transcript/--conventions)
+  sliceui verify <dir> [name]   Gate a generated component: fidelity + codebase conventions (--xml/--transcript/--conventions; --render = dev-only browser render)
   sliceui referee [root] [--target <name>]   Validate ground-truth artifacts (snapshot mode; no repo scan)
   sliceui referee [root] [--target <name>] --deep   Live full repo scan + refresh the stored verdict
   sliceui resolve <xml|json>    Resolve styled leaves → exact idiom candidates (resolve-then-assemble)
