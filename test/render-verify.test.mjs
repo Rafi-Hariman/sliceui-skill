@@ -84,9 +84,9 @@ test("render-verify: geometry facts measure root padding + divider (deterministi
   const geom = r.checks.filter((c) => c.name === "renderGeometry");
   assert.ok(geom.length >= 1, "at least one geometry check ran");
   for (const g of geom) {
-    // Pass or skip — never a silent pass on an unmapped element (skip is honest).
-    assert.ok(["pass", "skip"].includes(g.status), `geometry ${g.detail} is pass/skip, not fail on correct ref`);
-    // A pass carries a bounded (documented) tolerance, never an unbounded/arbitrary one.
+    // On the CORRECT reference a geometry check is pass, an honest skip, or a non-blocking warn
+    // (an optional design-frame fact like button frame-height) — never a blocking fail.
+    assert.ok(["pass", "skip", "warn"].includes(g.status), `geometry ${g.detail} is pass/skip/warn, not fail on correct ref`);
     if (g.status === "pass") assert.ok(g.tolerance != null && g.tolerance >= 0 && g.tolerance <= GEOMETRY_TOLERANCE_PX, `tolerance bounded: ${g.tolerance}`);
   }
 });

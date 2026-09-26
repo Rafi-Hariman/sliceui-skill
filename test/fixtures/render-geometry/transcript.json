@@ -1,0 +1,27 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "geometry-fixture.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    {
+      "id": "root", "type": "group", "w": 800, "h": 400,
+      "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+      "children": [
+        { "id": "title", "type": "text", "text": "Daftar Item", "w": 760, "h": 20, "style": { "size": 16, "weight": 500, "color": "#000000", "lineHeight": 20 } },
+        { "id": "div1", "type": "divider", "bg": "#fdd835", "w": 760, "h": 1 },
+        { "id": "search", "type": "input", "label": "Pencarian", "w": 300, "h": 40 },
+        { "id": "btn1", "type": "button", "text": "Cari", "w": 80, "h": 40, "radius": 4, "bg": "#03337b" },
+        { "id": "tbl", "type": "group", "table": true, "w": 760, "h": 200, "children": [
+          { "id": "hdr", "type": "group", "w": 760, "h": 40, "children": [
+            { "id": "h1", "type": "text", "text": "Nama", "w": 300, "h": 15, "style": { "size": 13, "weight": 700, "color": "#303030" } }
+          ] },
+          { "id": "r1", "type": "group", "w": 760, "h": 40, "children": [
+            { "id": "c1", "type": "text", "text": "Contoh Baris", "w": 300, "h": 15, "style": { "size": 13, "weight": 400, "color": "#333333" } }
+          ] }
+        ] }
+      ]
+    }
+  ],
+  "images": [],
+  "icons": []
+}

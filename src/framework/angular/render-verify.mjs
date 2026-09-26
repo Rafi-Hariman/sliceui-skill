@@ -28,6 +28,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { componentMeta } from "../../lib/ts-ast.mjs";
 import { collectStyleFacts, parseCssColor, pxNum, weightNum } from "./verify.mjs";
+import { collectGeometryFacts, collectRenderedGeometry, compareGeometry, GEOMETRY_TOLERANCE } from "./render-geometry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // The dev-only Angular 13 mount fixture (ships with the repo; excluded from the npm `files`).
@@ -59,9 +60,9 @@ const DETERMINISTIC_CSS = `
   *, *::before, *::after { animation: none !important; transition: none !important; }
 `;
 
-/** A tolerated geometry delta in px. Chosen for cross-run/browser subpixel variance; documented in
- *  verify-gate-trust.md §2.3. Position/size and font-size/line-height share this small bound. */
-export const GEOMETRY_TOLERANCE_PX = 2;
+/** Back-compat re-export: the box-size tolerance bound, now centralized per family in
+ *  render-geometry.mjs (GEOMETRY_TOLERANCE). Documented in verify-gate-trust.md §2.3. */
+export const GEOMETRY_TOLERANCE_PX = GEOMETRY_TOLERANCE.box;
 
 /**
  * @param {object} opts
@@ -185,6 +186,19 @@ export async function renderVerify({
     }
 
     const checks = [...styleResults, ...geometryResults];
+    // No false green: if geometry facts exist but NONE is required, the render gate has nothing
+    // blocking to prove — an optional-only result is `unverifiable`, never a `pass`. Mirrors the
+    // exit-3 contract for skipped required checks. Checked before the fail aggregation so a
+    // required mismatch still wins as `visual-fail`.
+    const requiredGeom = geometryFacts.filter((f) => f.required).length;
+    if (geometryFacts.length && !requiredGeom) {
+      return result("unverifiable", checks, [{
+        id: "SUI-RENDER-GEOMETRY-000", category: "ground-truth", severity: "error", status: "skip",
+        detail: `${geometryFacts.length} geometry fact(s) exist but none is required — no blocking geometry check to prove`,
+        trust: "independent",
+        remediation: "add a required geometry fact (root padding, control height, line-height, or divider) or treat this render as unverifiable",
+      }], artifacts, { totalMs: Math.round(performance.now() - t0), runtimeErrors: runtimeErrors.length, blockedRequests: blockedRequests.length });
+    }
     const fails = checks.filter((c) => c.status === "fail");
     // An external request attempt or a captured runtime error invalidates the rendered evidence:
     // the environment is no longer self-contained. These are non-green, never trusted geometry.
@@ -254,58 +268,14 @@ function renderDiag(id, category, detail, remediation) {
   return { id, category, severity: "error", status: "fail", detail, trust: "independent", remediation: remediation ?? detail };
 }
 
-/** Reuse the exact authored-rule facts static verify judges, plus the geometry facts PR 6 adds.
- *  Preserve each fact's own `kind` ("text"/"divider") — the rendered reader dispatches on it. */
+/** Reuse the exact authored-rule facts static verify judges (PR 6A), plus the geometry facts from
+ *  render-geometry.mjs (PR 6B — control/button height, line-height, table box, root padding).
+ *  Preserve each style fact's own `kind` ("text"/"divider") — the rendered reader dispatches on it. */
 function collectDesignFacts(scss, html, transcript) {
   const { comparable } = collectStyleFacts(scss, html, transcript);
   const styleFacts = comparable.map((f) => ({ ...f }));
   const geometryFacts = collectGeometryFacts(transcript);
   return { styleFacts, geometryFacts };
-}
-
-/**
- * Geometry facts (bounded, evidence-backed) — a superset of the style facts static verify already
- * checks. Derived ONLY from transcript literal/structural facts (node w/h/padding/radius/border +
- * text), never from spec.md or resolver hints. Mapping is text/role-based and deterministic;
- * ambiguous or absent mapping skips that fact (never a silent first-pick).
- */
-function collectGeometryFacts(transcript) {
-  const facts = [];
-  // Root padding: the outermost node that declares padding (the page container).
-  const root = transcript.layout.find((n) => n?.padding && Object.values(n.padding).some((v) => v > 0));
-  if (root) {
-    facts.push({
-      id: "SUI-RENDER-GEOMETRY-001", kind: "root-padding", category: "spacing",
-      selector: ".content", where: "root", prop: "padding",
-      design: ["top", "right", "bottom", "left"].map((k) => Number(root.padding[k] ?? 0) || 0),
-      designNodeId: root.id, tolerance: GEOMETRY_TOLERANCE_PX, unit: "px",
-      trust: "literal-design", remediation: "match the design frame's explicit padding",
-    });
-  }
-  // NOTE (PR 6 §18): button/control frame w/h in the transcript are DESIGN FRAME dimensions, not
-  // literal CSS width/height — a correct implementation reaches them via font+padding (or is
-  // deliberately fluid). Comparing getBoundingClientRect().width/height against node.w/node.h
-  // false-fails the correct reference (the "canvas position → internal layout" anti-pattern). Only
-  // facts the output MUST honor literally are compared here: root padding and divider height.
-  // Divider height (distinctive divider carries h=1).
-  let divider = null;
-  (function findDivider(nodes) {
-    for (const n of nodes ?? []) {
-      if (divider) return;
-      if (!n || typeof n !== "object") continue;
-      if (n.type === "divider" && Number(n.h) > 0) { divider = n; return; }
-      if (n.children) findDivider(n.children);
-    }
-  })(transcript.layout);
-  if (divider) {
-    facts.push({
-      id: "SUI-RENDER-GEOMETRY-004", kind: "divider-height", category: "border",
-      selector: "hr", where: "divider", prop: "height", design: Number(divider.h),
-      designNodeId: divider.id, tolerance: 1, unit: "px",
-      trust: "literal-design", remediation: `set the divider line thickness to ${Number(divider.h)}px`,
-    });
-  }
-  return facts;
 }
 
 /** Read the rendered value for a style fact (same normalization as render-mount.mjs). */
@@ -351,68 +321,12 @@ async function readRenderedStyle(page, fact) {
   }
 }
 
-/** Read geometry facts from the mounted DOM (bounding box + computed styles). */
+/** Measure geometry facts (PR 6B): one bounded DOM collection pass, then compare via the
+ *  render-geometry module. A required unmapped/ambiguous fact is non-green; optional skips. */
 async function measureGeometryFacts(page, facts) {
-  const checks = [];
-  for (const fact of facts) {
-    let actual = null;
-    if (fact.kind === "root-padding") {
-      const sides = await page.evaluate((sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return null;
-        const cs = getComputedStyle(el);
-        const num = (v) => (v.endsWith("px") ? Number(parseFloat(v)) : null);
-        return [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map(num);
-      }, fact.selector);
-      actual = sides;
-    } else if (fact.kind === "divider-height") {
-      // The design's `h` for a divider is the LINE thickness, not the hr's total box height
-      // (which includes UA margin). Measure border-top width (the visible rule).
-      actual = await page.evaluate(() => {
-        const hr = document.querySelector("hr");
-        if (!hr) return null;
-        const w = getComputedStyle(hr).borderTopWidth;
-        return w.endsWith("px") ? Number(parseFloat(w)) : null;
-      });
-    } else {
-      // control-height / button-width: map by visible text.
-      actual = await page.evaluate(
-        ({ text, prop }) => {
-          const btns = Array.from(document.querySelectorAll("button, a, .btn")).filter(
-            (el) => (el.textContent || "").trim().includes(text),
-          );
-          if (!btns.length) return null;
-          const r = btns[0].getBoundingClientRect();
-          return prop === "height" ? r.height : r.width;
-        },
-        { text: fact.text, prop: fact.prop },
-      );
-    }
-
-    const ok = fact.kind === "root-padding"
-      ? (actual ?? []).every((v, i) => v !== null && Math.abs(v - fact.design[i]) <= fact.tolerance)
-      : actual !== null && Math.abs(actual - fact.design) <= fact.tolerance;
-
-    checks.push({
-      name: "renderGeometry", id: fact.id, category: fact.category,
-      status: actual == null ? "skip" : (ok ? "pass" : "fail"),
-      trust: fact.trust,
-      detail: actual == null
-        ? `${fact.where} ${fact.prop}: element not mapped (skipped — no silent first-pick)`
-        : (ok ? `${fact.where} ${fact.prop} matches (${formatNum(actual)})`
-           : `${fact.where} ${fact.prop}: actual ${formatNum(actual)}, design ${fact.kind === "root-padding" ? fact.design.join("/") : fact.design} (tolerance ±${fact.tolerance}${fact.unit})`),
-      designNodeId: fact.designNodeId, selector: fact.selector ?? fact.text ?? null,
-      expected: fact.design, actual, delta: fact.kind === "root-padding" ? null : (actual == null ? null : Math.round((actual - fact.design) * 10) / 10),
-      tolerance: fact.tolerance, unit: fact.unit,
-      remediation: ok || actual == null ? null : fact.remediation,
-    });
-  }
-  return checks;
-}
-
-function formatNum(v) {
-  if (Array.isArray(v)) return v.map((x) => x == null ? "?" : x).join("/");
-  return v == null ? "?" : (Math.round(v * 10) / 10);
+  if (!facts.length) return [];
+  const rendered = await collectRenderedGeometry(page, facts);
+  return compareGeometry(facts, rendered);
 }
 
 /** Generate the throwaway component (real template/styles + a synthetic class body). */

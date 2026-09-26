@@ -108,9 +108,31 @@ against the transcript.
   the query string/headers/body) and flips the state to `runtime-fail` (non-green). A captured
   page error also makes the state `runtime-fail` — rendered geometry is never trusted after an
   invalid runtime/network state.
-- **Oracle:** transcript literal/structural facts (root padding, divider thickness, text
-  color/size/weight). `spec.md`/`resolved.json`/`agent-context.md` and pixel similarity are NOT the
-  oracle — screenshot is supporting evidence only.
+- **Oracle:** transcript literal/structural facts only. Measured families (PR 6A + 6B): root padding
+  (`SUI-RENDER-GEOMETRY-001`), control height (`-002`), button frame height (`-003`, optional),
+  divider thickness (`-004`), line-height (`-005`), table frame height (`-008`, optional), plus text
+  color/size/weight (`SUI-RENDER-STYLE-*`). `spec.md`/`resolved.json`/`agent-context.md` and pixel
+  similarity are NOT the oracle — screenshot is supporting evidence only.
+- **Fact semantics & required/optional (`render-geometry.mjs`):** each fact declares its `box`
+  (`border-box` = the design frame IS the rendered box; `structural` = a derived relation). A
+  **required** fact — root padding, control height (a literal input height mapped to the visible
+  control border box), divider thickness, line-height — that is `missing`/`ambiguous`/outside
+  tolerance is `visual-fail` (blocking). An **optional** fact (a button's design-frame height, which
+  a correct implementation legitimately reaches via font+padding, or a table container frame) that
+  mismatches is a non-blocking `warn`; a `missing` optional fact skips. Tolerances are centralized
+  (`GEOMETRY_TOLERANCE`): box `±2px`, line-height `±1px`, divider `±1px`.
+- **Required-count guard (no false green):** if geometry facts exist but **none is required** (e.g.
+  a transcript whose only design fact is an optional button frame), the run is `unverifiable`
+  (exit 3) with a bounded `SUI-RENDER-GEOMETRY-000` diagnostic — an optional-only render proves
+  nothing blocking, so it can never be `pass`. Mirrors §9.1's exit-3 rule for skipped required
+  checks. The guard runs **before** the fail aggregation, so a required mismatch still wins as
+  `visual-fail`, and it does not disturb the runtime/network precedence.
+- **Mapping contract:** a fact resolves to `unique` (one visible candidate → measured), `missing`,
+  or `ambiguous` (>1 visible candidate). A mapper **never first-picks**: required `missing`/
+  `ambiguous` → non-green with a *mapping* diagnostic; optional `missing` → skip, optional
+  `ambiguous` → non-blocking warn. Non-rendered elements are filtered before counting (a hidden
+  duplicate cannot create false ambiguity); a nested text duplicate uses one documented deterministic
+  refinement, never DOM order.
 - **Artifacts:** PNG + report under `.sliceui/artifacts/<name>/render/` only with
   `--preserve-render-artifacts`; otherwise `/tmp` and cleaned on success. Never writes the target
   project, never installs dependencies, never commits screenshots.

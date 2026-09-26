@@ -83,13 +83,53 @@ a replacement** for static verify. Its trust model:
   target project, never installs dependencies. Artifacts live under
   `.sliceui/artifacts/<name>/render/` only with `--preserve-render-artifacts` (else `/tmp` + cleanup).
 
-### 2.4 PR 6A / PR 6B boundary
+### 2.4 Geometry coverage (PR 6B)
 
 PR 6A = render foundation + safety (opt-in mount, failure boundaries, network isolation, package
-contract, the current bounded geometry checks: root padding, divider thickness, text
-color/size/weight). PR 6B = geometry coverage expansion (control heights, button proportions, major
-gaps, table density, footer/pagination geometry, relative alignment, overflow/clipping, remaining
-border/radius + typography) — a separate required follow-up, not part of PR 6A.
+contract, the first bounded checks: root padding, divider thickness, text color/size/weight).
+PR 6B extends **measurement only** (`render-geometry.mjs`) with the families that have BOTH a
+transcript-derivable DOM mapping AND a real measured comparison:
+
+| fact | id | required | tolerance |
+| :--- | :--- | :--- | :--- |
+| root padding | `SUI-RENDER-GEOMETRY-001` | yes | ±2px |
+| control height (input) | `SUI-RENDER-GEOMETRY-002` | yes | ±2px |
+| button frame height | `SUI-RENDER-GEOMETRY-003` | **optional** (design frame ≠ literal CSS box) | ±2px |
+| divider thickness | `SUI-RENDER-GEOMETRY-004` | yes | ±1px |
+| line-height | `SUI-RENDER-GEOMETRY-005` | yes | ±1px |
+| table frame height | `SUI-RENDER-GEOMETRY-008` | **optional** (container frame) | ±2px |
+
+**Mapping contract (PR 6B corrective).** Each fact resolves to exactly one of `unique` (one
+VISIBLE candidate → measured), `missing` (zero visible candidates) or `ambiguous` (more than one
+visible candidate). A geometry mapper **never first-picks**:
+- **required** + `missing`/`ambiguous` → **non-green** (`fail`), with a *mapping* diagnostic (not a
+  geometry mismatch — the value was never measured);
+- **optional** + `missing` → `skip`; **optional** + `ambiguous` → non-blocking `warn`;
+- non-rendered elements (`display:none`, `visibility:hidden|collapse`, `hidden`, ancestor-hidden)
+  are filtered **before** counting, so a hidden duplicate cannot create false ambiguity;
+- a nested parent/child text duplicate is refined by one documented deterministic rule (own visible
+  text exact-match, then authored-class preference) — DOM order alone never selects.
+
+A **required** fact that is outside tolerance is `visual-fail` (blocking); an **optional** fact that
+mismatches is a non-blocking `warn`. Tolerances are centralized in `GEOMETRY_TOLERANCE` — no
+scattered magic numbers.
+
+**Aggregation (no false green).** The render state is derived from the check set, not from "nothing
+failed" alone: a required mismatch is `visual-fail`; a required `missing`/`ambiguous` mapping is
+non-green; an optional mismatch/ambiguity is a non-blocking `warn`. Critically, when geometry facts
+exist but **none is required** (a transcript whose only design fact is an optional button frame — a
+button's design-frame height can never be blocking), there is nothing left to prove, so the run is
+**`unverifiable` (exit 3)**, never `pass`. A runtime or network failure still outranks all geometry
+results.
+
+**Not implemented (PR 6C scope):** button proportions/width, flex `gap`, table header/row/cell
+density, pagination geometry, relative alignment, overflow/clipping, border-width/style, and radius.
+These lack a transcript-derivable DOM target without adding fixture selector maps or production test
+IDs (which PR 6B does not add); measuring them from tag/semantic guesses would be a fake oracle.
+
+**Fixture ownership:** the real `tester.xml` design contains PII (student names, NIM IDs, amounts)
+and is intentionally **not** a repository fixture. The checked-in synthetic fixture
+`test/fixtures/render-geometry/` carries only generic, non-sensitive facts.
 
 ## 3. Rules
 
