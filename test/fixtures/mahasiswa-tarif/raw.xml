@@ -705,7 +705,7 @@
                       <letterSpacing value="0" unit="PERCENT" />
                       <lineHeight unit="AUTO" />
                     </Text>
-                    <Text id="16601:46237" name="_5915001" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25915001" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                    <Text id="16601:46237" name="_0000001" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="00000001" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                       <fills>
                         <fill blendMode="NORMAL" color="#303030" />
                       </fills>
@@ -713,7 +713,7 @@
                       <letterSpacing value="0" unit="PERCENT" />
                       <lineHeight unit="AUTO" />
                     </Text>
-                    <Text id="16601:46238" name="Raisha_Adinda_Emoney" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Raisha Adinda Emoney" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                    <Text id="16601:46238" name="Mahasiswa_Contoh_A" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Mahasiswa Contoh A" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                       <fills>
                         <fill blendMode="NORMAL" color="#303030" />
                       </fills>
@@ -721,16 +721,7 @@
                       <letterSpacing value="0" unit="PERCENT" />
                       <lineHeight unit="AUTO" />
                     </Text>
-                    <Text id="16601:46239" name="Teknologi_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Teknologi Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
-                      <fills>
-                        <fill blendMode="NORMAL" color="#303030" />
-                      </fills>
-                      <constraints horizontal="MIN" vertical="MIN" />
-                      <fontName family="Roboto" style="Regular" />
-                      <letterSpacing value="0" unit="PERCENT" />
-                      <lineHeight unit="AUTO" />
-                    </Text>
-                    <Text id="16601:46240" name="S2_-_Teknik_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Teknik Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                    <Text id="16601:46239" name="Fakultas_Contoh_Teknologi" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Fakultas Contoh Teknologi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                       <fills>
                         <fill blendMode="NORMAL" color="#303030" />
                       </fills>
@@ -739,7 +730,7 @@
                       <letterSpacing value="0" unit="PERCENT" />
                       <lineHeight unit="AUTO" />
                     </Text>
-                    <Text id="16601:46241" name="S2_Teknik_Industri_-__Kelas_blok_" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Teknik Industri - (Kelas blok)" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                    <Text id="16601:46240" name="Program_Studi_Contoh_A" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Program Studi Contoh A" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                       <fills>
                         <fill blendMode="NORMAL" color="#303030" />
                       </fills>
@@ -748,7 +739,16 @@
                       <letterSpacing value="0" unit="PERCENT" />
                       <lineHeight unit="AUTO" />
                     </Text>
-                    <Text id="16601:46242" name="_4.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="44.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                    <Text id="16601:46241" name="Skema_Contoh_A" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Skema Contoh A" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                      <fills>
+                        <fill blendMode="NORMAL" color="#303030" />
+                      </fills>
+                      <constraints horizontal="MIN" vertical="MIN" />
+                      <fontName family="Roboto" style="Regular" />
+                      <letterSpacing value="0" unit="PERCENT" />
+                      <lineHeight unit="AUTO" />
+                    </Text>
+                    <Text id="16601:46242" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="10.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                       <fills>
                         <fill blendMode="NORMAL" color="#303030" />
                       </fills>
@@ -834,7 +834,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46247" name="_5231045" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25231045" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46247" name="_0000002" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="00000002" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -842,7 +842,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46248" name="Aqshal_Marbel" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Aqshal Marbel" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46248" name="Mahasiswa_Contoh_B" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Mahasiswa Contoh B" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -850,16 +850,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46249" name="Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
-                          <fills>
-                            <fill blendMode="NORMAL" color="#303030" />
-                          </fills>
-                          <constraints horizontal="MIN" vertical="MIN" />
-                          <fontName family="Roboto" style="Regular" />
-                          <letterSpacing value="0" unit="PERCENT" />
-                          <lineHeight unit="AUTO" />
-                        </Text>
-                        <Text id="16601:46250" name="S2_-_Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46249" name="Fakultas_Contoh_Kesehatan" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Fakultas Contoh Kesehatan" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -868,7 +859,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46251" name="S2_Kedokteran_-_Reguler__Alumni_" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Kedokteran - Reguler (Alumni)" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46250" name="Program_Studi_Contoh_B" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Program Studi Contoh B" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -877,7 +868,16 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46252" name="_2.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="52.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46251" name="Skema_Contoh_B" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Skema Contoh B" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46252" name="_2.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="12.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -972,7 +972,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46258" name="_5910220" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25910220" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46258" name="_0000003" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="00000003" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -980,7 +980,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46259" name="Farrij_Rifufu" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Farrij Rifufu" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46259" name="Mahasiswa_Contoh_C" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Mahasiswa Contoh C" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -988,16 +988,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46260" name="Teknologi_Industri" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Teknologi Industri" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
-                          <fills>
-                            <fill blendMode="NORMAL" color="#303030" />
-                          </fills>
-                          <constraints horizontal="MIN" vertical="MIN" />
-                          <fontName family="Roboto" style="Regular" />
-                          <letterSpacing value="0" unit="PERCENT" />
-                          <lineHeight unit="AUTO" />
-                        </Text>
-                        <Text id="16601:46261" name="S2_-_Informatika" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Informatika" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46260" name="Fakultas_Contoh_Teknologi" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Fakultas Contoh Teknologi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1006,7 +997,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46262" name="S2_Teknik_Informatika_-_Eksekutif" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Teknik Informatika - Eksekutif " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46261" name="Program_Studi_Contoh_C" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Program Studi Contoh C" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1015,7 +1006,16 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46263" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="40.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46262" name="Skema_Contoh_C" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Skema Contoh C" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46263" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="10.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1110,7 +1110,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46269" name="_5324087" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25324087" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46269" name="_0000004" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="00000004" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1118,7 +1118,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46270" name="Yudhistira_Arsitek" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Yudhistira Arsitek" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46270" name="Mahasiswa_Contoh_D" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Mahasiswa Contoh D" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1126,16 +1126,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46271" name="Ekonomi_dan_Bisnis" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Ekonomi dan Bisnis" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
-                          <fills>
-                            <fill blendMode="NORMAL" color="#303030" />
-                          </fills>
-                          <constraints horizontal="MIN" vertical="MIN" />
-                          <fontName family="Roboto" style="Regular" />
-                          <letterSpacing value="0" unit="PERCENT" />
-                          <lineHeight unit="AUTO" />
-                        </Text>
-                        <Text id="16601:46272" name="S2_-_Manajemen" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Manajemen" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46271" name="Fakultas_Contoh_Ekonomi" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Fakultas Contoh Ekonomi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1144,7 +1135,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46273" name="S2_Manajemen_-_Reguler" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Manajemen - Reguler " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46272" name="Program_Studi_Contoh_D" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Program Studi Contoh D" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1153,7 +1144,16 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46274" name="_3.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="43.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46273" name="Skema_Contoh_D" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Skema Contoh D" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46274" name="_1.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="11.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1248,7 +1248,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46280" name="_5922316" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="25922316" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46280" name="_0000005" maskType="ALPHA" strokeAlign="OUTSIDE" x="56" y="12" width="68" height="16" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="00000005" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1256,7 +1256,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46281" name="Rafi_Farmasi" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Rafi Farmasi" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46281" name="Mahasiswa_Contoh_E" maskType="ALPHA" strokeAlign="OUTSIDE" x="139" y="12" width="202" height="16" layoutGrow="1" layoutSizingHorizontal="FILL" fontSize="14" fontName="Symbol(figma.mixed)" fontWeight="400" hyperlink="" characters="Mahasiswa Contoh E" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1264,16 +1264,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46282" name="Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
-                          <fills>
-                            <fill blendMode="NORMAL" color="#303030" />
-                          </fills>
-                          <constraints horizontal="MIN" vertical="MIN" />
-                          <fontName family="Roboto" style="Regular" />
-                          <letterSpacing value="0" unit="PERCENT" />
-                          <lineHeight unit="AUTO" />
-                        </Text>
-                        <Text id="16601:46283" name="S2_-_Kedokteran" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 - Kedokteran" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46282" name="Fakultas_Contoh_Kesehatan" maskType="ALPHA" strokeAlign="OUTSIDE" x="356" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Fakultas Contoh Kesehatan" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1282,7 +1273,7 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46284" name="S2_Kedokteran_-_Eksekutif" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="S2 Kedokteran - Eksekutif " type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46283" name="Program_Studi_Contoh_B" maskType="ALPHA" strokeAlign="OUTSIDE" x="563" y="12.5" width="192" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Program Studi Contoh B" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>
@@ -1291,7 +1282,16 @@
                           <letterSpacing value="0" unit="PERCENT" />
                           <lineHeight unit="AUTO" />
                         </Text>
-                        <Text id="16601:46285" name="_0.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="70.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                        <Text id="16601:46284" name="Skema_Contoh_E" maskType="ALPHA" strokeAlign="OUTSIDE" x="770" y="12.5" width="235" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="Skema Contoh E" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
+                          <fills>
+                            <fill blendMode="NORMAL" color="#303030" />
+                          </fills>
+                          <constraints horizontal="MIN" vertical="MIN" />
+                          <fontName family="Roboto" style="Regular" />
+                          <letterSpacing value="0" unit="PERCENT" />
+                          <lineHeight unit="AUTO" />
+                        </Text>
+                        <Text id="16601:46285" name="_5.000.000" maskType="ALPHA" strokeAlign="OUTSIDE" x="1020" y="12.5" width="120" height="15" fontSize="13" fontWeight="400" hyperlink="" characters="15.000.000" type="TEXT" textAlignVertical="TOP" textAutoResize="HEIGHT">
                           <fills>
                             <fill blendMode="NORMAL" color="#303030" />
                           </fills>

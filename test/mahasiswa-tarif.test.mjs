@@ -11,6 +11,9 @@
 //      else it falls to native-plain (and a wrong fa-sync-alt — FA5 — on a font-awesome@4.7 project).
 //
 // This test loads the raw export once and proves the whole chain: parse → resolve → verify.
+// FIX-001: the fixture's mock student table uses deterministic SYNTHETIC values (no real names,
+// NIMs, or amounts) — see the structural checks below, which assert the sanitized shape without
+// ever embedding a former private value.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -133,4 +136,33 @@ test("mahasiswa-tarif: containerPadding catches the 5px fallback and accepts 20p
     conventions: CONVENTIONS, transcript, rawXml: RAW_XML,
   }).checks.find((c) => c.name === "containerPadding");
   assert.equal(fixed.status, "pass", `padding: 20px must pass — ${fixed.detail}`);
+});
+
+// ---------- FIX-001: fixture privacy (synthetic mock data) ----------
+
+test("FIX-001: the mock student table uses reserved synthetic values, never real data", () => {
+  // Positive markers prove the fixture is the sanitized version; structural invariants prove the
+  // five-row mock table is intact. No former private literal is embedded here.
+  assert.match(RAW_XML, /Mahasiswa Contoh [A-E]/, "synthetic person names present");
+  assert.match(RAW_XML, /Fakultas Contoh/, "synthetic faculty labels present");
+  assert.match(RAW_XML, /Program Studi Contoh/, "synthetic program labels present");
+  assert.match(RAW_XML, /Skema Contoh/, "synthetic scheme labels present");
+
+  const chars = [...RAW_XML.matchAll(/characters="([^"]*)"/g)].map((m) => m[1]);
+  // Five mock rows survived: five synthetic person cells, in a stable order.
+  const names = chars.filter((t) => /^Mahasiswa Contoh [A-E]$/.test(t));
+  assert.equal(names.length, 5, "five synthetic student rows preserved");
+
+  // Every standalone 8-digit cell is one of the reserved synthetic identifiers — a real-looking
+  // student id could not slip back in without tripping this bounded, non-reconstructing guard.
+  const idCells = chars.filter((t) => /^\d{8}$/.test(t));
+  assert.equal(idCells.length, 5, "exactly five identifier cells remain");
+  const reserved = new Set(["00000001", "00000002", "00000003", "00000004", "00000005"]);
+  assert.ok(idCells.every((t) => reserved.has(t)), "every identifier is a reserved synthetic id");
+
+  // Financial cells preserve the dotted-thousands format without a real amount.
+  const amountCells = chars.filter((t) => /^\d{1,2}\.\d{3}\.\d{3}$/.test(t));
+  assert.equal(amountCells.length, 5, "five financial cells remain");
+  assert.ok(amountCells.every((t) => ["10.000.000", "11.000.000", "12.000.000", "15.000.000"].includes(t)),
+    "every amount is a reserved synthetic amount");
 });

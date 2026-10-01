@@ -69,6 +69,12 @@ Does not restate command usage (see `getting-started.md` + README) or product vi
 
 ## 9. Historical (Non-SDD) Material
 
+Per 2026-10-01, `docs/SLICEUI-SPEC-CURRENT-CONDITION.md` is a **current-condition technical spec**
+(how SliceUI works, how it reads XML, the expected agent exec flow) — a companion to
+`docs/SLICEUI-OVERVIEW.md`, not historical. Both live one level up in `docs/` and are pointers, not
+SDD owners; the registry doc for durable behavior remains `foundation/architecture.md` +
+`development/api-contract.md`.
+
 Under `docs/archive/` — input only, superseded where marked. Nothing here is authoritative.
 
 - `SLICEUI-GAP-ANALYSIS-2026-09-05.md` (superseded, v0.12.1 audit), `REMEDIATION-PLAN-2026-09-05.md`, `BRAINSTORM-sliceui-reality.md`
