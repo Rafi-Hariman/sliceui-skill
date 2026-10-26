@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { extractConventions, renderConventionsMd, mergeGoldenClasses } from "../src/framework/angular/conventions.mjs";
+import { extractConventions, renderConventionsMd, mergeGoldenClasses, mergeProjectPolicy } from "../src/framework/angular/conventions.mjs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures", "conventions");
@@ -50,9 +52,9 @@ test("componentAnatomy: well + skeleton + table + pagination floor", () => {
   assert.equal(a.tableTag, "uii-table", "table tag detected");
   assert.equal(a.skeletonTag, "uii-table-skeleton", "skeleton tag detected");
   assert.equal(a.pagination, true, "pagination text detected");
-  // "Menampilkan 1-10 dari 20 data" still sets pagination=true, but the mock-row CAP stays 15
-  // (the transcript total no longer raises the count — report §6.5).
-  assert.equal(a.mockRowsFloor, 15, "mockRowsFloor is a fixed cap of 15 (not the pagination total)");
+  // "Menampilkan 1-10 dari 20 data" still sets pagination=true, but the mock-row count is now a
+  // POLICY (config.json), never a universal 15 — the transcript total no longer drives a count.
+  assert.equal(a.mockRowsFloor, null, "mockRowsFloor is null by default (policy-driven, not the pagination total)");
 });
 
 test("naming: prefix + dominant event handler", () => {
@@ -65,8 +67,27 @@ test("graceful on empty project (no files)", () => {
   const c = extractConventions(join(FIX, "does-not-exist"), { prefix: null });
   assert.deepEqual(c.classVocabulary, []);
   assert.deepEqual(c.ngDeepCorpus, []);
-  assert.equal(c.componentAnatomy.mockRowsFloor, 15, "default floor 15");
+  assert.equal(c.componentAnatomy.mockRowsFloor, null, "no universal floor (policy-driven)");
   assert.equal(c.naming.prefix, null);
+});
+
+test("mergeProjectPolicy: config mockRowsFloor overrides the null default; absent/invalid leaves null", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sliceui-policy-"));
+  mkdirSync(join(dir, ".sliceui"), { recursive: true });
+  const conventions = { componentAnatomy: { tableTag: "uii-table", mockRowsFloor: null } };
+
+  // No config.json → unchanged.
+  assert.equal(mergeProjectPolicy(dir, conventions).componentAnatomy.mockRowsFloor, null, "absent config → null");
+
+  // Explicit positive policy → injected.
+  writeFileSync(join(dir, ".sliceui", "config.json"), JSON.stringify({ mockRowsFloor: 20 }));
+  assert.equal(mergeProjectPolicy(dir, conventions).componentAnatomy.mockRowsFloor, 20, "config floor 20 injected");
+
+  // Non-positive → unchanged (policy must be a positive number).
+  writeFileSync(join(dir, ".sliceui", "config.json"), JSON.stringify({ mockRowsFloor: 0 }));
+  assert.equal(mergeProjectPolicy(dir, conventions).componentAnatomy.mockRowsFloor, null, "floor 0 ignored");
+
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("ngDeepCorpus: flags reusable vs component-specific blocks", () => {

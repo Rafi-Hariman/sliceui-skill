@@ -149,6 +149,10 @@ export function behaviorBindingRecommendations(transcript, pilar = null) {
       rejected: [
         { value: "::ng-deep .table-footer / .ugw-pagination-container alignment override", reason: "public component input `uii-table.paginationAlign` controls this behavior — behavioral ::ng-deep alignment is rejected (never aligned reliably; 2026-09-24 report §4.4)" },
       ],
+      // Structured selector tokens the rejected CSS touches, so the recipe-state resolver can mark
+      // the matching corpus blocks `rejected` (and thus keep them OUT of required coverage) instead
+      // of free-text matching. Consumed by design-resolution.resolveRecipes.
+      rejectedSelectors: [".table-footer", ".ugw-pagination-container"],
       provenance: {
         design: [{ type: "structural-design-fact", nodeId: footer.nodeId, property: "justify", value: "space-between" }],
         project: verified

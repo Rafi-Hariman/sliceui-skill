@@ -13,12 +13,14 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { detectProject, writeContextSectionFiles } from "./detect.mjs";
 import { parseEnvContent } from "../lib/env.mjs";
-import { renderConventionsMd, mergeGoldenReferences } from "../framework/angular/conventions.mjs";
+import { renderConventionsMd, mergeGoldenReferences, mergeProjectPolicy } from "../framework/angular/conventions.mjs";
 import { renderConventionsMd as renderVueConventionsMd } from "../framework/vue-sfc/conventions.mjs";
+import { withMinedDeclarations } from "../project/scss-mine.mjs";
 import { refereeArtifacts, codebaseEvidenceFindings } from "../lib/referee.mjs";
 import { buildRefereeVerdict, REFEREE_VERDICT_FILE } from "../lib/referee-verdict.mjs";
 import { loadPilar } from "../lib/pilar-loader.mjs";
 import { splitProjectContext } from "../lib/snapshot.mjs";
+import { renderHandoffMd } from "../lib/handoff.mjs";
 
 const GITIGNORE_LINES = [".sliceui/", ".env.local"];
 
@@ -56,7 +58,7 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
       forceTranscribe: true,
       defaultTier: "auto",
       references: [],
-      notes: "forceTranscribe=true: always transcribe images to text (model-agnostic). references = paths to hand-sliced 'golden' components the agent reads FIRST as writing patterns.",
+      notes: "forceTranscribe=true: always transcribe images to text (model-agnostic). references = paths to hand-sliced 'golden' components the agent reads FIRST as writing patterns. mockRowsFloor = optional positive number (project policy): when set, a paginated table renders exactly that many mock rows; omit for no fixed floor.",
     }, null, 2) + "\n");
     created.push(".sliceui/config.json");
   }
@@ -135,7 +137,8 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
   // profile gates the org-private grammar: conventions consumers (verify/conventions-mining)
   // must know whether pilar/@uiigateway idiom is in play.
   if (ctx.profile) conventions.profile = ctx.profile;
-  conventions = mergeGoldenReferences(root, conventions);
+  conventions = mergeProjectPolicy(root, mergeGoldenReferences(root, conventions));
+  conventions = await withMinedDeclarations(root, conventions, ctx.framework?.id);
   const convPath = join(sliceuiDir, "conventions.json");
   writeFileSync(convPath, JSON.stringify({ ...conventions, generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   created.push(".sliceui/conventions.json");
@@ -150,6 +153,14 @@ export async function initProject(rootDir, { keyFrom = null, frameworkId = null,
     : renderConventionsMd(conventions, fwLabel, ctx.framework?.id);
   writeFileSync(convMdPath, convMd);
   created.push(".sliceui/conventions.md");
+
+  // handoff.md — canonical project-facing contract for the coding agent (remediation Phase 1).
+  // Compact; references real source paths; never inlines the class vocabulary or ::ng-deep
+  // corpus (those stay in conventions.md). Written for every framework (non-Angular degrades
+  // honestly — deep convention mining is Angular-first).
+  const handoffMd = renderHandoffMd(projectContext, new Date().toISOString());
+  writeFileSync(join(sliceuiDir, "handoff.md"), handoffMd);
+  created.push(".sliceui/handoff.md");
 
   // uii-profile.md — the org's action→authKey→icon grammar. Written ONLY for UII projects
   // (fingerprinted by detect); a generic project never receives the org grammar on disk.

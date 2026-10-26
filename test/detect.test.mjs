@@ -69,7 +69,7 @@ test("project-context v4: provenance, tokens, conventions, module structure, sta
   assert.ok(ctx.conventions, "conventions present");
   assert.ok(Array.isArray(ctx.conventions.classVocabulary), "classVocabulary array");
   assert.ok(Array.isArray(ctx.conventions.ngDeepCorpus), "ngDeepCorpus array");
-  assert.equal(ctx.conventions.componentAnatomy.mockRowsFloor, 15, "default mockRowsFloor 15");
+  assert.equal(ctx.conventions.componentAnatomy.mockRowsFloor, null, "no universal mock-row floor (policy-driven, §13)");
   assert.equal(ctx.conventions.naming.prefix, "app", "naming prefix from detect");
   // module structure + staleness
   assert.equal(ctx.appModulePath, "src/app/app.module.ts");

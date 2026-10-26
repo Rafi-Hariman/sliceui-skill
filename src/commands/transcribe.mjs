@@ -58,6 +58,28 @@ export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}
   return { ok: false, reason: "all-tiers-failed", notes };
 }
 
+/** Persist a successful transcription into `.sliceui/artifacts/<stem>/` (json + md + meta).
+ *  Shared by `transcribe` and `inspect` so the two never drift on the on-disk contract. Returns
+ *  the output paths for callers that need them (e.g. `transcribe` prints the md path). */
+export function persistTranscript(result, abs, cwdDir) {
+  const stem = basename(abs).replace(/\.(xml|figml|png|jpe?g|webp)$/i, "");
+  const outDir = join(cwdDir, ".sliceui", "artifacts", stem);
+  mkdirSync(outDir, { recursive: true });
+  const jsonPath = join(outDir, "transcript.json");
+  const mdPath = join(outDir, "transcript.md");
+  const metaPath = join(outDir, "transcript.meta.json");
+  writeFileSync(jsonPath, JSON.stringify(result.transcript, null, 2) + "\n");
+  writeFileSync(mdPath, renderTranscript(result.transcript));
+  writeFileSync(metaPath, JSON.stringify({
+    tier: result.tier,
+    source: result.source,
+    image: abs,
+    degraded: Boolean(result.degraded),
+    notes: result.notes ?? [],
+  }, null, 2) + "\n");
+  return { outDir, jsonPath, mdPath, metaPath };
+}
+
 export async function main(argv) {
   const forceStatic = argv.includes("--static");
   const args = argv.filter((a) => a !== "--static");
@@ -78,21 +100,7 @@ export async function main(argv) {
     return 3;
   }
 
-  const stem = basename(abs).replace(/\.(xml|figml|png|jpe?g|webp)$/i, "");
-  const outDir = join(process.cwd(), ".sliceui", "artifacts", stem);
-  mkdirSync(outDir, { recursive: true });
-  const mdPath = join(outDir, `transcript.md`);
-  const jsonPath = join(outDir, `transcript.json`);
-  const metaPath = join(outDir, `transcript.meta.json`);
-  writeFileSync(jsonPath, JSON.stringify(result.transcript, null, 2) + "\n");
-  writeFileSync(mdPath, renderTranscript(result.transcript));
-  writeFileSync(metaPath, JSON.stringify({
-    tier: result.tier,
-    source: result.source,
-    image: abs,
-    degraded: Boolean(result.degraded),
-    notes: result.notes,
-  }, null, 2) + "\n");
+  const { mdPath } = persistTranscript(result, abs, process.cwd());
 
   if (result.degraded) {
     process.stderr.write(

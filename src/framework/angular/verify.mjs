@@ -34,6 +34,8 @@ import { walkNodes } from "../../lib/walk-nodes.mjs";
 import { parseFigml } from "../../lib/figml-parse.mjs";
 import { unusedImports, unusedConstructorParams } from "../../lib/ts-ast.mjs";
 import { decorateCheck, primaryState } from "../../lib/diagnostics.mjs";
+import { rejectedSelectorSet, isRejectedRecipe } from "../../lib/design-resolution.mjs";
+import { behaviorBindingRecommendations } from "../../lib/resolution-policy.mjs";
 
 /** Pseudo-class/state tokens that never count as a distinctive class token of a selector. */
 const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child", "nth-child", "before", "after", "checked", "disabled"]);
@@ -54,15 +56,19 @@ const PSEUDO = new Set(["hover", "focus", "active", "first-child", "last-child",
  * @returns {{ checks: Array, pass: boolean, failCount: number, skipCount: number, warnCount: number }}
  */
 export function verifyComponent({ scss = "", html = "", ts = "", conventions, transcript, rawXml, pilar = null, modules = "", framework = null } = {}) {
+  // Canonical recipe rejection (focused remediation C): a ::ng-deep selector superseded by a
+  // public component input is REJECTED and must never be demanded by scssCoverage. Uses the SAME
+  // helper inspect consumes, so the context generator and the checker can never contradict.
+  const rejectedRecipes = rejectedSelectorSet(behaviorBindingRecommendations(transcript, pilar));
   const rawChecks = [
     checkScssCompiles(scss),
-    checkScssCoverage(scss, html, conventions?.ngDeepCorpus),
+    checkScssCoverage(scss, html, conventions?.ngDeepCorpus, rejectedRecipes),
     checkTextCoverage(html, transcript),
     checkTableBindings(html, rawXml, pilar),
     checkPilarBindings(html, pilar),
     checkDeadCode(ts),
     checkClassVocabulary(scss + " " + html + " " + ts, conventions?.classVocabulary, conventions?.ngDeepCorpus),
-    checkAnatomy(html, conventions?.componentAnatomy),
+    checkAnatomy(html, conventions?.componentAnatomy, transcript),
     checkMockRowCount(html, ts, conventions?.componentAnatomy, transcript),
     checkNoHashedSelectors(scss),
     checkNoBareNgDeep(scss, conventions?.ngDeepCorpus),
@@ -137,7 +143,7 @@ function checkScssCompiles(scss) {
 
 // ---------- 1. scssCoverage ----------
 
-function checkScssCoverage(scss, html, ngDeepCorpus = []) {
+function checkScssCoverage(scss, html, ngDeepCorpus = [], rejectedRecipes = new Set()) {
   // Did the LIBRARY-INTERNAL styling idioms survive into the output as *live rules* — not just
   // as a stray string somewhere? Matching is per class token but only counts a token that
   // appears inside a non-empty CSS rule (comments stripped), so a token left in a comment, used
@@ -146,7 +152,7 @@ function checkScssCoverage(scss, html, ngDeepCorpus = []) {
   // selectors only (mirroring conventions.mjs's reusable test). Micro-effect selectors
   // (`toggle-caret`, `ngx-select__toggle`) are ADVISORY: a faithful slice may drop them without
   // breaking the dropdown, so their absence is a warn, never a fail.
-  const relevant = relevantCorpus(ngDeepCorpus, html);
+  const relevant = relevantCorpus(ngDeepCorpus, html).filter((c) => !isRejectedRecipe(c.selector, c.block, rejectedRecipes));
   if (!relevant.length) {
     return { name: "scssCoverage", status: "skip", detail: "no reusable ::ng-deep blocks for the capabilities in play" };
   }
@@ -474,6 +480,22 @@ const FRAMEWORK_BUTTONS = new Set([
   "btn-outline-light", "btn-outline-dark",
 ]);
 
+/** Canonical button class for a classVocabulary remediation hint — the project's own btn-* if one
+ *  is known, else the framework default `.btn-primary`. Never invents a class. */
+function canonicalButtonClass(known) {
+  for (const c of ["btn-primary", "btn-secondary", "btn-default", "btn-outline-primary"]) {
+    if (known.has(c)) return c;
+  }
+  return "btn-primary";
+}
+
+/** A project structural-wrapper class for the remediation hint (e.g. `.filter-*`, `*-col`), or
+ *  null when none exists — the hint must never invent a wrapper. */
+function structuralWrapperHint(classVocabulary) {
+  const names = (classVocabulary ?? []).map((c) => c.name);
+  return names.find((n) => /filter|search|action|col|group|container|wrapper/i.test(n)) ?? null;
+}
+
 function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []) {
   // Known reusable classes = HTML class="…" vocabulary ∪ the SCSS label taxonomy
   // (::ng-deep .label-custom-* blocks). The label taxonomy lives in SCSS + TS string
@@ -518,11 +540,17 @@ function checkClassVocabulary(generated, classVocabulary = [], ngDeepCorpus = []
   }
 
   if (badButtons.length) {
+    // Final remediation §9 — an invented btn-* is still a hard fail, but the failure must teach a
+    // valid remediation path: the canonical button class + scope design-specific delta through an
+    // existing structural wrapper. Derived from the project's own vocabulary, never hard-coded.
+    const canonical = canonicalButtonClass(known);
+    const wrapper = structuralWrapperHint(classVocabulary);
     return {
       name: "classVocabulary",
       status: "fail",
-      detail: `invented button class(es): ${badButtons.join(", ")} — use the project's btn-* classes`,
+      detail: `invented button class(es): ${badButtons.join(", ")} — use the project's button class (e.g. \`.${canonical}\`)${wrapper ? ` and scope design-specific delta through an existing structural wrapper (e.g. \`.${wrapper} .${canonical} { … }\`)` : ""}`,
       inventedButtons: badButtons,
+      remediation: { canonicalButton: canonical, structuralWrapper: wrapper },
     };
   }
   if (invented.length) {
@@ -1602,23 +1630,38 @@ export function parseCssColor(v) {
 
 // ---------- 5. anatomy ----------
 
-function checkAnatomy(html, anatomy = {}) {
+function checkAnatomy(html, anatomy = {}, transcript = null) {
   const hasTable = /<(uii-table|ngx-datatable|mat-table)(?!-skeleton)\b/i.test(html);
   if (!anatomy.tableTag && !hasTable) {
     return { name: "anatomy", status: "skip", detail: "no table anatomy to check" };
   }
-  // The skeleton is a LOADING-state structure. "STRUCTURE = XML/TRANSCRIPT ONLY" is SliceUI's
-  // hardest rule — demanding a skeleton the design never shows forces the agent to ADD an
-  // isLoading/*ngIf wrapper that contradicts it (2026-09-11 F11). Downgrade to a WARN: the
-  // skeleton is a good-to-have when the project loads data async, never a blocking fail.
-  if (hasTable && anatomy.skeletonTag && !new RegExp(`<${anatomy.skeletonTag}\\b`, "i").test(html)) {
+  // Skeleton is a project LOADING convention, not a design requirement (render-reality §8). A
+  // static FIGML frame normally has no loading state, so a missing skeleton is NOT warned by
+  // default — only when the design actually evidences a loading state. This removes the
+  // always-on "skeleton missing" noise.
+  if (designShowsLoading(transcript) && anatomy.skeletonTag && !new RegExp(`<${anatomy.skeletonTag}\\b`, "i").test(html)) {
     return {
       name: "anatomy",
       status: "warn",
-      detail: `table present but <${anatomy.skeletonTag}> loading state missing — add it only if the design/UX evidences a loading state (never a hard fail: structure = XML only)`,
+      detail: `design evidences a loading state but <${anatomy.skeletonTag}> is missing — add the skeleton the design shows`,
     };
   }
-  return { name: "anatomy", status: "pass", detail: "table + skeleton structure present" };
+  return { name: "anatomy", status: "pass", detail: "table structure present (no design loading evidence; skeleton optional)" };
+}
+
+/** Does the design evidence a loading/skeleton state? Best-effort from visible text/names — a
+ *  static FIGML frame normally does not, so this is false in the common case. */
+function designShowsLoading(transcript) {
+  const walk = (nodes) => {
+    for (const n of nodes ?? []) {
+      if (!n || typeof n !== "object") continue;
+      const s = `${n.text ?? ""} ${n.description ?? ""} ${n.glyphName ?? ""}`;
+      if (/skeleton|loading|memuat|loader|spinner/i.test(s)) return true;
+      if (walk(n.children)) return true;
+    }
+    return false;
+  };
+  return walk(transcript?.layout);
 }
 
 // ---------- 6. mockRowCount ----------
@@ -1660,20 +1703,31 @@ function checkMockRowCount(html, ts, anatomy = {}, transcript) {
       detail: "no paginated library table (uii-table/ngx-datatable/mat-table) — mock-row floor not applicable (plain/detail list)",
     };
   }
-  // Cap, not a floor: a paginated table renders EXACTLY 15 mock rows. The transcript's
-  // "dari N data" total must NOT raise the count (report §6.5 — 513 literal rows is a
-  // non-idiomatic file). More than 15 is a fail just like fewer than 15.
-  const required = anatomy?.mockRowsFloor ?? 15;
-  if (rows !== required) {
-    return {
-      name: "mockRowCount",
-      status: "fail",
-      detail: `${rows} mock rows != required ${required} (a paginated table renders exactly ${required} mock rows — no more, no fewer)`,
-      rows,
-      required,
-    };
+  // A fixed row count is an EXPLICIT project policy (config.json `mockRowsFloor`), never a
+  // SliceUI universal (remediation §13). With a policy, a mismatch is a convention WARN (not a
+  // blocking fidelity fail); without one, the check only guards the two real failure modes — an
+  // empty table and a non-idiomatic runaway dump — and otherwise lets the design's own evidence
+  // govern the row count.
+  const floor = anatomy?.mockRowsFloor;
+  if (Number.isFinite(floor) && floor > 0) {
+    if (rows !== floor) {
+      return {
+        name: "mockRowCount",
+        status: "warn",
+        detail: `${rows} mock rows != project policy floor ${floor} (configured via .sliceui/config.json "mockRowsFloor")`,
+        rows,
+        required: floor,
+      };
+    }
+    return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows = policy floor ${floor}` };
   }
-  return { name: "mockRowCount", status: "pass", detail: `${rows} mock rows = ${required}` };
+  if (rows === 0) {
+    return { name: "mockRowCount", status: "warn", detail: "0 mock rows — a paginated table needs at least one row to render", rows, required: null };
+  }
+  if (rows > 100) {
+    return { name: "mockRowCount", status: "warn", detail: `${rows} mock rows is a non-idiomatic dump — emit the minimum representative rows (no fixed floor)`, rows, required: null };
+  }
+  return { name: "mockRowCount", status: "pass", detail: `${rows} mock row(s) — no fixed-floor policy; design evidence governs` };
 }
 
 // ---------- 6b. libraryTable (no downgrade to a plain <table> in a library-table project) ----------
@@ -1955,7 +2009,17 @@ function checkStyleFidelity(scss, html, transcript, conventions = {}) {
       problems,
     };
   }
-  return { name: "styleFidelity", status: "pass", detail: `${pct}% of ${comparable.length} comparable design value(s) match` };
+  // Honest coverage (focused remediation G): a green here is a SUBSET of comparable properties,
+  // never a whole-UI / pixel-perfect claim. Say "verified style properties N/M", not "fidelity
+  // 100%", so the agent cannot misread a partial comparison as full visual fidelity.
+  return {
+    name: "styleFidelity",
+    status: "pass",
+    detail: `verified style properties ${ok}/${comparable.length} (visual coverage: partial — not a whole-UI/pixel-perfect claim)`,
+    visualCoverage: "partial",
+    verified: ok,
+    comparable: comparable.length,
+  };
 }
 
 /** All styled text nodes (color/size/weight) — the design's text facts. */

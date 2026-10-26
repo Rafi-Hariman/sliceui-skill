@@ -25,6 +25,10 @@ Usage:
   sliceui referee [root] [--target <name>] --deep   Live full repo scan + refresh the stored verdict
   sliceui resolve <xml|json>    Resolve styled leaves → exact idiom candidates (resolve-then-assemble)
   sliceui spec <xml|json>       One-pass render doc: elements + inline idioms + copy-targets
+  sliceui inspect <xml|img>     One compact validated design context: structure + capabilities + visual facts [--json]
+  sliceui check <dir> [design]  Gate a generated component (design/framework/project/policy layers) [--render --layers]
+  sliceui plan <xml|figml>      One compact Implementation Plan: Design Intent ⊕ Project Knowledge (A1 design wins) [--json]
+  sliceui benchmark             Run the seeded benchmark + maturity matrix (engineering + product-claim reports) [--json]
   sliceui timing                Per-stage wall-clock from .sliceui/runs.jsonl (where the minutes go)
   sliceui uninstall             Remove this project's .sliceui/ setup (+ .env.local if sliceui-owned)
   sliceui uninstall --skill     Remove the installed skill (~/.claude/skills/sliceui)
@@ -137,6 +141,22 @@ async function dispatch(cmd, rest) {
     }
     case "spec": {
       const { main } = await import("./commands/spec.mjs");
+      return main(rest);
+    }
+    case "inspect": {
+      const { main } = await import("./commands/inspect.mjs");
+      return main(rest);
+    }
+    case "check": {
+      const { main } = await import("./commands/check.mjs");
+      return main(rest);
+    }
+    case "plan": {
+      const { main } = await import("./commands/plan.mjs");
+      return main(rest);
+    }
+    case "benchmark": {
+      const { main } = await import("./commands/benchmark.mjs");
       return main(rest);
     }
     case "timing": {

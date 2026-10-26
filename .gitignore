@@ -17,3 +17,6 @@ council-*
 # Claude Code local session plans (workspace-local, not part of the package)
 .claude/
 active-repo/memories/session/
+
+# SliceUI run artifacts (created when the CLI runs from this repo root)
+.sliceui/

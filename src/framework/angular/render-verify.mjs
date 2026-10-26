@@ -29,6 +29,7 @@ import { fileURLToPath } from "node:url";
 import { componentMeta } from "../../lib/ts-ast.mjs";
 import { collectStyleFacts, parseCssColor, pxNum, weightNum } from "./verify.mjs";
 import { collectGeometryFacts, collectRenderedGeometry, compareGeometry, GEOMETRY_TOLERANCE } from "./render-geometry.mjs";
+import { paginationEvidence } from "../../lib/design-resolution.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // The dev-only Angular 13 mount fixture (ships with the repo; excluded from the npm `files`).
@@ -74,11 +75,18 @@ export const GEOMETRY_TOLERANCE_PX = GEOMETRY_TOLERANCE.box;
  * @param {{width:number,height:number}} [opts.viewport]
  * @param {string|null} [opts.screenshotPath]  write a PNG here when set (supporting evidence)
  * @param {function} [opts.launch]  browser launcher override for tests
+ * @param {object|null} [opts.selectorMap]  fixture locator-only design-node map
+ * @param {string|null} [opts.competingCss]  the project's real loaded stylesheets (render-reality
+ *   remediation C). Injected as a global stylesheet BEFORE the component mounts, so authored
+ *   ::ng-deep overrides compete against the actual library/global cascade — the computed value,
+ *   not the authored source, is then what the border-color/radius facts measure. Null (tests,
+ *   legacy callers) injects nothing and keeps the pre-remediation behaviour.
  * @returns {Promise<{ state, exitCode, checks: Array, diagnostics: Array, artifacts: object, metrics: object }>}
  */
 export async function renderVerify({
   html = "", scss = "", ts = "", transcript = null, fixtureDir = DEFAULT_FIXTURE,
   viewport = DEFAULT_VIEWPORT, screenshotPath = null, launch = null, selectorMap = null,
+  competingCss = null,
 } = {}) {
   const t0 = performance.now();
   // Static-fast-path: no design facts to compare → unverifiable (never a silent pass).
@@ -113,6 +121,9 @@ export async function renderVerify({
   }
 
   const { styleFacts, geometryFacts } = collectDesignFacts(scss, html, transcript, mapIndex);
+  // The design's pagination footer compiles into the synthetic class state (render-reality B), so
+  // a template that binds on it reproduces the designed runtime state in the mount.
+  const pagination = paginationEvidence(transcript);
   if (!styleFacts.length && !geometryFacts.length) {
     return result("unverifiable", [{ name: "renderVerify", status: "skip", detail: "no authored-rule or geometry design facts to render (slice reuses project classes)" }], [], {}, {});
   }
@@ -132,7 +143,7 @@ export async function renderVerify({
     const css = sass.compileString(scss, { style: "compressed" }).css;
 
     // 2. Assemble the throwaway bundle.
-    writeFileSync(join(dir, "under-test.component.ts"), syntheticComponent(selector, html, css));
+    writeFileSync(join(dir, "under-test.component.ts"), syntheticComponent(selector, html, css, pagination));
     for (const f of SHELL_FILES) writeFileSync(join(dir, f), readFileSync(join(fixtureDir, "src", f), "utf8"));
     const out = join(dir, "bundle.js");
     const esbuild = await import("esbuild");
@@ -164,8 +175,13 @@ export async function renderVerify({
     page.on("console", (m) => { if (m.type() === "error") runtimeErrors.push(String(m.text()).slice(0, 200)); });
 
     // Inject the deterministic CSS BEFORE any content so animations/transitions never run at all.
+    // Render-reality remediation C: the project's real loaded stylesheets are injected as a global
+    // stylesheet in the same document, so authored ::ng-deep overrides compete against the actual
+    // library/global cascade. Angular appends component styles later (realistic source order), so
+    // specificity — not injection order — decides ties, exactly like the real app.
     phase = "content-load";
-    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${DETERMINISTIC_CSS}</style></head><body><${selector}></${selector}></body></html>`);
+    const competing = competingCss ? `<style>${escapeStyle(competingCss)}</style>` : "";
+    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${DETERMINISTIC_CSS}</style>${competing}</head><body><${selector}></${selector}></body></html>`);
     phase = "script-injection";
     await page.addScriptTag({ path: out });
 
@@ -312,7 +328,7 @@ function renderDiag(id, category, detail, remediation) {
 function collectDesignFacts(scss, html, transcript, mapIndex = null) {
   const { comparable } = collectStyleFacts(scss, html, transcript);
   const styleFacts = comparable.map((f) => ({ ...f }));
-  const geometryFacts = collectGeometryFacts(transcript, mapIndex);
+  const geometryFacts = collectGeometryFacts(transcript, mapIndex, html);
   return { styleFacts, geometryFacts };
 }
 
@@ -370,8 +386,13 @@ async function measureGeometryFacts(page, facts) {
   return compareGeometry(facts, rendered);
 }
 
-/** Generate the throwaway component (real template/styles + a synthetic class body). */
-function syntheticComponent(selector, html, css) {
+/** Generate the throwaway component (real template/styles + a synthetic class body). When the
+ *  design evidences a pagination footer, its compiled state (pageSize/total/rows) is added so a
+ *  template binding on it reproduces the designed runtime state in the mount (render-reality B). */
+function syntheticComponent(selector, html, css, pagination = null) {
+  const extra = pagination
+    ? `\n  // Compiled design pagination state (from the design footer "…1-${pagination.visibleEnd} dari ${pagination.total}…").\n  pageSize = ${Number(pagination.pageSize)};\n  total = ${Number(pagination.total)};\n  rows = Array.from({ length: ${Number(pagination.pageSize)} }, (_, i) => ({ id: i + 1 }));\n`
+    : "";
   return `import { Component } from "@angular/core";
 
 @Component({
@@ -380,7 +401,7 @@ function syntheticComponent(selector, html, css) {
   styles: [\`${escapeTpl(css)}\`],
 })
 export class UnderTestComponent {
-  label = "Simpan count: 3";
+  label = "Simpan count: 3";${extra}
   onSave(): void {}
 }
 `;
@@ -388,4 +409,9 @@ export class UnderTestComponent {
 
 function escapeTpl(s) {
   return String(s).replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+}
+
+/** Escape a raw-CSS injection so it cannot terminate the host <style> element. */
+function escapeStyle(css) {
+  return String(css).replace(/<\/style/gi, "<\\/style");
 }

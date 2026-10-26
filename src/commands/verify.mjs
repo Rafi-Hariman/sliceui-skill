@@ -160,9 +160,16 @@ async function runRender(opts, ctx) {
     ? join(ctx.root, ".sliceui", "artifacts", stem, "render", "actual.png")
     : join(tmpdir(), `sliceui-render-verify-${Date.now()}.png`);
 
-  const r = await renderVerify({ html: ctx.html, scss: ctx.scss, ts: ctx.ts, transcript: ctx.transcript, viewport, screenshotPath, selectorMap: selectorMap.map });
+  const r = await renderVerify({
+    html: ctx.html, scss: ctx.scss, ts: ctx.ts, transcript: ctx.transcript, viewport,
+    screenshotPath, selectorMap: selectorMap.map,
+    // Render-reality C: the project's real loaded stylesheets join the mount, so computed-style
+    // facts measure the actual cascade winner — not just the authored source.
+    competingCss: readCompetingCss(ctx.root),
+  });
 
   console.log(`\nSliceUI render — ${r.state}${r.metrics?.totalMs != null ? ` (${r.metrics.totalMs}ms)` : ""}`);
+  console.log("  Render verification is independent — a static PASS above does not imply this verdict.");
   for (const c of r.checks) {
     const icon = c.status === "pass" ? "✓" : c.status === "fail" ? "✗" : "·";
     console.log(`  ${icon} ${(c.name).padEnd(16)} ${c.status.padEnd(4)} ${c.detail}`);
@@ -385,6 +392,31 @@ export function nearestProjectRoot(startDir) {
 
 function readFileSyncSafe(p) {
   try { return tracedReadFileSync(p, "utf8"); } catch { return ""; }
+}
+
+/** The project's real loaded stylesheets (render-reality remediation C) — the cascade environment
+ *  the authored ::ng-deep overrides must actually win against. Sources from the same
+ *  loadedClassRegistry the static gate already trusts (conventions.json); bounded (≤4 files,
+ *  ≤1 MB) so a large dist bundle cannot blow up the mount. Returns null when none load. */
+function readCompetingCss(root) {
+  try {
+    const conv = JSON.parse(readFileSyncSafe(join(root, ".sliceui", "conventions.json")));
+    const files = conv?.loadedClassRegistry?.files;
+    if (!Array.isArray(files) || !files.length) return null;
+    const parts = [];
+    let total = 0;
+    for (const f of files.slice(0, 4)) {
+      if (typeof f !== "string" || !f) continue;
+      const src = readFileSyncSafe(f);
+      if (!src) continue;
+      total += src.length;
+      if (total > 1_000_000) break;
+      parts.push(src);
+    }
+    return parts.length ? parts.join("\n") : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Concatenate the owning NgModule sources under the project root, so checkDeclaredInModule can

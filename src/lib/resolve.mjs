@@ -65,6 +65,10 @@ export function resolveTranscript(transcript, conventions = {}, pilar = null) {
   const walk = (nodes, inheritedName, inheritedGlyph, inheritedVariant) => {
     for (const node of nodes ?? []) {
       if (!node || typeof node !== "object") continue;
+      // Visibility before resolution (focused/final remediation §4): a hidden design layer is
+      // debug evidence, not an implementation choice — skip it (and its subtree) so it never
+      // surfaces as an unresolved actionable mapping. It stays in the transcript as evidence.
+      if (node.hidden) continue;
       const own = meaningfulIconName(node.description);
       const eff = own ?? inheritedName;
       // A generic glyphName ("glyph", "Vector") carries no FA signal — the inherited wrapper

@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "cascade-fixture.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    {
+      "id": "root", "type": "group", "w": 800, "h": 400,
+      "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+      "children": [
+        { "id": "pagebox", "type": "group", "w": 120, "h": 32, "radius": 4, "border": { "color": "#4fbbbb", "width": 1 } }
+      ]
+    }
+  ],
+  "images": [], "icons": []
+}

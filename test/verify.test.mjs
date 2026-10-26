@@ -136,6 +136,37 @@ test("verify: scssCoverage fails when ::ng-deep selectors dropped", () => {
   assert.ok(check.missing.some((s) => s.includes("item_active")), "item_active flagged missing");
 });
 
+test("verify: scssCoverage does NOT demand a rejected alignment recipe (G3 reconciliation)", () => {
+  // A distributed pagination footer triggers the paginationAlign behavior binding, which rejects
+  // `.table-footer` (public input supersedes the alignment ::ng-deep). The SAME recipe-state helper
+  // inspect uses must therefore keep scssCoverage from demanding `.table-footer` as a missing idiom.
+  const conventions = {
+    ngDeepCorpus: [
+      { selector: ".table-footer", family: "table", reusable: true, block: "::ng-deep .table-footer { justify-content: flex-end; }" },
+      { selector: "ugw-pagination-container li.page-box", family: "table", reusable: true, block: ":host ::ng-deep .ugw-pagination-container li.page-box { font-weight: bold; }" },
+    ],
+    classVocabulary: [],
+  };
+  const transcript = {
+    meta: { source: "figml", tier: 0, image: "d.xml", textQuality: "exact" },
+    tokens: { colors: [], fonts: [] },
+    layout: [
+      { id: "tbl", type: "group", table: true },
+      { id: "footer", type: "group", justify: "space-between", children: [
+        { id: "pg", type: "text", text: "Menampilkan 1-10 dari 20 data" },
+      ] },
+    ],
+  };
+  const html = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const ts = `const rows = [{ id: 1 }]; const columns = [{ field: "a" }];`;
+  const scss = `:host ::ng-deep .ugw-pagination-container li.page-box { font-weight: bold; }`;
+
+  const r = verifyComponent({ scss, html, ts, conventions, transcript, rawXml: null });
+  const check = r.checks.find((c) => c.name === "scssCoverage");
+  assert.ok(!(check.missing ?? []).some((s) => s.includes("table-footer")), "rejected .table-footer is not a missing idiom");
+  assert.ok((check.missing ?? []).length === 0, "the visual li.page-box idiom is present, so coverage is complete");
+});
+
 test("verify: textCoverage fails when the Cari button is dropped", () => {
   const r = verifyComponent({
     scss: GOOD_SCSS, html: GOOD_HTML, ts: GOOD_TS,
@@ -273,19 +304,31 @@ test("verify: an all-skip run (missing ground truth) is NOT green — closes the
   assert.ok(r.skipCount > 0, "checks skipped for missing ground truth");
 });
 
-test("verify: F11 — anatomy WARNS (not fails) when the skeleton is missing", () => {
-  // 2026-09-11 F11: demanding a loading-state skeleton the design never shows contradicts
-  // "STRUCTURE = XML ONLY" — downgrade to a warn, never a blocking fail.
+test("verify: F11 — anatomy does NOT warn for a missing skeleton without design loading evidence", () => {
+  // 2026-09-11 F11 + render-reality §8: a skeleton is a project loading convention, not a design
+  // requirement. With no loading-state evidence in the design, a missing skeleton is NOT a warning
+  // (previously it warned unconditionally — noise).
   const htmlNoSkeleton = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
   const r = verifyComponent({
     scss: GOOD_SCSS, html: htmlNoSkeleton, ts: GOOD_TS,
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "anatomy");
-  assert.equal(check.status, "warn", "skeleton missing is a warn, not a fail");
+  assert.equal(check.status, "pass", "no design loading evidence → no skeleton warning");
 });
 
-test("verify: mockRowCount fails when a paginated table has fewer than 15 rows", () => {
+test("verify: anatomy WARNS when the design evidences a loading state but the skeleton is missing", () => {
+  const htmlNoSkeleton = `<uii-table [rows]="rows" [columns]="columns"></uii-table>`;
+  const loadingTranscript = { layout: [{ id: "x", type: "text", text: "Loading data…" }] };
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: htmlNoSkeleton, ts: GOOD_TS,
+    conventions: CONVENTIONS, transcript: loadingTranscript, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "anatomy");
+  assert.equal(check.status, "warn", "design loading evidence + missing skeleton → warn");
+});
+
+test("verify: mockRowCount WARNS when a paginated table is under the policy floor", () => {
   // GOOD_HTML binds [rows]="rows" — the fixture must declare `rows` (binding-resolved counting).
   const tsFewRows = `const rows = [{ nim: "1" }, { nim: "2" }, { nim: "3" }];`;
   const r = verifyComponent({
@@ -293,13 +336,14 @@ test("verify: mockRowCount fails when a paginated table has fewer than 15 rows",
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "mockRowCount");
-  assert.equal(check.status, "fail");
+  assert.equal(check.status, "warn");
   assert.equal(check.rows, 3);
-  assert.equal(check.required, 15, "required = the fixed mock cap (15), regardless of transcript total");
+  assert.equal(check.required, 15, "required = the configured policy floor (15), regardless of transcript total");
 });
 
-test("verify: mockRowCount fails when a paginated table has MORE than 15 rows", () => {
-  // "dari 20 data" must NOT drive 20 rows — the cap is exactly 15. 16+ is a fail too.
+test("verify: mockRowCount WARNS (not fails) when a paginated table exceeds the policy floor", () => {
+  // "dari 20 data" must NOT drive 20 rows — the policy floor caps the count. A mismatch is a
+  // convention WARN (policy, not core fidelity — remediation §12/§13), never a blocking fail.
   const tsManyRows = `const rows = [
   { nim: "1" }, { nim: "2" }, { nim: "3" }, { nim: "4" }, { nim: "5" },
   { nim: "6" }, { nim: "7" }, { nim: "8" }, { nim: "9" }, { nim: "10" },
@@ -311,9 +355,21 @@ test("verify: mockRowCount fails when a paginated table has MORE than 15 rows", 
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "mockRowCount");
-  assert.equal(check.status, "fail");
+  assert.equal(check.status, "warn");
   assert.equal(check.rows, 16);
-  assert.equal(check.required, 15, "required = 15; 16 mock rows is a fail (cap, not just a floor)");
+  assert.equal(check.required, 15, "required = configured policy floor 15");
+});
+
+test("verify: mockRowCount passes ANY row count with no fixed-floor policy (remediation §13)", () => {
+  const ts3 = `const rows = [{ nim: "1" }, { nim: "2" }, { nim: "3" }];`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html: GOOD_HTML, ts: ts3,
+    conventions: { ...CONVENTIONS, componentAnatomy: { ...CONVENTIONS.componentAnatomy, mockRowsFloor: null } },
+    transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "mockRowCount");
+  assert.equal(check.status, "pass", "3 rows pass when no fixed-floor policy is configured");
+  assert.match(check.detail, /no fixed-floor policy/, "detail states the policy is absent");
 });
 
 test("verify: F4 — mockRowCount counts the [rows]-bound array, not the largest (columns)", () => {
@@ -331,7 +387,7 @@ const columns = [
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "mockRowCount");
-  assert.equal(check.status, "fail", "3 bound rows ≠ 15 on a paginated table");
+  assert.equal(check.status, "warn", "3 bound rows ≠ policy floor 15 → convention warn, not a blocking fail");
   assert.equal(check.rows, 3, "counts komponenList (the [rows] binding), not columns (5)");
 });
 
@@ -362,8 +418,8 @@ const columns = [
     conventions: CONVENTIONS, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
   });
   const check = r.checks.find((c) => c.name === "mockRowCount");
-  // 3 bound rows ≠ 15 → fail is CORRECT here, but the count must be 3 (not 5 from columns).
-  assert.equal(check.status, "fail", "3 rows on a paginated table correctly fails the 15 floor");
+  // 3 bound rows ≠ policy floor 15 → a convention warn, but the count must be 3 (not 5 from columns).
+  assert.equal(check.status, "warn", "3 rows on a paginated table warns the configured floor");
   assert.equal(check.rows, 3, "counts komponenList (the [rows] binding), not columns (5)");
 });
 
@@ -452,6 +508,20 @@ test("verify: classVocabulary FAILS an invented btn-* class (btn-gray)", () => {
   const check = r.checks.find((c) => c.name === "classVocabulary");
   assert.equal(check.status, "fail", "invented btn-* must fail, not warn");
   assert.ok(check.inventedButtons?.includes("btn-gray"), `must name btn-gray, got ${JSON.stringify(check.inventedButtons)}`);
+});
+
+test("verify: classVocabulary FAIL is actionable (canonical button + structural wrapper)", () => {
+  const vocab = [...CONVENTIONS.classVocabulary, { name: "filter-col" }];
+  const html = `<div class="filter-col"><button class="btn btn-gray">Simpan</button></div>`;
+  const r = verifyComponent({
+    scss: GOOD_SCSS, html, ts: GOOD_TS,
+    conventions: { ...CONVENTIONS, classVocabulary: vocab }, transcript: TRANSCRIPT, rawXml: RAW_XML_WITH_CHECKBOX,
+  });
+  const check = r.checks.find((c) => c.name === "classVocabulary");
+  assert.equal(check.status, "fail");
+  assert.equal(check.remediation.canonicalButton, "btn-primary", "canonical button class named");
+  assert.equal(check.remediation.structuralWrapper, "filter-col", "project structural wrapper derived, not invented");
+  assert.match(check.detail, /filter-col .btn-primary/, "remediation teaches the wrapper + canonical class pattern");
 });
 
 test("verify: classVocabulary does NOT flag id=\"btn-*\" (an element id, not a class)", () => {
@@ -1335,6 +1405,43 @@ test("verify: styleFidelity passes when title + divider colors are preserved", (
   });
   const check = r.checks.find((c) => c.name === "styleFidelity");
   assert.equal(check.status, "pass", `faithful colors must pass: ${JSON.stringify(check.detail)}`);
+});
+
+test("verify: styleFidelity PASS is an honest subset claim, never a whole-UI 100%", () => {
+  const transcript = {
+    layout: [
+      { type: "text", text: "Ubah tagihan", w: 1117, style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "divider", bg: "#fdd835" },
+    ],
+  };
+  const goodScss = `.h1 { color: #000; font-size: 16px; font-weight: 500; }\n.content { padding: 5px 20px 20px; }`;
+  const goodHtml = `<div class="content"><h1 class="h1">Ubah tagihan</h1><hr style="border-top:1px solid #fdd835"></div>`;
+  const r = verifyComponent({ scss: goodScss, html: goodHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX });
+  const check = r.checks.find((c) => c.name === "styleFidelity");
+  assert.equal(check.status, "pass");
+  assert.match(check.detail, /verified style properties/, "subset wording, not 'fidelity 100%'");
+  assert.match(check.detail, /partial/, "explicitly partial visual coverage");
+  assert.equal(check.visualCoverage, "partial", "machine-readable partial-coverage marker");
+  assert.ok(!/100%/.test(check.detail), "never a whole-UI percentage claim");
+});
+
+test("verify: styleFidelity comparable set is deterministic on identical input (no silent denominator drift)", () => {
+  const transcript = {
+    layout: [
+      { type: "text", text: "Ubah tagihan", w: 1117, style: { size: 16, weight: 500, color: "#000000" } },
+      { type: "divider", bg: "#fdd835" },
+    ],
+  };
+  const goodScss = `.h1 { color: #000; font-size: 16px; font-weight: 500; }\n.content { padding: 5px 20px 20px; }`;
+  const goodHtml = `<div class="content"><h1 class="h1">Ubah tagihan</h1><hr style="border-top:1px solid #fdd835"></div>`;
+  const run = () => verifyComponent({ scss: goodScss, html: goodHtml, ts: GOOD_TS, conventions: CONVENTIONS, transcript, rawXml: RAW_XML_NO_CHECKBOX })
+    .checks.find((c) => c.name === "styleFidelity");
+  const a = run();
+  const b = run();
+  assert.equal(a.status, b.status, "status deterministic");
+  assert.equal(a.comparable, b.comparable, "comparable denominator deterministic");
+  assert.equal(a.verified, b.verified, "verified numerator deterministic");
+  assert.equal(a.detail, b.detail, "detail string deterministic");
 });
 
 test("verify: styleFidelity does not confuse .summary-row with .summary-row-danger (boundary)", () => {

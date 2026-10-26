@@ -62,19 +62,20 @@ export function codebaseEvidenceFindings(root, conv, ctx = {}) {
     });
   }
 
-  // mockRowsFloor — a sane positive CAP (the paginated-table mock count). It is exactly 15: a
-  // paginated table renders 15 mock rows, no more, no fewer. The transcript's "dari N data"
-  // total is deliberately NOT used (report §6.5 — 513 literal rows is non-idiomatic), so it is
-  // not corruption for the floor to stay 15 while a transcript says 20.
+  // mockRowsFloor — an OPTIONAL project policy (config.json), not a SliceUI universal. `null`
+  // (no policy) is valid and emits nothing; a configured floor must be a positive number. The
+  // transcript's "dari N data" total is deliberately NOT used (report §6.5 — 513 literal rows
+  // is non-idiomatic), so it is not corruption for a configured floor to differ from a
+  // transcript total.
   if (anatomy.mockRowsFloor != null) {
     const sane = Number.isFinite(anatomy.mockRowsFloor) && anatomy.mockRowsFloor > 0;
     findings.push({
       head: "codebase",
       artifact: "conventions.componentAnatomy.mockRowsFloor",
-      claim: "mockRowsFloor is a sane positive mock-row cap",
-      evidencePath: "src/**/*.html",
+      claim: "mockRowsFloor is a sane positive mock-row policy",
+      evidencePath: "config.json",
       status: sane ? "pass" : "fail",
-      detail: `cap=${anatomy.mockRowsFloor} (a paginated table renders exactly this many mock rows)`,
+      detail: `policy=${anatomy.mockRowsFloor} (a configured project floor renders exactly this many mock rows)`,
     });
   }
 

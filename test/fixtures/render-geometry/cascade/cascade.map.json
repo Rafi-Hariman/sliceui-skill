@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "mappings": [
+    { "designNodeId": "pagebox", "renderLocator": { "strategy": "css", "selector": ".page-box" } }
+  ]
+}

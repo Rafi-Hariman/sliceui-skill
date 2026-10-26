@@ -45,13 +45,17 @@ The skill activates, the CLI does the heavy lifting, and the agent writes the fi
 
 ## The pipeline
 
+The agent-facing happy path is three commands:
+
 ```
-sliceui init        → project-context.json (WHAT) + conventions.json/.md (HOW this team writes) + referee corruption map
-sliceui transcribe  → transcript (exact layout + colors + text + icons + checkbox) + fidelity score
-sliceui resolve     → every styled leaf → resolved[] (exact idiom candidates)
-sliceui referee     → pre-generate gate: ground-truth validation (design + codebase), must be green
-sliceui verify      → post-generate blocking gate: fidelity + conventions + structure (must exit 0)
+sliceui init     → .sliceui/handoff.md (the ONE project contract) + conventions + context (WHAT + HOW)
+sliceui inspect  → one compact, validated design context: structure + required capabilities + visual facts
+sliceui check    → post-generate blocking gate, decomposed into design / framework / project / policy (exit 0 to be done)
 ```
+
+The granular internals — `transcribe`, `resolve`, `spec`, `referee`, `verify` — remain available as compatibility/debug commands. `inspect` reuses them internally (it persists the transcript + spec), and `check` delegates to `verify` with the same exit-code contract (`0` pass · `1` fail · `2` invalid · `3` unverifiable). `sliceui check --layers` prints the authority decomposition of the gate's 32 checks.
+
+For FIGML inputs, `sliceui inspect` also compiles a **Design Intent Graph** (`src/design/`) alongside the legacy transcript — topology, relative layout constraints, exact visible content, runtime state, and uncertainty — so project recipes cannot silently override explicit design geometry and visible designed rows are never replaced by mocks. See `docs/design-intent-architecture.md`.
 
 ## Commands
 
@@ -62,7 +66,9 @@ sliceui verify      → post-generate blocking gate: fidelity + conventions + st
 | `sliceui detect` | Detect framework, library usage, and conventions → `.sliceui/project-context.json` + `conventions.json` |
 | `sliceui transcribe <input>` | `.xml`/`.figml` → exact FIGML parse; image → Gemini → static fallback. Writes `.sliceui/transcript/<name>.transcript.*` |
 | `sliceui resolve <xml\|json>` | Resolve every styled leaf to exact idiom candidates → `.sliceui/resolve/<name>.resolved.json` |
-| `sliceui verify <dir> [name]` | Gate a generated component: deterministic checks (fidelity + conventions + structure). Exit 0/1 |
+| `sliceui inspect <xml\|img>` | One compact validated design context (structure + capabilities + visual facts). `--json` for machine-readable. Persists transcript + spec |
+| `sliceui check <dir> [design]` | Gate a generated component (delegates to `verify`). `--layers` prints the design/framework/project/policy decomposition |
+| `sliceui verify <dir> [name]` | Gate a generated component: deterministic checks (fidelity + conventions + structure). Exit 0/1 (compatibility alias for `check`) |
 | `sliceui referee [root]` | Validate ground-truth artifacts against the design and codebase |
 | `sliceui doctor` | Diagnose install (Node, platform, sips/swiftc, key, skill, live Gemini) |
 | `sliceui fidelity <xml>` | Score visual-attribute preservation (FIGML → transcript) as a single % plus per-attribute breakdown |
@@ -114,7 +120,7 @@ Covered categories: `select`, `table`, `modal`, `toast`, `editor`, `date`, `slid
 
 - `classVocabulary`, the classes the project reuses, so the agent reuses them instead of inventing.
 - An override corpus: every deep-selector and style-penetration block across the project, merged and scoped by capability family. The agent copies these verbatim; a dropped selector means a lost design effect.
-- `componentAnatomy`, the page structure idiom (table skeleton, pagination, mock-row floor).
+- `componentAnatomy`, the page structure idiom (table skeleton, pagination, an optional `mockRowsFloor` policy from `.sliceui/config.json`).
 - `naming`, the selector prefix and event-handler pattern.
 
 ### Single source of truth
@@ -127,7 +133,7 @@ Structure comes from the design (XML/transcript) only. Conventions style element
 
 ### 4. `verify`
 
-`sliceui verify <dir> [name]` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, mock-row count, compiled-scope leaks, icon colors, structural wrappers, ngx-select bindings (`[(ngModel)]` and `(select)`; a dead filter is rejected), filter-row buttons (a `Cari` button in the XML is not dropped), button order (`flex-direction: row-reverse`, which flips the XML's left-to-right order, is rejected), and table options (a search bar, "Tampilkan N data", or pagination footer in the XML must map to `[searchOptions]`, `[limitOptions]`, or `[paginationOptions]`). A run with no ground truth is never green. This is a blocking post-generate gate: the agent must reach exit 0 before declaring a slice done.
+`sliceui verify <dir> [name]` runs deterministic checks covering stylesheet coverage, text coverage, table bindings (checkbox evidenced by the raw design), class vocabulary, anatomy, a mock-row policy (no universal fixed count; a configured `.sliceui/config.json` `mockRowsFloor` is enforced as a warn), compiled-scope leaks, icon colors, structural wrappers, ngx-select bindings (`[(ngModel)]` and `(select)`; a dead filter is rejected), filter-row buttons (a `Cari` button in the XML is not dropped), button order (`flex-direction: row-reverse`, which flips the XML's left-to-right order, is rejected), and table options (a search bar, "Tampilkan N data", or pagination footer in the XML must map to `[searchOptions]`, `[limitOptions]`, or `[paginationOptions]`). A run with no ground truth is never green. This is a blocking post-generate gate: the agent must reach exit 0 before declaring a slice done.
 
 ### 5. `referee`
 

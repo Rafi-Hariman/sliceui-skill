@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "mappings": [
+    { "designNodeId": "form", "renderLocator": { "strategy": "css", "selector": "[data-fx='form']" } }
+  ]
+}

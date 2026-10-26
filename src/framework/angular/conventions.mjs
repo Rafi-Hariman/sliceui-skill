@@ -57,6 +57,24 @@ export function mergeGoldenReferences(root, conventions) {
   return { ...conventions, classVocabulary: mergeGoldenClasses(conventions.classVocabulary ?? [], html) };
 }
 
+/** Merge an explicit project policy (`.sliceui/config.json` `mockRowsFloor`) into conventions.
+ *  A fixed mock-row count is NOT a SliceUI universal — it is opt-in project policy. When the
+ *  config carries a positive `mockRowsFloor`, it overrides the mined `null`; otherwise the
+ *  convention keeps `null` (no fixed floor) and the mock-row check degrades to a sanity warn.
+ *  Shared by `init` and standalone `detect` so both write the same policy-merged snapshot. */
+export function mergeProjectPolicy(root, conventions) {
+  let cfg = {};
+  try {
+    cfg = JSON.parse(readFileSync(join(root, ".sliceui", "config.json"), "utf8"));
+  } catch { /* no/unreadable config.json → no policy */ }
+  const floor = cfg?.mockRowsFloor;
+  if (!Number.isFinite(floor) || floor <= 0) return conventions;
+  return {
+    ...conventions,
+    componentAnatomy: { ...(conventions.componentAnatomy ?? {}), mockRowsFloor: floor },
+  };
+}
+
 /** Resolve a `.sliceui/config.json` `references` entry to its companion HTML/SCSS file contents,
  *  so the golden vocabulary merge has real markup to mine. A reference points at a `.component.ts`
  *  (or its directory); the `.html`/`.scss` live alongside it (templateUrl/styleUrls resolve too,
@@ -377,8 +395,9 @@ function collapseIdenticalCorpus(corpus) {
 
 /** Classify a ::ng-deep selector into the capability family it styles. This scopes the
  *  verify gate to the capabilities actually in play — a component that renders only
- *  ngx-select + uii-table must not be required to copy every modal/dialog/editor block. */
-function familyForSelector(sel) {
+ *  ngx-select + uii-table must not be required to copy every modal/dialog/editor block.
+ *  Also consumed by src/project/scss-mine.mjs (declaration-level mining keeps one family map). */
+export function familyForSelector(sel) {
   if (/ngx-select|dropdown-menu|ngx-select-ex/i.test(sel)) return "select";
   if (/gateway-table|table-footer|ugw-pagination|page-box|nav-icon|search-|filter-options|limit-options|cell-html|row-container|gateway-table-data|gateway-empty-data/i.test(sel)) return "table";
   if (/label-custom/.test(sel)) return "label";
@@ -476,13 +495,12 @@ function extractAnatomy(allHtml, allScss) {
   const tableTag = pick(/<(uii-table|ngx-datatable|mat-table)\b/i, html) ?? null;
   const skeletonTag = pick(/<(uii-table-skeleton|ngx-datatable-skeleton)\b/i, html) ?? null;
 
-  // Mock-data cap: a paginated library table always renders EXACTLY 15 mock rows (enough to
-  // activate pagination). The transcript's "dari N data" total is deliberately NOT used to
-  // raise the count — the agent caps at 15, never emits 513 literal rows (report §6.5). The
-  // pagination total still sets `pagination = true` (so the table is treated as paged), but
-  // does not change the floor.
+  // A fixed mock-row count is an EXPLICIT project policy, not a SliceUI universal: a paginated
+  // library table renders the minimum representative rows the design needs, never a hardcoded 15
+  // (remediation §13). The transcript's "dari N data" total sets `pagination = true` (paged), but
+  // it does NOT drive the row count — that would re-introduce the 513-literal-rows defect. The
+  // policy value (config.json `mockRowsFloor`) is injected by `mergeProjectPolicy`, not mined here.
   let pagination = null;
-  const mockRowsFloor = 15;
   const pm = /(?:Menampilkan|Showing)\s+\d+\s*-\s*\d+\s+(?:dari|of)\s+(\d+)\s+data/i.exec(html);
   if (pm) {
     const total = Number(pm[1]);
@@ -498,7 +516,7 @@ function extractAnatomy(allHtml, allScss) {
     tableTag,
     skeletonTag,
     pagination,
-    mockRowsFloor,
+    mockRowsFloor: null,
   };
 }
 
@@ -582,7 +600,12 @@ export function renderConventionsMd(conventions, frameworkLabel = "", frameworkI
   }
   if (a.skeletonTag) L.push(`- Loading state: render \`<${a.skeletonTag} *ngIf="isLoading">\` before the table.`);
   if (a.tableTag) L.push(`- Table: use \`<${a.tableTag}>\` with \`[rows]\` + \`[columns]\`, wired client-side only (mock).`);
-  if (a.pagination) L.push(`- Pagination: the table paginates itself from \`rows\` — provide exactly \`${a.mockRowsFloor}\` mock rows (no more, no fewer) to activate it.`);
+  if (a.pagination) {
+    const floorNote = Number.isFinite(a.mockRowsFloor) && a.mockRowsFloor > 0
+      ? `provide exactly \`${a.mockRowsFloor}\` mock rows (project policy) to activate it.`
+      : `provide the minimum representative mock rows to activate it (no fixed floor).`;
+    L.push(`- Pagination: the table paginates itself from \`rows\` — ${floorNote}`);
+  }
   L.push("");
 
   // --- reusable classes ---

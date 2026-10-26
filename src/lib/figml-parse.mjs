@@ -276,6 +276,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...(justify ? { justify } : num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
         bg: colorOf(attrs) ?? undefined,
         ...(border ? { border } : {}),
+        ...sizingFields(attrs),
       };
       const childNodes = walkNodes(kids, x, y);
       if (childNodes.length) node.children = childNodes;
@@ -295,6 +296,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...(justify ? { justify } : num(attrs.itemSpacing) ? { gap: num(attrs.itemSpacing) } : {}),
         bg: colorOf(attrs) ?? undefined,
         ...(border ? { border } : {}),
+        ...sizingFields(attrs),
       };
       const childNodes = walkNodes(kids, x, y);
       const label = childNodes.length ? firstText(childNodes) : "";
@@ -332,6 +334,21 @@ function mapNode(tag, attrs, kids, ox, oy) {
     default:
       return null;
   }
+}
+
+/** Layout-sizing + alignment facts from the node's own attributes (focused remediation F). The
+ *  FIGML export carries the sizing behaviour (`layoutSizingHorizontal/Vertical`: FILL|HUG) and the
+ *  auto-layout alignment (`primaryAxisAlignItems`/`counterAxisAlignItems`: CENTER|MIN|MAX|…). These
+ *  are what let the lowerer distinguish "fill-width + centered → horizontal padding is resulting
+ *  geometry, not an additional CSS requirement" from "hug-content → padding contributes to the
+ *  intrinsic size". Only emitted when the XML actually provides them — never invented. */
+function sizingFields(attrs) {
+  const out = {};
+  if (attrs.layoutSizingHorizontal) out.sizingH = attrs.layoutSizingHorizontal;
+  if (attrs.layoutSizingVertical) out.sizingV = attrs.layoutSizingVertical;
+  if (attrs.primaryAxisAlignItems) out.alignPrimary = attrs.primaryAxisAlignItems;
+  if (attrs.counterAxisAlignItems) out.alignCounter = attrs.counterAxisAlignItems;
+  return out;
 }
 
 function classifyInstance(name) {

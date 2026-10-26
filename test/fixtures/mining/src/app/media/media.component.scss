@@ -1,0 +1,2 @@
+// Media-query variant of the search width (separate context, same component).
+@media (max-width: 768px) { ::ng-deep .search-options input { width: 260px; } }

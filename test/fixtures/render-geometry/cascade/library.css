@@ -1,0 +1,2 @@
+/* Simulated compiled library styles (the CLI injects the project's real loaded CSS here). */
+.gateway-shell .gateway-table .page-box { border: 1px solid #ff0000; border-radius: 12px; }

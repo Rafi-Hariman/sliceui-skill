@@ -27,7 +27,7 @@ export const DEFAULT_CONTEXT_BUDGET = { maxCharacters: 30_000, maxEstimatedToken
 // Roles a transcript node type maps to a capability CATEGORY (project-context.capabilities key).
 // Roles without a category (button, text-input, status-label, icon) are inventory facts but
 // select no capability.
-const ROLE_TO_CAPABILITY = {
+export const ROLE_TO_CAPABILITY = {
   select: "select",
   table: "table",
   checkbox: "checkbox",
@@ -45,7 +45,7 @@ function pilarSelector(library) {
 
 /** True when a node nests an `icon` child (a caret glyph marks a select/dropdown; a plain
  *  text input has no icon child — the search box's glyph is a text node, not an icon). */
-function hasIconChild(node) {
+export function hasIconChild(node) {
   for (const c of node.children ?? []) {
     if (c?.type === "icon") return true;
     if (c && hasIconChild(c)) return true;
@@ -72,6 +72,7 @@ export function buildDesignInventory(layout, resolvedGroups = []) {
   const walk = (nodes) => {
     for (const n of nodes ?? []) {
       if (!n || typeof n !== "object") continue;
+      if (n.hidden) continue; // hidden design layers are debug evidence, not an implementation role
       if (n.type === "button") add("button", n.id);
       if (n.type === "input") add(hasIconChild(n) ? "select" : "text-input", n.id);
       if (n.type === "checkbox") add("checkbox", n.id);

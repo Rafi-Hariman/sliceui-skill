@@ -32,6 +32,7 @@
 // A `pass` here always means a real measured value matched within tolerance.
 
 import { walkNodes } from "../../lib/walk-nodes.mjs";
+import { paginationEvidence } from "../../lib/design-resolution.mjs";
 
 /** Centralized tolerances (px) — no scattered magic numbers (§13/§15). Each family's bound is
  *  derived from three-run browser variance plus a bounded subpixel allowance; none is loosened to
@@ -74,9 +75,12 @@ export const factKey = (f) => (f.designNodeId ? `${f.id}::${f.designNodeId}` : f
  * @param {object} transcript
  * @param {Map<string,{selector:string,required:boolean}>} [mapIndex] — a fixture's locator-only
  *   map, used ONLY to bind a design node to a rendered element. It never supplies an expected value.
+ * @param {string} [html] — the generated template. Required by the visible-state family (it must
+ *   be scoped to footers the component's OWN template renders; a library-internal footer cannot
+ *   render in the synthetic mount and is honestly skipped, never falsely failed).
  * @returns {Array} facts: { id, family, category, box, required, trust, expected, tolerance, unit, mapping, designNodeId, remediation }
  */
-export function collectGeometryFacts(transcript, mapIndex = null) {
+export function collectGeometryFacts(transcript, mapIndex = null, html = "") {
   const facts = [];
   if (!transcript?.layout?.length) return facts;
 
@@ -201,6 +205,35 @@ export function collectGeometryFacts(transcript, mapIndex = null) {
   // --- PR 6C families (see the module footer for the honest-disposition table) ---
   facts.push(...collectStructuralFacts(transcript, mapIndex));
   facts.push(...collectTypographyRoleFacts(transcript));
+  // --- render-reality remediation B: design-required visible runtime states (pagination) ---
+  facts.push(...collectVisibilityFacts(transcript, html));
+  return facts;
+}
+
+/**
+ * A design text that evidences a REQUIRED visible runtime state — the pagination footer
+ * ("Menampilkan 1-10 dari 30 data"). "Design requires a visible state + the rendered state is
+ * absent" is a visible-state correctness defect no static check can prove: the footer's presence
+ * depends on the component's runtime condition (typically total vs page size), not on source text.
+ *
+ * SCOPE (honest): the synthetic mount renders only the component's OWN template. The fact is
+ * emitted ONLY when the generated html itself authors a pagination footer — a footer rendered
+ * inside a library component (uii-table internals) cannot appear in the synthetic mount, so it is
+ * skipped here rather than falsely failed. The expected value is `true` (the state must be
+ * visible); the measured value comes from the existing text mapping's visibility resolution.
+ */
+function collectVisibilityFacts(transcript, html) {
+  const facts = [];
+  const pg = paginationEvidence(transcript);
+  if (!pg) return facts;
+  if (!/menampilkan|showing\b/i.test(String(html ?? ""))) return facts;
+  facts.push({
+    id: "SUI-RENDER-VISIBLE-001", family: "visible-state", category: GEOMETRY_CATEGORY.PAGINATION,
+    box: "structural", required: true, trust: "literal-design",
+    expected: true, tolerance: null, unit: null, designNodeId: pg.nodeId,
+    mapping: { kind: "text", text: pg.text },
+    remediation: `the design shows the pagination state "${pg.text}" but it did not render — the runtime/mock state must satisfy the component's pagination visibility condition (the designed state is ${pg.total} total at page size ${pg.pageSize})`,
+  });
   return facts;
 }
 
@@ -231,7 +264,12 @@ function collectStructuralFacts(transcript, mapIndex) {
     if (!n || typeof n !== "object" || n.hidden) return;
     if (bound(n)) mappedNodes.push(n);
 
-    // --- flex/structural gap (§16): the design's declared itemSpacing between a frame's children ---
+    // --- flex/structural gap (§16): the design's declared itemSpacing between a frame's children.
+    //     Render-reality remediation A: the oracle is the EFFECTIVE rendered distance between
+    //     adjacent children (next.top − previous.bottom), NOT the computed `gap` property. A slice
+    //     that sets `gap: N` on top of a framework child margin renders N+margin apart — the
+    //     computed gap matches the design while the rendered distance does not. Measuring the
+    //     actual relationship catches the stacked-spacing defect the property check cannot. ---
     const gap = px(n.gap);
     if (gap != null && gap > 0 && take("gap")) {
       const b = bound(n);
@@ -240,12 +278,10 @@ function collectStructuralFacts(transcript, mapIndex) {
           id: "SUI-RENDER-GAP-001", family: "gap", category: GEOMETRY_CATEGORY.SPACING,
           box: "structural", required: true, trust: "literal-design", expected: gap,
           tolerance: GEOMETRY_TOLERANCE.gap, unit: "px", designNodeId: n.id,
-          // The axis decides WHICH computed gap is the design's item spacing (§16): a row lays
-          // items out horizontally, so its item gap is `column-gap`; a column uses `row-gap`. The
-          // `gap: a b` shorthand sets them independently, so picking the wrong one would compare a
-          // real value against the wrong design fact.
-          mapping: { kind: "mapped", selector: b.selector, measure: "gap", axis: n.axis ?? "row" },
-          remediation: `set the container gap to ${gap}px`,
+          // The axis decides which pair-relationship is measured (§16): a row lays items out
+          // horizontally (next.left − previous.right); a column vertically (next.top − previous.bottom).
+          mapping: { kind: "mapped", selector: b.selector, measure: "itemDistance", axis: n.axis ?? "row" },
+          remediation: `the rendered distance between adjacent children must be ${gap}px — reuse project/framework spacing first and add only the delta (do not stack the design gap on top of existing child margins)`,
         });
       }
     }
@@ -546,6 +582,9 @@ export async function collectRenderedGeometry(page, facts) {
           // FACT's family (the element is the same; the measured property differs).
           const fam = s.family;
           out.push(resolve(s.key, picked, (e) => {
+            // visible-state (render-reality B): `resolve` already filtered to VISIBLE elements, so
+            // reaching the measure proves the state rendered — the fact's expected value is `true`.
+            if (fam === "visible-state") return true;
             const cs = getComputedStyle(e);
             if (fam === "font-family") return String(cs.fontFamily || "").split(",")[0].replace(/["']/g, "").trim().toLowerCase();
             if (fam === "letter-spacing") return num(cs.letterSpacing);
@@ -570,7 +609,19 @@ export async function collectRenderedGeometry(page, facts) {
           const m = s.mapping.measure;
           out.push(resolve(s.key, els, (e) => {
             const cs = getComputedStyle(e);
-            if (m === "gap") return (s.mapping.axis === "column" ? num(cs.rowGap) : num(cs.columnGap)) ?? num(cs.gap);
+            if (m === "itemDistance") {
+              // EFFECTIVE inter-item distance (render-reality remediation A): the rendered
+              // relationship between the first two adjacent VISIBLE children — next.top −
+              // previous.bottom for a column, next.left − previous.right for a row. This is the
+              // design's target relationship, not the authored `gap` property: child margins,
+              // framework spacing, and gaps all collapse into the one number the user sees.
+              const kids = Array.from(e.children).filter(isVisible);
+              if (kids.length < 2) return null;
+              const a = kids[0].getBoundingClientRect();
+              const b = kids[1].getBoundingClientRect();
+              const d = s.mapping.axis === "column" ? (b.top - a.bottom) : (b.left - a.right);
+              return Math.round(d * 100) / 100;
+            }
             if (m === "borderWidth") return ["Top", "Right", "Bottom", "Left"].map((side) => num(cs[`border${side}Width`]));
             if (m === "borderColor") {
               // BOR-001 (§15): a computed color is only meaningful where the border has POSITIVE

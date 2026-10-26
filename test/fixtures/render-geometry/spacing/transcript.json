@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "spacing-fixture.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    {
+      "id": "root", "type": "group", "w": 800, "h": 400,
+      "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+      "children": [
+        {
+          "id": "form", "type": "group", "axis": "column", "gap": 10, "w": 760, "h": 120,
+          "children": [
+            { "id": "rowA", "type": "group", "w": 760, "h": 40, "children": [ { "id": "tA", "type": "text", "text": "Baris A", "w": 300, "h": 15 } ] },
+            { "id": "rowB", "type": "group", "w": 760, "h": 40, "children": [ { "id": "tB", "type": "text", "text": "Baris B", "w": 300, "h": 15 } ] }
+          ]
+        }
+      ]
+    }
+  ],
+  "images": [], "icons": []
+}

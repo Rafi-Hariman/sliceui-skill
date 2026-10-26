@@ -14,7 +14,8 @@ import { extractLoadedClasses } from "../lib/loaded-classes.mjs";
 import { extractConventions } from "../framework/angular/conventions.mjs";
 import { extractConventions as extractVueConventions } from "../framework/vue-sfc/conventions.mjs";
 import { detectAngularDetails } from "../framework/angular/detect-angular.mjs";
-import { mergeGoldenReferences } from "../framework/angular/conventions.mjs";
+import { mergeGoldenReferences, mergeProjectPolicy } from "../framework/angular/conventions.mjs";
+import { withMinedDeclarations } from "../project/scss-mine.mjs";
 import { splitProjectContext } from "../lib/snapshot.mjs";
 import { walkFiles, readJsonSafe, readFileSyncSafe, toRel, extractTsconfigPaths } from "../lib/detect-utils.mjs";
 
@@ -485,7 +486,7 @@ export async function main(argv) {
   // conventions move to conventions.json (single owner). Standalone `detect` must write the
   // canonical conventions.json too, with golden references merged (parity with `init`).
   const { projectContext, conventions } = splitProjectContext(ctx);
-  const mergedConventions = mergeGoldenReferences(root, conventions);
+  const mergedConventions = await withMinedDeclarations(root, mergeProjectPolicy(root, mergeGoldenReferences(root, conventions)), ctx.framework?.id);
   writeFileSync(outPath, JSON.stringify(projectContext, null, 2) + "\n");
   writeFileSync(join(outDir, "conventions.json"), JSON.stringify({ ...mergedConventions, profile: ctx.profile ?? "generic", generatedAt: new Date().toISOString(), inputHash: ctx.inputHash }, null, 2) + "\n");
   writeContextSectionFiles(outDir, ctx);

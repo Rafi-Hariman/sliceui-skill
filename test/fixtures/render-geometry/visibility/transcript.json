@@ -1,0 +1,18 @@
+{
+  "version": 3,
+  "meta": { "tier": 0, "source": "figml", "image": "visibility-fixture.xml", "textQuality": "exact" },
+  "tokens": { "colors": [], "fonts": [] },
+  "layout": [
+    {
+      "id": "root", "type": "group", "w": 800, "h": 400,
+      "padding": { "top": 20, "right": 20, "bottom": 20, "left": 20 },
+      "children": [
+        { "id": "tbl", "type": "group", "table": true, "w": 760, "children": [
+          { "id": "c1", "type": "text", "text": "Kolom Satu", "w": 300, "h": 15 }
+        ] },
+        { "id": "footer", "type": "text", "text": "Menampilkan 1-10 dari 30 data", "w": 400, "h": 15 }
+      ]
+    }
+  ],
+  "images": [], "icons": []
+}

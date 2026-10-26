@@ -261,15 +261,15 @@ test("agent-context: pilar absent (public install) degrades to registry sample, 
   assert.ok(!markdown.includes("[serverMode]"), "no forbidden-input enumeration without the catalog");
 });
 
-test("skill contract: primary skill no longer defaults to reading conventions.json", () => {
+test("skill contract: primary skill is a thin orchestrator over handoff + inspect + check", () => {
   const skill = readFileSync(join(HERE, "..", "skill", "SKILL.md"), "utf8");
-  // The skill must steer the agent away from the machine-only conventions.json…
+  assert.match(skill, /\.sliceui\/handoff\.md/, "handoff is the project contract");
+  assert.match(skill, /sliceui inspect/, "inspect is the design-context command");
+  assert.match(skill, /sliceui check/, "check is the post-generate gate");
   assert.match(skill, /machine-only/, "conventions.json labelled machine-only");
-  assert.match(skill, /Do \*\*NOT\*\* read it during normal generation/, "explicit do-not-read instruction");
-  // …toward the design-scoped context, and relegate resolved.json + pilar docs to fallback.
-  assert.match(skill, /agent-context\.md/, "agent-context.md is the primary convention input");
-  assert.match(skill, /resolved\.json.*diagnostic|diagnostic\/ambiguity/, "resolved.json is a diagnostic source");
-  assert.match(skill, /targeted fallback|targeted lookup/, "pilar docs are targeted fallback only");
+  assert.match(skill, /during normal generation/, "do-not-read instruction present");
+  assert.match(skill, /agent-context\.md/, "agent-context.md referenced");
+  assert.match(skill, /targeted-fallback/, "pilar docs are targeted fallback");
 });
 
 // --- PR 4: implementation hints (bounded, authority-labelled) ---
@@ -369,14 +369,16 @@ test("PR4 agent-context: context budget still respected with hints present", () 
   assert.match(markdown, /never\s+treat one as fact/, "explicit do-not-treat-as-fact instruction");
 });
 
-test("skill contract: PR 4 — skill teaches authority typing and public-API precedence", () => {
+test("skill contract: authority hierarchy + invariant stated, internals routed to artifacts", () => {
   const skill = readFileSync(join(HERE, "..", "skill", "SKILL.md"), "utf8");
-  assert.match(skill, /classification` \+ `authority` \+ `confidence`/, "skill states entries are typed");
-  assert.match(skill, /authority: hint` means "project idiom recommendation", not fact/, "hint is non-authoritative");
-  assert.match(skill, /fallbackUsed: true`?\s*and\s*`?classification: unresolved/, "fallback/unresolved handling stated");
-  assert.match(skill, /never invent one/, "unresolved must not be guessed");
-  assert.match(skill, /behaviorBindings/, "public-API precedence surfaced");
-  assert.match(skill, /the split is behavior vs visual, never "no ::ng-deep"/, "visual-style exception preserved");
+  assert.match(skill, /A1 DESIGN/, "authority hierarchy present");
+  assert.match(skill, /A5 AGENT JUDGMENT/, "full hierarchy (A1–A5) present");
+  assert.match(skill, /transcript\/XML owns ALL visible appearance/, "design owns appearance invariant");
+  assert.match(skill, /Samples teach HOW to write/, "samples are writing samples, never copy-source");
+  assert.match(skill, /implementation evidence, not visual authority/, "recipes are evidence, not authority");
+  assert.match(skill, /required` — apply as instructed/, "recipe states documented");
+  assert.match(skill, /spec\.md/, "spec.md is a debug/internal artifact");
+  assert.match(skill, /guess an API\/service/, "mock-data rule present");
 });
 
 test("PR4-corrective agent-context: ambiguous taxonomy is non-authoritative, no guessed class", () => {
