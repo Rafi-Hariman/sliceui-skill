@@ -18,7 +18,7 @@ import { PILAR_VERSION } from "../framework/angular/pilar-catalog.mjs";
 /** Extract major.minor from an exact or range semver ("3.3.23", "^3.3.23", "~3.4"). */
 function majorMinor(v) {
   const m = /(\d+)\.(\d+)/.exec(String(v ?? ""));
-  return m ? `${m[1]}.${m[2]}` : null;
+  return m ? { major: Number(m[1]), minor: Number(m[2]) } : null;
 }
 
 /** The pilar version a project actually has: node_modules/pilar/package.json (exact) is the
@@ -44,16 +44,19 @@ export function pilarVersionStatus(root, deps = {}) {
   if (!installed) {
     return { present: false, catalog: PILAR_VERSION, installed: null, skew: false, message: null };
   }
-  const catMM = majorMinor(PILAR_VERSION);
-  const instMM = majorMinor(installed);
-  if (!catMM || !instMM) {
+  const cat = majorMinor(PILAR_VERSION);
+  const inst = majorMinor(installed);
+  if (!cat || !inst) {
     return { present: true, catalog: PILAR_VERSION, installed, skew: true,
       message: `pilar catalog snapshot version (PILAR_VERSION=${PILAR_VERSION}) or installed version (${installed}) is not readable semver — regenerate the catalog to be safe: node scripts/extract-pilar.mjs <path-to-pilar>` };
   }
-  if (catMM === instMM) {
+  if (cat.major === inst.major && cat.minor === inst.minor) {
     return { present: true, catalog: PILAR_VERSION, installed, skew: false, message: null };
   }
-  const direction = catMM < instMM ? "older than" : "newer than";
+  // Numeric comparison (not string `<`): 3.3 must compare older than 3.10.
+  const direction = (cat.major < inst.major || (cat.major === inst.major && cat.minor < inst.minor))
+    ? "older than"
+    : "newer than";
   return {
     present: true,
     catalog: PILAR_VERSION,

@@ -125,6 +125,11 @@ export async function pilarMount({ html, ts, scss = "", checkout, probe, launch 
       return { checks: [{ name: "pilarMount", status: "fail", detail: `bootstrap timeout (selector <${selector}>)${ctx}` }], signals: null };
     }
 
+    // `probe` is a dev-only test expression (gated on PILAR_CHECKOUT), never user input. The
+    // dynamic-eval boundary is trusted; guard the type anyway so a malformed caller fails loudly.
+    if (typeof probe !== "string" || !probe.trim()) {
+      return { checks: [{ name: "pilarMount", status: "fail", detail: "probe expression must be a non-empty string" }], signals: null };
+    }
     const signals = await page.evaluate((expr) => {
       // eslint-disable-next-line no-new-func
       return new Function("document", `return (${expr})`)(document);

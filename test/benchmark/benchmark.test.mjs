@@ -97,12 +97,19 @@ test("maturity: a GATED private adapter caps a family at L4 (Bill/Pilar)", () =>
 
 // ---------- splits + leakage ----------
 
-test("splits: splitEntries is deterministic and covers all three splits", () => {
-  const entries = [member({ id: "a" }), member({ id: "b" }), member({ id: "c" }), member({ id: "d" }), member({ id: "e" }), member({ id: "f" }), member({ id: "g" }), member({ id: "h" }), member({ id: "i" }), member({ id: "j" })];
-  const s1 = splitEntries(entries).map((e) => e.split).join(",");
-  const s2 = splitEntries(entries).map((e) => e.split).join(",");
-  assert.equal(s1, s2, "deterministic");
-  for (const sp of Object.values(SPLITS)) assert.ok(s1.includes(sp), `split ${sp} present`);
+test("splits: splitEntries is deterministic and stable as the corpus grows", () => {
+  const small = [member({ id: "a" }), member({ id: "b" })];
+  const grown = [...small, member({ id: "c" }), member({ id: "d" })];
+  const smallSplits = Object.fromEntries(splitEntries(small).map((e) => [e.id, e.split]));
+  const grownSplits = Object.fromEntries(splitEntries(grown).map((e) => [e.id, e.split]));
+  // Determinism: same input twice → same output.
+  assert.deepEqual(splitEntries(grown).map((e) => e.split), splitEntries(grown).map((e) => e.split), "deterministic");
+  // Every assigned split is a valid bucket.
+  for (const sp of Object.values(grownSplits)) assert.ok(Object.values(SPLITS).includes(sp), `valid split ${sp}`);
+  // A member keeps its split when the corpus grows (size-independent bucket).
+  for (const id of ["a", "b"]) {
+    assert.equal(grownSplits[id], smallSplits[id], `"${id}" split is stable across corpus growth`);
+  }
 });
 
 test("splits: detectLeakage flags a rule source embedding a holdout token", () => {

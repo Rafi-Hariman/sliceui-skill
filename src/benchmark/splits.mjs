@@ -17,11 +17,12 @@ export const SPLITS = Object.freeze({ DEVELOPMENT: "development", VALIDATION: "v
 /** Assign each member to development / validation / holdout by a deterministic id hash. */
 export function splitEntries(entries = [], { devRatio = 0.7, valRatio = 0.15 } = {}) {
   const sorted = [...entries].sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  const total = sorted.length || 1;
+  // Size-independent bucket: `% 100` keeps a member's dev/val/holdout assignment stable as the
+  // corpus grows (a member must not silently migrate splits when another member is added).
   return sorted.map((e) => {
-    const bucket = hashId(e.id) % total;
-    const split = bucket < Math.floor(total * devRatio) ? SPLITS.DEVELOPMENT
-      : bucket < Math.floor(total * (devRatio + valRatio)) ? SPLITS.VALIDATION
+    const bucket = hashId(e.id) % 100;
+    const split = bucket < 100 * devRatio ? SPLITS.DEVELOPMENT
+      : bucket < 100 * (devRatio + valRatio) ? SPLITS.VALIDATION
         : SPLITS.HOLDOUT;
     return { ...e, split };
   });

@@ -34,7 +34,13 @@ export function main(argv) {
     console.error(`no ${ctxPath} — run \`sliceui init\` first.`);
     return 2;
   }
-  const ctx = JSON.parse(readFileSync(ctxPath, "utf8"));
+  let ctx;
+  try {
+    ctx = JSON.parse(readFileSync(ctxPath, "utf8"));
+  } catch (err) {
+    console.error(`referee: cannot read or parse ${ctxPath}: ${err?.message ?? err}`);
+    return 2;
+  }
   const { xml, name } = readRawXmlFromSliceui(root);
   const transcript = readTranscript(root);
 

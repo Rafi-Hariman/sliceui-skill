@@ -82,7 +82,7 @@ function reportTrace(cmd, json) {
         `  glob operations    : ${s.globs}\n`,
       );
     }
-  });
+  }).catch(() => {}); // profile is best-effort; a failure must not crash the command
 }
 
 /** Log one command run to .sliceui/runs.jsonl (no-op before .sliceui/ exists, or for infra cmds).
@@ -186,4 +186,9 @@ run(process.argv.slice(2)).then((code) => {
   if (process.stdin.isTTY && !process.stdin.destroyed) {
     process.stdin.unref();
   }
+}).catch((err) => {
+  // A command module that throws (rather than returning an exit code) must not surface as an
+  // unhandled rejection + stack trace — translate it to a clean message + non-zero exit.
+  process.stderr.write(`sliceui: ${err?.message ?? err}\n`);
+  process.exitCode = 1;
 });

@@ -118,6 +118,9 @@ function resolveRefToComponent(root, ref) {
  * @returns {{ classVocabulary: Array, ngDeepCorpus: Array, componentAnatomy: object, naming: object }}
  */
 export function extractConventions(root, ctx = {}) {
+  // Cold-path (init/detect) full-tree read: every source .html/.scss/.css is held in memory at
+  // once, bounded only by SKIP (node_modules/dist/.angular/build). Deliberate tradeoff — the
+  // corpus/vocabulary extraction needs the whole corpus; a cap here would silently drop conventions.
   const htmlFiles = fg.sync(["**/*.html"], { cwd: root, ignore: SKIP, absolute: true });
   const scssFiles = fg.sync(["**/*.scss", "**/*.css"], { cwd: root, ignore: SKIP, absolute: true });
 

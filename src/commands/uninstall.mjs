@@ -49,10 +49,13 @@ export function uninstallProject(rootDir) {
   // 3. .gitignore — drop the .sliceui/ line we added (leave .env.local line).
   const giPath = join(root, ".gitignore");
   if (existsSync(giPath)) {
-    const lines = readFileSync(giPath, "utf8").split(/\r?\n/);
+    const content = readFileSync(giPath, "utf8");
+    // Preserve the file's own line endings (CRLF vs LF) and trailing newline on rewrite.
+    const eol = content.includes("\r\n") ? "\r\n" : "\n";
+    const lines = content.split(/\r?\n/);
     const filtered = lines.filter((l) => l.trim() !== ".sliceui/");
     if (filtered.length !== lines.length) {
-      writeFileSync(giPath, filtered.join("\n"));
+      writeFileSync(giPath, filtered.join(eol));
       removed.push(".gitignore → removed .sliceui/ line");
     }
   }

@@ -259,13 +259,18 @@ export async function main(argv) {
   const abs = path.startsWith("/") ? path : join(process.cwd(), path);
 
   let transcript;
-  if (/\.(xml|figml)$/i.test(abs)) {
-    const xml = readFileSync(abs, "utf8");
-    const r = parseFigml(xml, basename(abs));
-    if (!r.ok) { console.error("parse failed:", r.reason, r.message); return 3; }
-    transcript = r.transcript;
-  } else {
-    transcript = JSON.parse(readFileSync(abs, "utf8"));
+  try {
+    if (/\.(xml|figml)$/i.test(abs)) {
+      const xml = readFileSync(abs, "utf8");
+      const r = parseFigml(xml, basename(abs));
+      if (!r.ok) { console.error("parse failed:", r.reason, r.message); return 3; }
+      transcript = r.transcript;
+    } else {
+      transcript = JSON.parse(readFileSync(abs, "utf8"));
+    }
+  } catch (err) {
+    console.error("spec: cannot read or parse input:", err?.message ?? err);
+    return 3;
   }
 
   const conventions = readConventions(process.cwd());

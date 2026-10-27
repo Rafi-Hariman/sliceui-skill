@@ -87,16 +87,20 @@ export async function callGemini(prompt, imagePath, cwdDir) {
 
 function prepareImage(imagePath) {
   const mimeType = mimeOf(extname(imagePath).toLowerCase());
-  let bytes;
+  const extOk = ["image/png", "image/jpeg", "image/webp"].includes(mimeType);
+  // Stat before reading: an over-limit image must not be fully buffered just to be resized.
+  let size;
   try {
-    bytes = readFileSync(imagePath);
+    size = statSync(imagePath).size;
   } catch {
     return { data: null };
   }
-  const sizeOk = statSync(imagePath).size <= MAX_BYTES;
-  const extOk = ["image/png", "image/jpeg", "image/webp"].includes(mimeType);
-  if (sizeOk && extOk) {
-    return { data: bytes.toString("base64"), mimeType };
+  if (size <= MAX_BYTES && extOk) {
+    try {
+      return { data: readFileSync(imagePath).toString("base64"), mimeType };
+    } catch {
+      return { data: null };
+    }
   }
   // Resize via macOS sips to long edge 1536, jpeg q80.
   try {
@@ -107,7 +111,13 @@ function prepareImage(imagePath) {
     return { data: resized.toString("base64"), mimeType: "image/jpeg" };
   } catch {
     // no sips (Linux/CI) or resize failed — send raw if the type is acceptable
-    if (extOk) return { data: bytes.toString("base64"), mimeType };
+    if (extOk) {
+      try {
+        return { data: readFileSync(imagePath).toString("base64"), mimeType };
+      } catch {
+        return { data: null };
+      }
+    }
     return { data: null };
   }
 }

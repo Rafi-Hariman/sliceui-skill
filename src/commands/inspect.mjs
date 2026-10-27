@@ -470,7 +470,12 @@ export async function main(argv) {
       if (ingested.ok) intentGraph = ingested.intentGraph;
     } catch { /* intent graph is additive; a failure must not fail inspect */ }
   } else if (/\.json$/i.test(abs)) {
-    transcript = JSON.parse(readFileSync(abs, "utf8"));
+    try {
+      transcript = JSON.parse(readFileSync(abs, "utf8"));
+    } catch (err) {
+      console.error(`inspect: cannot read or parse transcript: ${err?.message ?? err}`);
+      return 3;
+    }
   } else {
     const result = await transcribe(abs, process.cwd(), { forceStatic });
     if (!result.ok) { console.error(JSON.stringify(result, null, 2)); return 3; }

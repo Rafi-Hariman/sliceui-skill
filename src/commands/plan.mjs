@@ -39,7 +39,12 @@ export async function main(argv) {
  * declaration observations live in conventions.json via `init`/`detect`). No caller injection.
  */
 export async function buildPlanForProject(root, abs) {
-  const rawXml = readFileSync(abs, "utf8");
+  let rawXml;
+  try {
+    rawXml = readFileSync(abs, "utf8");
+  } catch (err) {
+    return { ok: false, reason: "read-error", message: `Cannot read ${abs}: ${err?.message ?? err}` };
+  }
   const ingested = ingestDesign(rawXml, basename(abs));
   if (!ingested.ok) return ingested;
 

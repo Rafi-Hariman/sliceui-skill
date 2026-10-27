@@ -41,7 +41,7 @@ export async function renderProbe({ html = "", css = "", transcript, launch = nu
     };
   }
 
-  const doc = `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${html}</body></html>`;
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><style>${escapeStyle(css)}</style></head><body>${html}</body></html>`;
 
   let browser = null;
   try {
@@ -72,6 +72,11 @@ export async function renderProbe({ html = "", css = "", transcript, launch = nu
   } finally {
     if (browser) await browser.close();
   }
+}
+
+/** Escape a raw-CSS injection so it cannot terminate the host `<style>` element (mirrors render-verify). */
+function escapeStyle(css) {
+  return String(css ?? "").replace(/<\/style/gi, "<\\/style");
 }
 
 /** Read the RENDERED value for one fact (normalized to the same shape as its `design`). */
