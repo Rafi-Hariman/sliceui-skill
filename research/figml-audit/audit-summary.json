@@ -1,0 +1,67 @@
+{
+  "status": "completed",
+  "commit": "76590e3293564babe36e1ecac6e1b5b6e1e5f8a0",
+  "date": "2026-11-06",
+  "figmlFilesAnalyzed": 4,
+  "nodesAnalyzed": 2733,
+  "p0ExactCoverage": 0.615,
+  "p0UsableCoverage": 0.846,
+  "p1ExactCoverage": 0.412,
+  "p1UsableCoverage": 0.471,
+  "criticalLossCount": 10,
+  "ambiguousFieldCount": 1,
+  "deterministic": true,
+  "securityFindings": {
+    "critical": 0,
+    "high": 0,
+    "medium": 5,
+    "low": 3
+  },
+  "recommendation": "B (FigML → versioned adapter → SliceIR → scene index → hierarchical transcript)",
+  "limitations": [
+    "4 file XML: 2 FIGML asli (mahasiswa-tarif, tester.xml) + 2 buatan tangan (eval-hope, pilar-golden); schema empiris berbasis 2 export asli, tidak mewakili seluruh fitur Figma.",
+    "Tidak ada fixture untuk gradient, image fill, shadow/blur, variables, rotation, RTL/emoji, rich-text spans, stroke per-side, auto-wrap, prompt-injection — statusnya [NEEDS FIGML EXPORT].",
+    "Scale test 10k node memakai XML SYNTHETIC (bukan export FIGML), dibangun dari struktur teramati.",
+    "Akurasi implementasi Angular tidak diukur langsung (di luar scope fase 1); hanya diverifikasi tidak langsung lewat honesty skip render probe.",
+    "Determinism diuji pada node ber-id; node tanpa id memakai counter global (non-deterministik lintas panggilan dalam proses yang sama)."
+  ],
+  "nextSteps": [
+    "Buat fixture [NEEDS FIGML EXPORT] (F-AUTOWRAP, F-RICHTEXT, F-GRADIENT, F-EFFECTS, F-VARIABLES, F-IMAGE, F-ROTATE, F-RTL, F-INJECTION, F-DEEP, F-STROKE-PER-SIDE).",
+    "Ekspos mainComponent.id, fontName.family, layoutSizing, alignment, layoutPositioning, constraints, opacity, required ke agent-facing output (perubahan minimum, bukan refactor).",
+    "Terapkan chunking per Page/Section/Frame + dedup repeated instance untuk scale ribuan node.",
+    "Terapkan delimitasi data desain (prompt-injection isolation) di spec/agent-context (baru di transcript.md)."
+  ],
+  "implementation": {
+    "phase": 1,
+    "title": "Unified FigML Parser Contract",
+    "status": "completed",
+    "date": "2026-11-06",
+    "filesAdded": ["src/lib/figml-contract.mjs", "test/figml-contract.test.mjs"],
+    "filesModified": ["src/lib/figml-parse.mjs", "src/commands/transcribe.mjs", "src/lib/render-transcript.mjs"],
+    "testsBefore": { "total": 769, "pass": 766, "fail": 0, "skip": 3 },
+    "testsAfter": { "total": 779, "pass": 776, "fail": 0, "skip": 3 },
+    "transcriptByteStable": true,
+    "deterministicContract": true,
+    "mainComponentPreserved": true,
+    "unknownPreserved": true,
+    "diagnosticsCodes": ["missing-critical-field", "unknown-element", "unknown-attribute", "inferred-default", "ambiguous-value", "unsupported-field"],
+    "criticalLossFixed": ["mainComponent.id", "unknown element/attribute", "deterministic identity", "diagnostics", "untrusted content separation"],
+    "criticalLossDeferred": ["rich text", "font family", "layoutSizing", "alignment", "layoutPositioning", "constraints", "opacity", "required", "instance overrides"]
+  },
+  "implementation.phase2": {
+    "phase": 2,
+    "title": "SliceIR minimum + transcript-v2 (opt-in)",
+    "status": "completed",
+    "date": "2026-11-06",
+    "schemaVersion": "sliceir/0.1",
+    "filesAdded": ["src/design/slice-ir.mjs", "src/lib/render-hierarchical-transcript.mjs", "test/slice-ir.test.mjs"],
+    "filesModified": ["src/commands/transcribe.mjs"],
+    "testsBefore": { "total": 779, "pass": 776, "fail": 0, "skip": 3 },
+    "testsAfter": { "total": 797, "pass": 794, "fail": 0, "skip": 3 },
+    "defaultOutputByteStable": true,
+    "optInFlag": "--transcript-version 2",
+    "deterministicSliceIR": true,
+    "criticalLossRecoveredToSliceIR": ["mainComponent.id", "fontFamily/style", "layoutSizing H/V", "alignment", "layoutPositioning", "constraints", "opacity", "required", "visible", "fills/strokes/radius", "overrides", "variantProperties/componentProperties"],
+    "stillDeferred": ["rich-text runs", "textDecoration/textCase (needs-fixture)", "effects (needs-fixture)", "min/max size + wrap + counterAxisSpacing (needs-fixture)", "mainComponent.name (external definition)"]
+  }
+}

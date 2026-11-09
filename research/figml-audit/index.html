@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>SliceUI FIGML Audit — Laporan Penelitian</title>
+<style>
+  :root {
+    --bg: #F5F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #F5F5F7;
+    --text: #1D1D1F;
+    --secondary: #6E6E73;
+    --border: rgba(0,0,0,.08);
+    --accent: #0071E3;
+    --accent-soft: rgba(0,113,227,.1);
+    --ok: #1a7f37;
+    --warn: #9a6700;
+    --bad: #cf222e;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #080808;
+    --surface: #1C1C1E;
+    --surface-2: #131315;
+    --text: #F5F5F7;
+    --secondary: #A1A1A6;
+    --border: rgba(255,255,255,.12);
+    --accent: #2997FF;
+    --accent-soft: rgba(41,151,255,.15);
+    --ok: #3fb950;
+    --warn: #d29922;
+    --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  header.hero {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 72px 0 48px;
+  }
+  .kicker { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1.08; letter-spacing: -0.02em; margin: 12px 0 8px; }
+  .subtitle { font-size: 20px; color: var(--secondary); max-width: 720px; margin: 0; }
+  .meta-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .chip {
+    font-size: 13px; padding: 6px 12px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--secondary);
+    font-family: var(--mono);
+  }
+  .chip.verdict { color: #fff; background: var(--accent); border-color: transparent; font-weight: 600; }
+  nav.toc { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 10; backdrop-filter: saturate(180%) blur(20px); }
+  nav.toc .wrap { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 24px; }
+  nav.toc a { font-size: 13px; color: var(--secondary); }
+  nav.toc a:hover { color: var(--text); }
+  section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: 0; }
+  h2 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 8px; }
+  h3 { font-size: 20px; margin: 28px 0 8px; }
+  p.lead { color: var(--secondary); font-size: 17px; max-width: 780px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .card .num { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+  .card .lbl { font-size: 13px; color: var(--secondary); margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  .tbl-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--secondary); background: var(--surface-2); position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-2); }
+  code, .mono { font-family: var(--mono); font-size: 13px; }
+  code { background: var(--accent-soft); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; overflow-x: auto; font-family: var(--mono); font-size: 13px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; letter-spacing: .03em; }
+  .tag.ok { background: rgba(26,127,55,.15); color: var(--ok); }
+  .tag.warn { background: rgba(154,103,0,.15); color: var(--warn); }
+  .tag.bad { background: rgba(207,34,46,.12); color: var(--bad); }
+  .tag.info { background: var(--accent-soft); color: var(--accent); }
+  .callout { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 12px 12px 0; padding: 14px 18px; margin: 16px 0; }
+  .callout.warn { border-color: var(--warn); background: rgba(154,103,0,.1); }
+  .callout.bad { border-color: var(--bad); background: rgba(207,34,46,.08); }
+  .fact-kind { font-size: 12px; color: var(--secondary); }
+  footer { padding: 48px 0 80px; color: var(--secondary); font-size: 13px; }
+  .theme-toggle { position: fixed; right: 16px; bottom: 16px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  @media print {
+    nav.toc, .theme-toggle { display: none !important; }
+    body { background: #fff; color: #000; }
+    section { page-break-inside: avoid; border: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Research · Reverse-Engineering · Read-only audit</div>
+    <h1>SliceUI FIGML Audit</h1>
+    <p class="subtitle">Apakah pipeline FigML&nbsp;→&nbsp;SliceUI&nbsp;→&nbsp;Angular cukup akurat sebagai konteks bagi coding agent tanpa vision? Audit berbasis bukti file:baris, fixture, dan eksperimen.</p>
+    <div class="meta-bar">
+      <span class="chip verdict">Status: SELESAI</span>
+      <span class="chip">Tanggal: 2026-11-06</span>
+      <span class="chip">Commit: 76590e3</span>
+      <span class="chip">Node v20.19.5</span>
+      <span class="chip">npm · lockfile v3</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Daftar isi">
+  <div class="wrap">
+    <a href="#summary">Ringkasan</a>
+    <a href="#kelayakan">Kelayakan</a>
+    <a href="#schem">Skema FigML</a>
+    <a href="#coverage">Field coverage</a>
+    <a href="#trace">End-to-end</a>
+    <a href="#determinism">Determinisme</a>
+    <a href="#scale">Scale</a>
+    <a href="#security">Security</a>
+    <a href="#arch">Arsitektur</a>
+    <a href="#plan">Rencana</a>
+    <a href="#implementasi">Implementasi</a>
+    <a href="#validasi">Validasi</a>
+    <a href="#limitasi">Limitasi</a>
+    <a href="#sumber">Sumber</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="summary">
+  <h2>Executive Summary</h2>
+  <p class="lead">SliceUI memiliki dua jalur parsing XML yang divergen, fidelity metric yang menyesatkan, dan serangkaian field desain kritis yang hilang sebelum mencapai coding agent — tetapi fondasi parsing-nya aman, deterministik, dan scalable.</p>
+
+  <div class="grid">
+    <div class="card"><div class="num">4</div><div class="lbl">file XML dianalisis (2 FIGML asli + 2 buatan)</div></div>
+    <div class="card"><div class="num">2,733</div><div class="lbl">elemen XML diinventaris</div></div>
+    <div class="card"><div class="num">61.5%</div><div class="lbl">P0 exact coverage</div></div>
+    <div class="card"><div class="num">41.2%</div><div class="lbl">P1 exact coverage</div></div>
+    <div class="card"><div class="num">10</div><div class="lbl">field critical-loss</div></div>
+    <div class="card"><div class="num">✔</div><div class="lbl">deterministik (byte-identical 3×)</div></div>
+  </div>
+
+  <h3>Temuan terverifikasi (paling kritis)</h3>
+  <ul>
+    <li><strong>Format FigML tidak lossless.</strong> Vocabulary tag-nya <em>terbuka</em> — nama layer Figma menjadi nama tag XML (<code>Button_FNC</code>, <code>search_bar</code>, <code>Icon_white</code>). Tanpa XSD/namespace. Hanya 2 export asli yang tersedia sebagai bukti.</li>
+    <li><strong>Dua parser paralel divergen</strong> (<code>src/lib/figml-parse.mjs</code> "lossy" vs <code>src/design/raw-graph.mjs</code> "lossless") — keduanya memakai <code>fast-xml-parser</code>, tapi tidak ada kontrak bersama, dan <strong>keduanya membuang <code>mainComponent.id</code></strong> (relasi component→instance).</li>
+    <li><strong>Fidelity "100%" menyesatkan.</strong> <code>computeFidelity</code> hanya menskor 13 atribut kurasi (<code>fidelity.mjs:32-36</code>); field yang hilang (font family, opacity, sizing, alignment, constraints, mainComponent) <em>tidak ada di denominator</em>.</li>
+    <li><strong>P0 usable 84.6%, P1 usable 47.1%.</strong> Fondasi (teks/geometri/warna/border/radius) solid; responsive & typography bocor.</li>
+    <li><strong>Parser XML aman</strong>: XXE, depth-bomb, prototype-pollution, dan malformed semuanya diblokir <code>fast-xml-parser</code> (dibuktikan empiris).</li>
+    <li><strong>Prompt injection terbuka</strong>: nama layer & teks tersalur verbatim ke prompt agent tanpa isolasi teknis (hanya larangan di <code>SKILL.md:62</code>).</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Rekomendasi utama:</strong> Pilihan <strong>B</strong> — <code>FigML → versioned adapter → SliceIR → scene index → hierarchical transcript</code>. Bukan refactor besar; perubahan minimum yang dibuktikan oleh field-coverage.
+  </div>
+</section>
+
+<section id="kelayakan">
+  <h2>Status Kelayakan</h2>
+  <p class="lead">Apakah transcript SliceUI cukup presisi untuk coding agent text-only?</p>
+  <table>
+    <thead><tr><th>Dimensi (bobot)</th><th>Skor</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Structural fidelity (25%)</td><td>14/25 (56%)</td><td><span class="tag warn">cukup, 1 gap P0</span></td></tr>
+      <tr><td>Content fidelity (20%)</td><td>14/20 (70%)</td><td><span class="tag ok">baik</span></td></tr>
+      <tr><td>Layout fidelity (25%)</td><td>11/25 (44%)</td><td><span class="tag bad">lemah</span></td></tr>
+      <tr><td>Visual style fidelity (15%)</td><td>14/15 (93%)</td><td><span class="tag ok">baik</span> (effects N/A)</td></tr>
+      <tr><td>Agent usability (10%)</td><td>5/10 (50%)</td><td><span class="tag warn">cukup</span></td></tr>
+      <tr><td>Safety & determinism (5%)</td><td>13/15 (67%)</td><td><span class="tag ok">baik</span></td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <strong>Verdict kelayakan:</strong> <em>layak untuk fondasi (teks, geometri, warna, hierarki)</em>, tetapi <em>belum andal untuk responsive layout, typography family, dan relasi component-instance</em> — tepatnya area yang paling dibutuhkan slicing Angular non-trivial. Gunakan dengan sadar akan 10 field yang hilang; jangan klaim pixel-perfect.
+  </div>
+</section>
+
+<section id="schem">
+  <h2>Skema FigML Empiris</h2>
+  <p class="lead">Diinventaris dari 2 export asli (<code>mahasiswa-tarif/raw.xml</code> 120 KB, <code>tester.xml</code> 170 KB). Detail lengkap di <code>observed-figml-schema.json</code>.</p>
+  <h3>Fakta struktural terverifikasi</h3>
+  <ul>
+    <li>Root: <code>&lt;frame&gt;</code> (lowercase); frame anak: <code>&lt;Frame&gt;</code> (capital) — inkonsistensi case. <span class="fact-kind">(observed-figml-schema.md §2)</span></li>
+    <li>Deklarasi versi: <code>&lt;?figml version="1.0"?&gt;</code> — <strong>tidak dibaca</strong> oleh parser (tidak ada gate versi).</li>
+    <li>Tag instance = nama layer Figma (vocabulary terbuka). Tidak ada DTD/XSD/namespace.</li>
+    <li>Warna hanya <code>#rrggbb</code> (tanpa alpha) di fixture; opacity node decimal presisi penuh Figma.</li>
+    <li>Nilai numerik bercampur tipe: <code>fontWeight</code>/<code>cornerRadius</code> bisa <code>""</code>, koordinat desimal sub-pixel.</li>
+  </ul>
+  <h3>Elemen metadata yang di-skip oleh parser</h3>
+  <p><code>SKIP_TAGS</code> (<code>figml-parse.mjs:122-126</code>): <code>constraints</code>, <code>fontName</code>, <code>letterSpacing</code>, <code>fill</code>, <code>lineHeight</code>, <code>overrides</code>, <code>override</code>, <code>overriddenFields</code>, <code>overriddenField</code>, <code>mainComponent</code>, <code>componentProperties</code>, <code>variantProperties</code>, <code>textStyles</code>.</p>
+  <p>Sebagian dibaca dari child (<code>lineHeight</code>/<code>letterSpacing</code>/<code>fill</code>), sebagian dibaca <em>sebagian</em> (<code>variantProperties</code> → Type/Name/required), sebagian <strong>dibuang total</strong> (<code>constraints</code>, <code>mainComponent</code>, <code>fontName.family</code>).</p>
+</section>
+
+<section id="coverage">
+  <h2>Field Coverage</h2>
+  <p class="lead">49 field dinilai. Denominator = field terverifikasi (mengecualikan <code>needs-fixture</code>/<code>not-observed</code>). Matriks lengkap: <code>field-coverage.csv</code>.</p>
+  <div class="grid">
+    <div class="card"><div class="num">61.5%</div><div class="lbl">P0 exact (8/13)</div></div>
+    <div class="card"><div class="num">84.6%</div><div class="lbl">P0 usable (11/13)</div></div>
+    <div class="card"><div class="num">41.2%</div><div class="lbl">P1 exact (7/17)</div></div>
+    <div class="card"><div class="num">47.1%</div><div class="lbl">P1 usable (8/17)</div></div>
+  </div>
+
+  <h3>10 Critical Loss</h3>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>#</th><th>Property</th><th>Prioritas</th><th>Dampak Angular</th><th>Bukti</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>mainComponent.id</code></td><td><span class="tag bad">P0</span></td><td>agent tak tahu instance→komponen (reuse komponen existing)</td><td>figml-parse.mjs:125; raw-graph.mjs:119</td></tr>
+      <tr><td>2</td><td>Rich text / mixed font</td><td>P1</td><td>span campuran hilang jadi string tunggal</td><td>figml-parse.mjs:124</td></tr>
+      <tr><td>3</td><td>Font family</td><td>P1</td><td>Roboto dll hilang; hanya size/weight/color</td><td>figml-parse.mjs:528; render-transcript styleSummary</td></tr>
+      <tr><td>4</td><td><code>layoutSizing H/V</code> (FILL/HUG)</td><td>P1</td><td>responsive fill/hug tak tersalur</td><td>figml-parse.mjs:347-348</td></tr>
+      <tr><td>5</td><td>Alignment primary/counter</td><td>P1</td><td>CENTER/MAX hilang (hanya SPACE_BETWEEN)</td><td>figml-parse.mjs:349-350</td></tr>
+      <tr><td>6</td><td><code>layoutPositioning=ABSOLUTE</code></td><td>P1</td><td>absolute child di auto-layout hilang</td><td>raw-graph.mjs:170</td></tr>
+      <tr><td>7</td><td><code>constraints</code></td><td>P1</td><td>resize/constraint antar sibling hilang</td><td>figml-parse.mjs:123</td></tr>
+      <tr><td>8</td><td>Opacity (non-zero)</td><td>P1</td><td>hanya deteksi hidden (==0); nilai parsial hilang</td><td>figml-parse.mjs:404</td></tr>
+      <tr><td>9</td><td><code>required</code> flag</td><td>P1</td><td>dead field; hanya hidden-asterisk</td><td>figml-parse.mjs:329</td></tr>
+      <tr><td>10</td><td>Instance overrides non-visible</td><td>P1</td><td>override fill/text/styleStyleId dibuang</td><td>figml-parse.mjs:414-436</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fact-kind">Catatan: selain loss di atas, ada ~11 <em>inference site</em> (klasifikasi komponen by nama, tabel by geometri, ikon by warna, dll) yang menambahkan interpretasi non-XML — terdaftar di <code>field-coverage.md</code>.</p>
+</section>
+
+<section id="trace">
+  <h2>End-to-End Trace (mahasiswa-tarif)</h2>
+  <p class="lead">Tabel ringkas; versi lengkap di <code>end-to-end-trace.md</code>.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Property</th><th>Status</th><th>Konsekuensi Angular</th></tr></thead>
+    <tbody>
+      <tr><td>text / fontSize / fontWeight / color / bg / border / radius / padding / gap / justify / hidden</td><td><span class="tag ok">preserved</span></td><td>fondasi akurat</td></tr>
+      <tr><td>font family (Roboto)</td><td><span class="tag bad">hilang</span></td><td>typography tidak lengkap</td></tr>
+      <tr><td>mainComponent / required / sizing / alignment / absolute / constraints / opacity</td><td><span class="tag bad">hilang</span></td><td>responsive + component identity bocor</td></tr>
+      <tr><td>glyph icon (Vector)</td><td><span class="tag warn">ditebak</span></td><td><code>resolve</code> tebak <code>fa-check-circle</code> dari warna</td></tr>
+      <tr><td>table rows 2-5</td><td><span class="tag warn">terkompresi</span></td><td><code>inspect</code> tampil <code>row 2/5: [2]</code> (spec.md penuh)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="determinism">
+  <h2>Determinisme</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Fixture</th><th>Node</th><th>Byte-identical (3×)</th><th>Waktu (ms)</th></tr></thead>
+    <tbody>
+      <tr><td><code>mahasiswa-tarif/raw.xml</code></td><td>157</td><td><span class="tag ok">YA</span></td><td>19.7 / 11.0 / 8.7</td></tr>
+      <tr><td><code>tester.xml</code></td><td>229</td><td><span class="tag ok">YA</span></td><td>8.6 / 9.0 / 9.9</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout warn"><strong>Kualifikasi:</strong> deterministik untuk node ber-id. Node <em>tanpa id</em> memakai counter global <code>_idSeq</code> (<code>figml-parse.mjs:629</code>) yang tidak di-reset antar panggilan dalam proses yang sama → non-deterministik lintas panggilan library.</div>
+</section>
+
+<section id="scale">
+  <h2>Scale Test (SYNTHETIC)</h2>
+  <p class="lead">XML synthetic dibangun dari struktur teramati, berlabel <code>SYNTHETIC, NOT EXPORTED BY FIGML</code>.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Text nodes</th><th>Node transcript</th><th>Waktu</th><th>Heap</th><th>Compression ratio</th></tr></thead>
+    <tbody>
+      <tr><td>100</td><td>152</td><td>2 ms</td><td>11.9 MB</td><td>1.48</td></tr>
+      <tr><td>1,000</td><td>1,502</td><td>14 ms</td><td>15.3 MB</td><td>1.49</td></tr>
+      <tr><td>5,000</td><td>7,502</td><td>72 ms</td><td>27.5 MB</td><td>1.49</td></tr>
+      <tr><td>10,000</td><td>15,002</td><td>118 ms</td><td>36.4 MB</td><td>1.50</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Linear, aman, tanpa timeout/stack-overflow. Namun 10k node ≈ 1.37 MB JSON ≈ 340k token — <strong>melebihi context window</strong>. Tidak ada chunking per batas desain; repeated instance diduplikasi penuh.</p>
+</section>
+
+<section id="security">
+  <h2>Security</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Risiko</th><th>Hasil</th><th>Severity</th></tr></thead>
+    <tbody>
+      <tr><td>XXE (external entity)</td><td><span class="tag ok">DIBLOKIR</span></td><td>—</td></tr>
+      <tr><td>Billion laughs</td><td><span class="tag ok">aman (entity tak diekspansi)</span></td><td>—</td></tr>
+      <tr><td>Depth bomb (5000)</td><td><span class="tag ok">DIBLOKIR</span></td><td>—</td></tr>
+      <tr><td>Prototype pollution (<code>__proto__</code>)</td><td><span class="tag ok">DIBLOKIR</span></td><td>—</td></tr>
+      <tr><td>Malformed XML</td><td><span class="tag ok">DIBLOKIR</span></td><td>—</td></tr>
+      <tr><td>Oversized input / max attributes</td><td><span class="tag warn">belum diuji</span></td><td>Low</td></tr>
+      <tr><td>Prompt injection (layer name / text / component)</td><td><span class="tag bad">terbuka</span></td><td>Medium</td></tr>
+      <tr><td>Data design bercampur instruksi system</td><td><span class="tag warn">ya</span></td><td>Medium</td></tr>
+      <tr><td>Leakage abs path (transcript.meta.json)</td><td><span class="tag warn">ya</span></td><td>Low</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fact-kind">Ringkasan: critical 0 · high 0 · medium 5 · low 3. Detail + mitigasi di <code>security-findings.md</code>.</p>
+</section>
+
+<section id="arch">
+  <h2>Perbandingan Arsitektur & Rekomendasi</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Kriteria</th><th>A: FigML→transcript langsung</th><th>B: adapter→SliceIR→transcript</th><th>C: exporter Figma sendiri</th></tr></thead>
+    <tbody>
+      <tr><td>Fidelity</td><td>tinggi utk subset; rendah utk field drop</td><td><strong>tinggi + provenance</strong></td><td>tertinggi</td></tr>
+      <tr><td>Effort</td><td>0</td><td>sedang</td><td>besar</td></tr>
+      <tr><td>Maintenance</td><td>dua parser divergen</td><td>satu kontrak IR</td><td>plugin + IR</td></tr>
+      <tr><td>Versioning</td><td><code>?figml</code> tak dibaca</td><td><code>schemaVersion</code></td><td>schemaVersion</td></tr>
+      <tr><td>Ribuan UI</td><td>tanpa chunk/dedup</td><td>scene index + subtree hash</td><td>sama</td></tr>
+      <tr><td>Migration risk</td><td>—</td><td>rendah</td><td>tinggi</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout"><strong>Rekomendasi: B.</strong> Sesuai bukti: dua parser sudah mendekati "adapter+IR" tanpa kontrak bersama; <code>raw-graph.mjs</code> sudah membaca field yang dibuang tapi tidak pernah disalurkan. Pilihan C ditunda (belum dibenarkan).</div>
+  <h3>Kontrak minimum SliceIR</h3>
+  <pre>schemaVersion · sourceFormat+exporterVersion · sourceChecksum
+stableNodeId · structuralPath · nodeType
+rawProperties · normalizedProperties · provenance[] per property
+diagnostics[] · componentRelationships[] · variableBindings[]
+assetReferences[] · subtreeHash</pre>
+</section>
+
+<section id="plan">
+  <h2>Implementation Plan (perubahan minimum, fase berikutnya)</h2>
+  <ol>
+    <li><strong>Ekspos <code>mainComponent.id</code></strong> sebagai <code>componentId</code> (P0, paling berdampak).</li>
+    <li><strong>Salurkan <code>fontName.family</code></strong> → <code>style.family</code> + <code>tokens.fonts</code> (P1).</li>
+    <li><strong>Salurkan <code>layoutSizingH/V</code>, <code>alignPrimary/Counter</code>, <code>layoutPositioning</code>, <code>constraints</code></strong> (P1 responsive).</li>
+    <li><strong>Salurkan <code>opacity</code> non-zero</strong> sebagai <code>node.opacity</code> (schema sudah punya field).</li>
+    <li><strong>Salurkan <code>required</code></strong> ke <code>inspect</code>/<code>spec</code> (bukan hanya hidden-asterisk).</li>
+    <li><strong>Gate <code>schemaVersion</code></strong> baca <code>?figml version</code>.</li>
+    <li><strong>Chunking per Page/Section/Frame + dedup instance</strong> untuk scale.</li>
+    <li><strong>Delimitasi data desain</strong> (prompt-injection isolation).</li>
+  </ol>
+</section>
+
+<section id="implementasi">
+  <h2>Hasil Implementasi (Fase 1)</h2>
+  <p class="lead">Kontrak parser FIGML terpadu diimplementasikan <strong>tanpa</strong> menghapus parser lama, mengubah public CLI, atau mengubah format transcript. Detail lengkap: <code>implementation-results.md</code>.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Item</th><th>Hasil</th></tr></thead>
+    <tbody>
+      <tr><td>Modul baru</td><td><code>src/lib/figml-contract.mjs</code> — <code>parseFigmlContract</code> + <code>normalizeFromTranscript</code> + <code>normalizeFromRawGraph</code></td></tr>
+      <tr><td>Test</td><td><span class="tag ok">769 → 779</span> (0 regresi, +10 baru)</td></tr>
+      <tr><td>Transcript byte-stable</td><td><span class="tag ok">YA</span> — hash identik sebelum/sesudah (<code>f71aa0a70b0a…</code>)</td></tr>
+      <tr><td>Determinisme</td><td><span class="tag ok">YA</span> — global <code>_idSeq</code> dihapus; contract deterministik 3×</td></tr>
+      <tr><td><code>mainComponent.id</code></td><td><span class="tag ok">dipertahankan</span> — 23 node di mahasiswa-tarif, parity 2 parser 23/0</td></tr>
+      <tr><td>Unknown element/attribute</td><td><span class="tag ok">dipertahankan</span> — 4 atribut unknown ditemukan (<code>variantProperties</code>/<code>scaleFactor</code> sebagai atribut icon)</td></tr>
+      <tr><td>Diagnostics</td><td>6 kode: missing-critical-field, unknown-element, unknown-attribute, inferred-default, ambiguous-value, unsupported-field</td></tr>
+      <tr><td>Untrusted content</td><td><span class="tag ok">dipisahkan</span> — guard line di <code>transcript.md</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fact-kind">Critical-loss yang diperbaiki: <code>mainComponent.id</code>, unknown preservation, deterministic identity, diagnostics, untrusted separation. Yang ditunda (tersimpan full-fidelity di contract, belum ke transcript/agent-facing): font family, layoutSizing, alignment, layoutPositioning, constraints, opacity, required, overrides, rich text.</p>
+</section>
+
+<section id="validasi">
+  <h2>Validasi & Command yang Dijalankan</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Command</th><th>Hasil</th></tr></thead>
+    <tbody>
+      <tr><td><code>node research/figml-audit/analyze-schema.mjs &lt;4 xml&gt;</code></td><td><span class="tag ok">ok</span> 2,733 elemen · 8,939 atribut</td></tr>
+      <tr><td><code>node research/figml-audit/determinism-scale.mjs</code></td><td><span class="tag ok">ok</span> deterministik + scale 10k</td></tr>
+      <tr><td><code>node research/figml-audit/gen-coverage.mjs</code></td><td><span class="tag ok">ok</span> CSV 15 kolom, 0 mismatch</td></tr>
+      <tr><td><code>node src/cli.mjs fidelity test/fixtures/mahasiswa-tarif/raw.xml</code></td><td><span class="tag ok">ok</span> "100% (361/361)"</td></tr>
+      <tr><td><code>node src/cli.mjs inspect|spec|plan|resolve …/raw.xml</code></td><td><span class="tag ok">ok</span> output dikaji</td></tr>
+      <tr><td>Security probe (XXE/depth/__proto__/malformed)</td><td><span class="tag ok">ok</span> diblokir</td></tr>
+      <tr><td>Full test suite <code>node --test test/</code></td><td><span class="tag ok">lulus</span> 776 pass · 0 fail · 3 skip (779 total)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fact-kind">Validasi JSON: <code>observed-figml-schema.json</code> & <code>audit-summary.json</code> valid (dihasilkan programatik). CSV: 15 kolom konsisten. Laporan: tanpa CDN, tanpa tracker, tanpa credential.</p>
+</section>
+
+<section id="limitasi">
+  <h2>Limitasi</h2>
+  <ul>
+    <li>Basis skema = 2 export FIGML asli + 2 XML buatan tangan; tidak mewakili seluruh fitur Figma (gradient/image/shadow/variable/RTL/rotation/rich-text tak teramati).</li>
+    <li>Scale test memakai XML <strong>SYNTHETIC</strong>, bukan export FigML asli.</li>
+    <li>Akurasi implementasi Angular akhir tidak diukur langsung (di luar scope fase 1); render probe bersifat honest-skip.</li>
+    <li><code>node --test test/</code> dijalankan: 779 test, 776 lulus, 0 gagal, 3 skip (browser/render probe honest-skip).</li>
+    <li>Security probe (XXE/entity/depth/`__proto__`/malformed) kini jadi regression test permanen di <code>test/figml-contract.test.mjs</code>.</li>
+  </ul>
+</section>
+
+<section id="sumber">
+  <h2>Sumber (klaim → file:baris)</h2>
+  <ul class="mono">
+    <li>Parser legacy: src/lib/figml-parse.mjs:15-21, 122-126, 188-336</li>
+    <li>Parser lossless: src/design/raw-graph.mjs:24-30, 114-121, 162-250</li>
+    <li>Schema transcript: src/lib/transcript-schema.mjs:5-108</li>
+    <li>Render transcript: src/lib/render-transcript.mjs:126-137 (styleSummary tanpa family)</li>
+    <li>Fidelity: src/lib/fidelity.mjs:32-36 (subset 13 atribut)</li>
+    <li>Inspect: src/commands/inspect.mjs:33, 62, 106-133</li>
+    <li>Resolve inference: src/lib/resolve.mjs:24-31, 303-357, 365-396, 509-556</li>
+    <li>Skill instruction: skill/SKILL.md:26, 62, 67, 79</li>
+    <li>Determinisme counter: src/lib/figml-parse.mjs:629</li>
+  </ul>
+  <p class="fact-kind">Pemisahan: <strong>fakta terverifikasi</strong> (dari source/eksperimen) vs <strong>klaim vendor</strong> (README/komentar kode) vs <strong>asumsi</strong> vs <strong>synthetic test</strong> vs <strong>[NEEDS INPUT]</strong> — semua ditandai di dokumen markdown pendukung.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    SliceUI FIGML Audit — read-only research, 2026-11-06 · commit 76590e3 · Tidak ada perubahan source produksi pada fase ini.
+  </div>
+</footer>
+
+<button class="theme-toggle" id="themeBtn" aria-label="Ganti tema">Tema: Auto</button>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    var order = ['auto', 'light', 'dark'];
+    var saved = null;
+    try { saved = localStorage.getItem('sliceui-audit-theme'); } catch (e) {}
+    var cur = saved && order.indexOf(saved) >= 0 ? saved : 'auto';
+    function apply(t) {
+      root.setAttribute('data-theme', t);
+      btn.textContent = 'Tema: ' + t.charAt(0).toUpperCase() + t.slice(1);
+      try { localStorage.setItem('sliceui-audit-theme', t); } catch (e) {}
+    }
+    apply(cur);
+    btn.addEventListener('click', function () {
+      var next = order[(order.indexOf(cur) + 1) % order.length];
+      cur = next; apply(cur);
+    });
+  })();
+</script>
+</body>
+</html>

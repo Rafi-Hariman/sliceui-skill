@@ -87,6 +87,42 @@ export function angularAmbientDts() {
   export function Output(alias?: string): PropertyDecorator;
   export class EventEmitter<T = any> { emit(value: T): void; subscribe(observer: any): any; }
   export interface OnInit { ngOnInit(): void; }
+}
+declare module "@angular/common" {
+  export class CommonModule { static forRoot(): any; }
+  export const NgIf: any; export const NgFor: any; export const NgForOf: any; export const NgClass: any; export const NgStyle: any;
+}
+declare module "@angular/forms" {
+  export class FormGroup { constructor(controls?: any, validatorOrOpts?: any, asyncValidator?: any); get(path: any): any; controls: any; value: any; setValue(v: any): void; patchValue(v: any): void; }
+  export class FormBuilder { group(controlsConfig?: any, options?: any): FormGroup; }
+  export class FormControl { constructor(formState?: any, validatorOrOpts?: any, asyncValidator?: any); }
+  export class Validators { static required(c: any): any; static min(n: number): any; static max(n: number): any; static minLength(n: number): any; static maxLength(n: number): any; static email(c: any): any; static pattern(p: any): any; }
+  export class ReactiveFormsModule { static forRoot(): any; }
+  export class FormsModule { static forRoot(): any; }
+}
+declare module "@angular/platform-browser" {
+  export class BrowserModule { static forRoot(): any; }
+}
+declare module "@angular/router" {
+  export class RouterModule { static forRoot(routes?: any, config?: any): any; static forChild(routes?: any): any; }
+  export class Router { navigate(path: any): Promise<any>; }
+  export class ActivatedRoute { params: any; queryParams: any; }
+  export const RouterLink: any;
+}
+declare module "@uiigateway/core" {
+  export class AuthorizationModel {
+    canActivate: boolean;
+    canRead: boolean;
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canPrint: boolean;
+    canValidate: boolean;
+    canVerify: boolean;
+    canPublish: boolean;
+    canExpImp: boolean;
+    constructor(init?: any);
+  }
 }`;
 }
 

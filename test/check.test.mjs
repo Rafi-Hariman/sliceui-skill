@@ -13,7 +13,7 @@ const ALL_CHECKS = [
   "mockRowCount", "modalWrapper", "ngxSelectBinding", "noBareNgDeep", "noHashedSelectors",
   "noTranslation", "phantomWrapper", "pilarBindings", "pilarInjection", "requiredMarker",
   "rowAuth", "scssCompiles", "scssCoverage", "styleFidelity", "tableBindings",
-  "tableOptions", "textCoverage",
+  "tableOptions", "textCoverage", "typeCheck",
 ];
 
 test("check-layers: every emitted check is classified (no orphan)", () => {

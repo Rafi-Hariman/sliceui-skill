@@ -29,6 +29,7 @@ export function buildProjectKnowledgeGraph({ conventions = {}, projectContext = 
     private: Boolean(cap?.private),
     confidence: cap?.library ? 0.9 : 0.2,
     sourceReferences: cap?.sampleHtml ? ["project-context.sampleHtml"] : [],
+    referencePath: cap?.samplePath ?? cap?.libSourcePath ?? cap?.sampleScssPath ?? null,
   }));
 
   const framework = {
@@ -58,6 +59,9 @@ export function buildProjectKnowledgeGraph({ conventions = {}, projectContext = 
     recipeStats: declarationsStats(recipes),
     responsiveSystem,
     businessBoundary,
+    goldenReferences: (projectContext.sampleComponents ?? [])
+      .filter((s) => s?.golden)
+      .map((s) => ({ path: s.path, selector: s.selector ?? null })),
     provenance,
     hash: "",
   };

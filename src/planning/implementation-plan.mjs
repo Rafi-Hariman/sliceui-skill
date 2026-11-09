@@ -61,7 +61,7 @@ export function buildImplementationPlan({ intentGraph, designGeometry = {}, proj
   }
   const componentMappings = (projectKnowledge.capabilities ?? [])
     .filter((c) => usedCapabilities.has(c.category))
-    .map((c) => ({ category: c.category, implementation: c.implementation, source: c.source }));
+    .map((c) => ({ category: c.category, implementation: c.implementation, source: c.source, referencePath: c.referencePath ?? null }));
 
   // 6. Effective recipes — merged declarations (design-wins, page-specific suppressed).
   const merged = mergeDeclarations(projectKnowledge.recipes ?? [], designGeometry);
@@ -102,6 +102,7 @@ export function buildImplementationPlan({ intentGraph, designGeometry = {}, proj
     runtimeState,
     responsivePlan,
     forbiddenInventions,
+    goldenReferences: (projectKnowledge.goldenReferences ?? []).map((g) => ({ path: g.path, selector: g.selector ?? null })),
     verificationPlan,
     metrics: {
       recipeCount: (projectKnowledge.recipes ?? []).length,
@@ -150,8 +151,18 @@ function renderPlan(j) {
   L.push("## Project mappings");
   L.push("");
   if (!j.componentMappings.length) L.push("_(none — plain elements only)_");
-  for (const m of j.componentMappings) L.push(`- ${m.category} → \`${m.implementation}\``);
+  for (const m of j.componentMappings) {
+    L.push(`- ${m.category} → \`${m.implementation}\`${m.referencePath ? ` — Read: \`${m.referencePath}\`` : ""}`);
+  }
   L.push("");
+  if ((j.goldenReferences ?? []).length) {
+    L.push("## Golden references (read FIRST)");
+    L.push("");
+    for (const g of j.goldenReferences) {
+      L.push(`- \`${g.path}\`${g.selector ? ` (selector \`${g.selector}\`)` : ""} — READ FIRST`);
+    }
+    L.push("");
+  }
 
   L.push("## Effective recipes (design-wins, page-specific suppressed)");
   L.push("");

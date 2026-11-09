@@ -42,7 +42,7 @@ export const UII_REGISTRY_ENTRIES = {
       package: "pilar",
       test: /uii-table|uii-client-table|uii-server-table/i,
       sampleHtml: `<uii-table [columns]="columns" [rows]="rows" [checkboxColumn]="true" [actionColumn]="true" [paginationOptions]="true" [searchOptions]="true" (editClicked)="onEdit($event)"></uii-table>`,
-      sampleTs: `import { TableModule } from "pilar";\nimport { AuthorizationModel } from "@uiigateway/core";\n// columns: [{ prop: "nim", name: "NIM" }];\n// rows carry auth so action icons render: auth.canUpdate = true -> fa-pencil\n// add TableModule to imports[]`,
+      sampleTs: `import { TableModule } from "pilar";\nimport { AuthorizationModel } from "@uiigateway/core";\n// columns: [{ prop: "nim", name: "NIM" }];\n// rows carry auth so action icons render. AuthorizationModel (lib/models/authorization.model.d.ts) = canActivate canRead canCreate canUpdate canDelete canPrint canValidate canVerify canPublish canExpImp — set row.auth.<flag> = true per row\n// add TableModule to imports[]`,
     },
   ],
   modal: [

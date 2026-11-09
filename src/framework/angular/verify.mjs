@@ -92,6 +92,7 @@ export function verifyComponent({ scss = "", html = "", ts = "", conventions, tr
     checkLoadedClass(html, conventions?.loadedClassRegistry),
     checkPilarInjection(scss, html, ts, pilar),
     checkDeclaredInModule(ts, modules),
+    checkTypeCheck(ts, pilar),
     checkFrameworkSyntax(ts, html, framework),
   ];
   // PR 5 — decorate each check with its stable diagnostic metadata (id / category / trust /
@@ -874,6 +875,36 @@ function checkModalWrapper(html, transcript) {
     return { name: "modalWrapper", status: "skip", detail: "no modal/card semantic wrapper in output" };
   }
   return { name: "modalWrapper", status: "pass", detail: "modal/card wrapper evidenced by the design" };
+}
+
+// ---------- typeCheck (per-component TS type-check against pilar catalog stubs) ----------
+
+/** A bounded per-component TypeScript type-check: compile the slice's TS against generated pilar
+ *  stubs (no full app build). Runs only when pilar is present (the stub generator + catalog are
+ *  stripped from public installs); otherwise it skips honestly. */
+function checkTypeCheck(ts, pilar = null) {
+  if (!pilar?.typeCheckSlice) {
+    return { name: "typeCheck", status: "skip", detail: "no pilar type-check available (pilar not present)" };
+  }
+  if (!ts || !String(ts).trim()) {
+    return { name: "typeCheck", status: "skip", detail: "no TS source to type-check" };
+  }
+  const result = pilar.typeCheckSlice({ ts });
+  // "Cannot find module" for modules outside the stub coverage is an ambient-stub gap, NOT a
+  // slice defect — never fail on it (it would false-positive on org libs like @uiigateway/core).
+  const real = (result.diagnostics ?? []).filter((d) => !/Cannot find module/i.test(d.message));
+  if (real.length === 0) {
+    if (result.diagnostics?.length) {
+      return { name: "typeCheck", status: "skip", detail: `type-check limited: ${result.diagnostics.length} module(s) outside stub coverage (e.g. ${String(result.diagnostics[0].message).slice(0, 80)})` };
+    }
+    return { name: "typeCheck", status: "pass", detail: "slice TS type-checks against pilar catalog stubs" };
+  }
+  return {
+    name: "typeCheck",
+    status: "fail",
+    detail: `${real.length} type error(s): ${real.slice(0, 3).map((d) => `${d.file}: ${d.message}`).join("; ")}`,
+    problems: real,
+  };
 }
 
 // ---------- 4d-quater. frameworkSyntax (Angular ≤13 compatibility) ----------

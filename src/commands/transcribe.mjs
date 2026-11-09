@@ -8,13 +8,28 @@ import { join, basename, extname } from "node:path";
 import { transcribeWithGemini } from "./transcribe-gemini.mjs";
 import { transcribeStatic } from "./transcribe-static.mjs";
 import { parseFigml } from "../lib/figml-parse.mjs";
+import { parseFigmlContract, normalizeFromTranscript } from "../lib/figml-contract.mjs";
 import { renderTranscript } from "../lib/render-transcript.mjs";
 import { computeFidelity } from "../lib/fidelity.mjs";
+import { buildSliceIR } from "../design/slice-ir.mjs";
+import { renderHierarchicalTranscript } from "../lib/render-hierarchical-transcript.mjs";
 
 const XML_EXTS = new Set([".xml", ".figml"]);
 
 function isXml(path) {
   return XML_EXTS.has(extname(path).toLowerCase());
+}
+
+/** Build the Phase-1 contract for a FIGML input. Best-effort: a contract failure must never
+ *  block a slice, so it degrades to `null` and the transcript alone still carries the design. */
+function buildContract(xml, imagePath, transcript) {
+  try {
+    const c = parseFigmlContract(xml, basename(imagePath));
+    if (!c.ok) return { error: c.reason, message: c.message };
+    return { ...c.doc, normalized: normalizeFromTranscript(transcript, c.doc) };
+  } catch (err) {
+    return { error: "contract-error", message: String(err?.message ?? err) };
+  }
 }
 
 export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}) {
@@ -31,7 +46,11 @@ export async function transcribe(imagePath, cwdDir, { forceStatic = false } = {}
     // Fidelity: on the deterministic FIGML path, report how many visual attributes survived into
     // the transcript — the corruption signal `sliceui fidelity` exposes, surfaced on every slice.
     const fidelity = computeFidelity(xml, basename(imagePath));
-    return { ok: true, transcript: r.transcript, tier: 0, source: "figml", fidelity, notes: [] };
+    // Phase-1 contract (additive, never blocks): full-fidelity doc + diagnostics + minimal
+    // normalized projection. Persisted as contract.json alongside transcript.* by
+    // persistTranscript(). Existing transcript output is unchanged.
+    const contract = buildContract(xml, imagePath, r.transcript);
+    return { ok: true, transcript: r.transcript, tier: 0, source: "figml", fidelity, contract, notes: [] };
   }
 
   const notes = [];
@@ -70,6 +89,11 @@ export function persistTranscript(result, abs, cwdDir) {
   const metaPath = join(outDir, "transcript.meta.json");
   writeFileSync(jsonPath, JSON.stringify(result.transcript, null, 2) + "\n");
   writeFileSync(mdPath, renderTranscript(result.transcript));
+  if (result.contract) {
+    // Additive Phase-1 artifact (full-fidelity contract + diagnostics + normalized projection).
+    // Never replaces transcript.json/md/meta — those stay byte-stable.
+    writeFileSync(join(outDir, "contract.json"), JSON.stringify(result.contract, null, 2) + "\n");
+  }
   writeFileSync(metaPath, JSON.stringify({
     tier: result.tier,
     source: result.source,
@@ -80,12 +104,50 @@ export function persistTranscript(result, abs, cwdDir) {
   return { outDir, jsonPath, mdPath, metaPath };
 }
 
+/** Parse the opt-in `--transcript-version <1|2>` flag. Returns { ok, version } or { ok:false }.
+ *  Legacy (1) is the default; 2 is hierarchical transcript-v2. Invalid values fail loudly. */
+function parseTranscriptVersion(argv) {
+  const idx = argv.indexOf("--transcript-version");
+  if (idx === -1) return { ok: true, version: 1 };
+  const val = argv[idx + 1];
+  if (val === undefined) return { ok: false, message: "usage: --transcript-version requires a value (1 or 2)" };
+  if (val === "1") return { ok: true, version: 1 };
+  if (val === "2") return { ok: true, version: 2 };
+  return { ok: false, message: `Invalid transcript version "${val}" — supported: 1 (legacy), 2 (hierarchical)` };
+}
+
+/** Build SliceIR + transcript-v2 from a FIGML result. Best-effort; never touches legacy output. */
+function writeTranscriptV2(result, outDir) {
+  if (!result.contract || result.contract.error) {
+    return { ok: false, message: "contract unavailable — cannot build SliceIR (the FIGML failed to parse into a contract)" };
+  }
+  try {
+    const built = buildSliceIR(result.contract);
+    if (!built.ok) return { ok: false, message: `${built.reason}: ${built.message}` };
+    writeFileSync(join(outDir, "sliceir.json"), JSON.stringify(built.ir, null, 2) + "\n");
+    const rendered = renderHierarchicalTranscript(built.ir, outDir);
+    return { ok: true, ir: built.ir, dir: rendered.dir };
+  } catch (err) {
+    return { ok: false, message: String(err?.message ?? err) };
+  }
+}
+
 export async function main(argv) {
   const forceStatic = argv.includes("--static");
-  const args = argv.filter((a) => a !== "--static");
+  const tv = parseTranscriptVersion(argv);
+  if (!tv.ok) {
+    console.error(tv.message);
+    return 2;
+  }
+  const args = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--transcript-version") { i++; continue; } // skip flag + its value
+    if (argv[i] === "--static") continue;
+    args.push(argv[i]);
+  }
   const imagePath = args[0];
   if (!imagePath) {
-    console.error("usage: sliceui transcribe <image> [--static]");
+    console.error("usage: sliceui transcribe <image> [--static] [--transcript-version 2]");
     return 2;
   }
   const abs = imagePath.startsWith("/") ? imagePath : join(process.cwd(), imagePath);
@@ -100,7 +162,17 @@ export async function main(argv) {
     return 3;
   }
 
-  const { mdPath } = persistTranscript(result, abs, process.cwd());
+  const { mdPath, outDir } = persistTranscript(result, abs, process.cwd());
+
+  // Phase 2 opt-in: SliceIR + hierarchical transcript-v2 (never the default).
+  let v2 = null;
+  if (tv.version === 2) {
+    v2 = writeTranscriptV2(result, outDir);
+    if (!v2.ok) {
+      console.error(`transcript-v2: ${v2.message}`);
+      return 4;
+    }
+  }
 
   if (result.degraded) {
     process.stderr.write(
@@ -132,6 +204,8 @@ export async function main(argv) {
     degraded: Boolean(result.degraded),
     fidelity: fidelity ? { score: fidelity.score, preserved: fidelity.preserved, total: fidelity.total } : undefined,
     out: mdPath,
+    transcriptVersion: v2 ? 2 : undefined,
+    sliceir: v2 ? { schema: v2.ir.schemaVersion, dir: v2.dir } : undefined,
     notes: result.notes.length ? result.notes : undefined,
   }, null, 2));
   return 0;

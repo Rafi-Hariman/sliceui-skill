@@ -1,0 +1,3855 @@
+TAP version 13
+# Subtest: agent-context: buildDesignInventory derives roles deterministically, never guesses
+ok 1 - agent-context: buildDesignInventory derives roles deterministically, never guesses
+  ---
+  duration_ms: 17.3115
+  ...
+# Subtest: agent-context: selectCapabilities includes only used categories, unresolved for gaps
+ok 2 - agent-context: selectCapabilities includes only used categories, unresolved for gaps
+  ---
+  duration_ms: 0.62525
+  ...
+# Subtest: agent-context: pilar table inputs respect the slice policy (legal + forbidden split)
+ok 3 - agent-context: pilar table inputs respect the slice policy (legal + forbidden split)
+  ---
+  duration_ms: 0.485042
+  ...
+# Subtest: agent-context: unresolved capability is recorded, never guessed
+ok 4 - agent-context: unresolved capability is recorded, never guessed
+  ---
+  duration_ms: 0.116917
+  ...
+# Subtest: agent-context: selectStyleRecipes prunes table/select families not in play
+ok 5 - agent-context: selectStyleRecipes prunes table/select families not in play
+  ---
+  duration_ms: 0.249167
+  ...
+# Subtest: agent-context: selectDangerousDefaults covers paginationAlign but omits unused table
+ok 6 - agent-context: selectDangerousDefaults covers paginationAlign but omits unused table
+  ---
+  duration_ms: 0.234834
+  ...
+# Subtest: agent-context: framework constraints reflect the module (non-standalone) model
+ok 7 - agent-context: framework constraints reflect the module (non-standalone) model
+  ---
+  duration_ms: 0.06725
+  ...
+# Subtest: agent-context: renderAgentContext does not leak the full machine registry
+ok 8 - agent-context: renderAgentContext does not leak the full machine registry
+  ---
+  duration_ms: 0.867833
+  ...
+# Subtest: agent-context: measureContext uses the ceil(chars/4) token estimate and computes pruning
+ok 9 - agent-context: measureContext uses the ceil(chars/4) token estimate and computes pruning
+  ---
+  duration_ms: 0.317125
+  ...
+# Subtest: agent-context: context budget is respected for the fixture-shaped design
+ok 10 - agent-context: context budget is respected for the fixture-shaped design
+  ---
+  duration_ms: 0.314042
+  ...
+# Subtest: agent-context: pilar absent (public install) degrades to registry sample, no crash
+ok 11 - agent-context: pilar absent (public install) degrades to registry sample, no crash
+  ---
+  duration_ms: 0.230917
+  ...
+# Subtest: skill contract: primary skill is a thin orchestrator over handoff + inspect + check
+ok 12 - skill contract: primary skill is a thin orchestrator over handoff + inspect + check
+  ---
+  duration_ms: 7.583167
+  ...
+# Subtest: PR4 agent-context: hints include behavior bindings and exclude high-confidence idioms
+ok 13 - PR4 agent-context: hints include behavior bindings and exclude high-confidence idioms
+  ---
+  duration_ms: 0.632708
+  ...
+# Subtest: PR4 agent-context: fallback/unresolved groups always surface as hints
+ok 14 - PR4 agent-context: fallback/unresolved groups always surface as hints
+  ---
+  duration_ms: 0.250875
+  ...
+# Subtest: PR4 agent-context: markdown renders hints as non-authoritative with explicit instruction
+ok 15 - PR4 agent-context: markdown renders hints as non-authoritative with explicit instruction
+  ---
+  duration_ms: 0.471917
+  ...
+# Subtest: PR4 agent-context: context budget still respected with hints present
+ok 16 - PR4 agent-context: context budget still respected with hints present
+  ---
+  duration_ms: 0.65875
+  ...
+# Subtest: skill contract: authority hierarchy + invariant stated, internals routed to artifacts
+ok 17 - skill contract: authority hierarchy + invariant stated, internals routed to artifacts
+  ---
+  duration_ms: 0.157125
+  ...
+# Subtest: PR4-corrective agent-context: ambiguous taxonomy is non-authoritative, no guessed class
+ok 18 - PR4-corrective agent-context: ambiguous taxonomy is non-authoritative, no guessed class
+  ---
+  duration_ms: 0.848625
+  ...
+# Subtest: schema: an incomplete entry is REJECTED (never silently dropped)
+ok 19 - schema: an incomplete entry is REJECTED (never silently dropped)
+  ---
+  duration_ms: 0.657209
+  ...
+# Subtest: schema: a complete entry validates
+ok 20 - schema: a complete entry validates
+  ---
+  duration_ms: 0.075875
+  ...
+# Subtest: scoring: all-pass checks score 100 overall
+ok 21 - scoring: all-pass checks score 100 overall
+  ---
+  duration_ms: 0.378083
+  ...
+# Subtest: scoring: a missing visible node caps structure to 70 (cannot be rescued)
+ok 22 - scoring: a missing visible node caps structure to 70 (cannot be rescued)
+  ---
+  duration_ms: 0.159375
+  ...
+# Subtest: scoring: a major relationship defect caps relationships to 75
+ok 23 - scoring: a major relationship defect caps relationships to 75
+  ---
+  duration_ms: 0.083708
+  ...
+# Subtest: scoring: a required runtime state absent caps runtime to 50
+ok 24 - scoring: a required runtime state absent caps runtime to 50
+  ---
+  duration_ms: 0.069208
+  ...
+# Subtest: scoring: silent A1 override BLOCKS the overall score
+ok 25 - scoring: silent A1 override BLOCKS the overall score
+  ---
+  duration_ms: 0.197542
+  ...
+# Subtest: scoring: an unexercised category is null (never inflated)
+ok 26 - scoring: an unexercised category is null (never inflated)
+  ---
+  duration_ms: 0.11725
+  ...
+# Subtest: maturity: the ladder advances L0→L6 only through the gates
+ok 27 - maturity: the ladder advances L0→L6 only through the gates
+  ---
+  duration_ms: 0.153167
+  ...
+# Subtest: maturity: synthetic-only evidence can NEVER reach L6
+ok 28 - maturity: synthetic-only evidence can NEVER reach L6
+  ---
+  duration_ms: 0.127459
+  ...
+# Subtest: maturity: a GATED private adapter caps a family at L4 (Bill/Pilar)
+ok 29 - maturity: a GATED private adapter caps a family at L4 (Bill/Pilar)
+  ---
+  duration_ms: 0.058708
+  ...
+# Subtest: splits: splitEntries is deterministic and stable as the corpus grows
+ok 30 - splits: splitEntries is deterministic and stable as the corpus grows
+  ---
+  duration_ms: 7.308125
+  ...
+# Subtest: splits: detectLeakage flags a rule source embedding a holdout token
+ok 31 - splits: detectLeakage flags a rule source embedding a holdout token
+  ---
+  duration_ms: 0.169208
+  ...
+# Subtest: quality: exact duplicates are detected; near-duplicate weighting exists
+ok 32 - quality: exact duplicates are detected; near-duplicate weighting exists
+  ---
+  duration_ms: 0.160541
+  ...
+# Subtest: quality: distributionReport + scoreVariance compute
+ok 33 - quality: distributionReport + scoreVariance compute
+  ---
+  duration_ms: 0.207333
+  ...
+# Subtest: runner: the seeded inventory runs; the real export is pending (not a silent pass)
+ok 34 - runner: the seeded inventory runs; the real export is pending (not a silent pass)
+  ---
+  duration_ms: 1.248334
+  ...
+# Subtest: report: the corpus is reported INSUFFICIENT and the claim is constrained
+ok 35 - report: the corpus is reported INSUFFICIENT and the claim is constrained
+  ---
+  duration_ms: 2.143708
+  ...
+# Subtest: lifecycle: a real export without a reference render is BLOCKED, not passing
+ok 36 - lifecycle: a real export without a reference render is BLOCKED, not passing
+  ---
+  duration_ms: 0.699458
+  ...
+# Subtest: lifecycle: an adversarial fixture is scoreable
+ok 37 - lifecycle: an adversarial fixture is scoreable
+  ---
+  duration_ms: 0.067792
+  ...
+# Subtest: lifecycle: an invalid entry stays rejected (schemaStatus invalid)
+ok 38 - lifecycle: an invalid entry stays rejected (schemaStatus invalid)
+  ---
+  duration_ms: 0.053541
+  ...
+# Subtest: lifecycle: an approved implementation pair needs an independent review record
+ok 39 - lifecycle: an approved implementation pair needs an independent review record
+  ---
+  duration_ms: 0.10825
+  ...
+# Subtest: categoryBreakdown: raw earned/possible + score + unverifiable are separated
+ok 40 - categoryBreakdown: raw earned/possible + score + unverifiable are separated
+  ---
+  duration_ms: 0.193125
+  ...
+# Subtest: scopedMaturity: compiler L4, target GATED, benchmark NOT_L6 (synthetic cannot reach L6)
+ok 41 - scopedMaturity: compiler L4, target GATED, benchmark NOT_L6 (synthetic cannot reach L6)
+  ---
+  duration_ms: 0.086833
+  ...
+# Subtest: leakage: normalized matching catches case/dimension/path variants
+ok 42 - leakage: normalized matching catches case/dimension/path variants
+  ---
+  duration_ms: 0.316417
+  ...
+# Subtest: duplicates: near-duplicate clusters + effective sample size are reported
+ok 43 - duplicates: near-duplicate clusters + effective sample size are reported
+  ---
+  duration_ms: 0.282417
+  ...
+# Subtest: review queue: the blocked real export is queued; correct known-bad failures are NOT false-negatives
+ok 44 - review queue: the blocked real export is queued; correct known-bad failures are NOT false-negatives
+  ---
+  duration_ms: 1.355083
+  ...
+# Subtest: external manifest: records the missing evidence, not synthetic data
+ok 45 - external manifest: records the missing evidence, not synthetic data
+  ---
+  duration_ms: 0.176292
+  ...
+# Subtest: release gates: thresholds NOT_EVALUABLE (no real scored evidence); project mount BLOCKED
+ok 46 - release gates: thresholds NOT_EVALUABLE (no real scored evidence); project mount BLOCKED
+  ---
+  duration_ms: 0.558166
+  ...
+# Subtest: check-layers: every emitted check is classified (no orphan)
+ok 47 - check-layers: every emitted check is classified (no orphan)
+  ---
+  duration_ms: 1.347584
+  ...
+# Subtest: check-layers: doc §12 example classifications hold
+ok 48 - check-layers: doc §12 example classifications hold
+  ---
+  duration_ms: 0.344084
+  ...
+# Subtest: check-layers: render is a backstop, not a check layer
+ok 49 - check-layers: render is a backstop, not a check layer
+  ---
+  duration_ms: 0.148041
+  ...
+# Subtest: check: maps <target> [design] onto verify argv
+ok 50 - check: maps <target> [design] onto verify argv
+  ---
+  duration_ms: 0.270833
+  ...
+# Subtest: check: parses --layers and value flags without reordering
+ok 51 - check: parses --layers and value flags without reordering
+  ---
+  duration_ms: 0.109875
+  ...
+# Subtest: C5: init does not absorb a SliceUI-generated file into the ::ng-deep corpus
+ok 52 - C5: init does not absorb a SliceUI-generated file into the ::ng-deep corpus
+  ---
+  duration_ms: 24.462
+  ...
+# Subtest: F10: classVocabulary tags defined vs undefined classes
+ok 53 - F10: classVocabulary tags defined vs undefined classes
+  ---
+  duration_ms: 22.50475
+  ...
+# Subtest: F10: classVocabulary marks a name with NO css as undefined
+ok 54 - F10: classVocabulary marks a name with NO css as undefined
+  ---
+  duration_ms: 12.707416
+  ...
+# Subtest: F5: corpus blocks are stored hash-free (no [_ngcontent-*] leak into copy-targets)
+ok 55 - F5: corpus blocks are stored hash-free (no [_ngcontent-*] leak into copy-targets)
+  ---
+  duration_ms: 12.342125
+  ...
+# Subtest: classVocabulary: counts + families, skips grid noise
+ok 56 - classVocabulary: counts + families, skips grid noise
+  ---
+  duration_ms: 36.280375
+  ...
+# Subtest: ngDeepCorpus: merges ALL ::ng-deep blocks across files
+ok 57 - ngDeepCorpus: merges ALL ::ng-deep blocks across files
+  ---
+  duration_ms: 6.760041
+  ...
+# Subtest: componentAnatomy: well + skeleton + table + pagination floor
+ok 58 - componentAnatomy: well + skeleton + table + pagination floor
+  ---
+  duration_ms: 4.173084
+  ...
+# Subtest: naming: prefix + dominant event handler
+ok 59 - naming: prefix + dominant event handler
+  ---
+  duration_ms: 3.520709
+  ...
+# Subtest: graceful on empty project (no files)
+ok 60 - graceful on empty project (no files)
+  ---
+  duration_ms: 1.244167
+  ...
+# Subtest: mergeProjectPolicy: config mockRowsFloor overrides the null default; absent/invalid leaves null
+ok 61 - mergeProjectPolicy: config mockRowsFloor overrides the null default; absent/invalid leaves null
+  ---
+  duration_ms: 17.031292
+  ...
+# Subtest: ngDeepCorpus: flags reusable vs component-specific blocks
+ok 62 - ngDeepCorpus: flags reusable vs component-specific blocks
+  ---
+  duration_ms: 2.489708
+  ...
+# Subtest: ngDeepCorpus: dedups by majority, not first-wins
+ok 63 - ngDeepCorpus: dedups by majority, not first-wins
+  ---
+  duration_ms: 3.867375
+  ...
+# Subtest: renderConventionsMd: splits reusable vs component-specific
+ok 64 - renderConventionsMd: splits reusable vs component-specific
+  ---
+  duration_ms: 0.376042
+  ...
+# Subtest: renderConventionsMd: non-Angular emits an honest note, never Angular idiom
+ok 65 - renderConventionsMd: non-Angular emits an honest note, never Angular idiom
+  ---
+  duration_ms: 0.211834
+  ...
+# Subtest: ngDeepCorpus: bare form-control + ngx-select__toggle are reusable
+ok 66 - ngDeepCorpus: bare form-control + ngx-select__toggle are reusable
+  ---
+  duration_ms: 2.596625
+  ...
+# Subtest: ngDeepCorpus: collapses :hover/:focus variants of ONE identical block into a single idiom
+ok 67 - ngDeepCorpus: collapses :hover/:focus variants of ONE identical block into a single idiom
+  ---
+  duration_ms: 8.352792
+  ...
+# Subtest: renderConventionsMd: an identical hover+focus rule renders ONCE (no duplicate .md block)
+ok 68 - renderConventionsMd: an identical hover+focus rule renders ONCE (no duplicate .md block)
+  ---
+  duration_ms: 1.715208
+  ...
+# Subtest: mergeGoldenClasses: golden reference classes (mt-4, col-12, p-0) become legal vocabulary
+ok 69 - mergeGoldenClasses: golden reference classes (mt-4, col-12, p-0) become legal vocabulary
+  ---
+  duration_ms: 0.24825
+  ...
+# Subtest: deriveFeatures: table/select present, status badge from resolved groups
+ok 70 - deriveFeatures: table/select present, status badge from resolved groups
+  ---
+  duration_ms: 1.337375
+  ...
+# Subtest: resolveRecipes: feature-level pruning — no badge → no label recipes, no checkbox → no checkbox recipes
+ok 71 - resolveRecipes: feature-level pruning — no badge → no label recipes, no checkbox → no checkbox recipes
+  ---
+  duration_ms: 0.269625
+  ...
+# Subtest: resolveRecipes: rejected alignment recipe is not required (G3)
+ok 72 - resolveRecipes: rejected alignment recipe is not required (G3)
+  ---
+  duration_ms: 0.315166
+  ...
+# Subtest: selectorRejected: precise element-level matching, not descendant over-match
+ok 73 - selectorRejected: precise element-level matching, not descendant over-match
+  ---
+  duration_ms: 0.066708
+  ...
+# Subtest: splitBlockByResponsibility: separates alignment behavior from visual styling
+ok 74 - splitBlockByResponsibility: separates alignment behavior from visual styling
+  ---
+  duration_ms: 0.407458
+  ...
+# Subtest: isRejectedRecipe: alignment-only block rejected; mixed block keeps visual responsibility
+ok 75 - isRejectedRecipe: alignment-only block rejected; mixed block keeps visual responsibility
+  ---
+  duration_ms: 0.068417
+  ...
+# Subtest: detectConflicts: design 6px vs recipe 7px → conflict; same value → none; no evidence → none
+ok 76 - detectConflicts: design 6px vs recipe 7px → conflict; same value → none; no evidence → none
+  ---
+  duration_ms: 0.360958
+  ...
+# Subtest: resolveDesign: one canonical result carries features + recipes + conflicts
+ok 77 - resolveDesign: one canonical result carries features + recipes + conflicts
+  ---
+  duration_ms: 0.507125
+  ...
+# Subtest: visibility: hidden design layers do not enter resolution mappings
+ok 78 - visibility: hidden design layers do not enter resolution mappings
+  ---
+  duration_ms: 1.083583
+  ...
+# Subtest: detectConflicts: per-node semantic correspondence (no family-value leakage)
+ok 79 - detectConflicts: per-node semantic correspondence (no family-value leakage)
+  ---
+  duration_ms: 0.573334
+  ...
+# Subtest: context section files: written, readable-sized, and INDEX names the write target
+ok 80 - context section files: written, readable-sized, and INDEX names the write target
+  ---
+  duration_ms: 258.2975
+  ...
+# Subtest: context section files: project-context.json stays the complete machine contract
+ok 81 - context section files: project-context.json stays the complete machine contract
+  ---
+  duration_ms: 17.446
+  ...
+# Subtest: detects Angular 13 module project
+ok 82 - detects Angular 13 module project
+  ---
+  duration_ms: 246.383583
+  ...
+# Subtest: handles a monorepo by picking the first project + warning
+ok 83 - handles a monorepo by picking the first project + warning
+  ---
+  duration_ms: 59.342041
+  ...
+# Subtest: monorepo with a library project targets the LIBRARY, not the host app
+ok 84 - monorepo with a library project targets the LIBRARY, not the host app
+  ---
+  duration_ms: 38.7685
+  ...
+# Subtest: handles no-package gracefully
+ok 85 - handles no-package gracefully
+  ---
+  duration_ms: 0.169584
+  ...
+# Subtest: project-context v4: provenance, tokens, conventions, module structure, staleness
+ok 86 - project-context v4: provenance, tokens, conventions, module structure, staleness
+  ---
+  duration_ms: 24.810041
+  ...
+# Subtest: non-silent null: capability with no library carries a note + warning
+ok 87 - non-silent null: capability with no library carries a note + warning
+  ---
+  duration_ms: 21.934542
+  ...
+# Subtest: prefix: feature components beat the root selector (ugw-root vs app-*)
+ok 88 - prefix: feature components beat the root selector (ugw-root vs app-*)
+  ---
+  duration_ms: 72.840209
+  ...
+# Subtest: design tokens mined for non-Angular projects (Tailwind v4 @theme in a .css)
+ok 89 - design tokens mined for non-Angular projects (Tailwind v4 @theme in a .css)
+  ---
+  duration_ms: 50.10125
+  ...
+# Subtest: conventions mined for Vue — :deep() corpus + SFC anatomy, not Angular idiom
+ok 90 - conventions mined for Vue — :deep() corpus + SFC anatomy, not Angular idiom
+  ---
+  duration_ms: 24.562167
+  ...
+# Subtest: detect: hashInputs is stable for unchanged config and changes when a config changes
+ok 91 - detect: hashInputs is stable for unchanged config and changes when a config changes
+  ---
+  duration_ms: 142.005625
+  ...
+# Subtest: doctor reports missing key as a soft warning (falls back to static), not hard fail
+ok 92 - doctor reports missing key as a soft warning (falls back to static), not hard fail
+  ---
+  duration_ms: 1954.586917
+  ...
+# Subtest: doctor reports a key found when .env.local has one, without exposing its value
+ok 93 - doctor reports a key found when .env.local has one, without exposing its value
+  ---
+  duration_ms: 180.644
+  ...
+# Subtest: doctor exposes the platform + sips/swiftc checks
+ok 94 - doctor exposes the platform + sips/swiftc checks
+  ---
+  duration_ms: 127.943292
+  ...
+# Subtest: doctor reports skill version as unmatched when no manifest is installed
+ok 95 - doctor reports skill version as unmatched when no manifest is installed
+  ---
+  duration_ms: 151.578542
+  ...
+# Subtest: doctor reports skill version as matched when manifest equals CLI version
+ok 96 - doctor reports skill version as matched when manifest equals CLI version
+  ---
+  duration_ms: 195.471792
+  ...
+# Subtest: E2E: detect → transcribe → codegen prompt carries Angular 13 idioms
+ok 97 - E2E: detect → transcribe → codegen prompt carries Angular 13 idioms
+  ---
+  duration_ms: 11106.3405
+  ...
+# Subtest: E2E: codegen prompt injects the pilar catalog pointer for UII projects
+ok 98 - E2E: codegen prompt injects the pilar catalog pointer for UII projects
+  ---
+  duration_ms: 0.440834
+  ...
+# Subtest: E2E: codegen prompt omits the pilar pointer for a generic (non-UII) project
+ok 99 - E2E: codegen prompt omits the pilar pointer for a generic (non-UII) project
+  ---
+  duration_ms: 0.207375
+  ...
+# Subtest: E2E: degraded transcript is flagged when text is unreadable
+ok 100 - E2E: degraded transcript is flagged when text is unreadable
+  ---
+  duration_ms: 6324.258167
+  ...
+# Subtest: eval: human reference passes styleFidelity while the machine slice fails it (A/B on the same design)
+ok 101 - eval: human reference passes styleFidelity while the machine slice fails it (A/B on the same design)
+  ---
+  duration_ms: 122.93425
+  ...
+# Subtest: eval: neither hope nor slice trips structural corruption signals (over-flag guard)
+ok 102 - eval: neither hope nor slice trips structural corruption signals (over-flag guard)
+  ---
+  duration_ms: 3.602625
+  ...
+# Subtest: fidelity: full coverage for a well-formed FIGML doc
+ok 103 - fidelity: full coverage for a well-formed FIGML doc
+  ---
+  duration_ms: 5.317667
+  ...
+# Subtest: fidelity: AUTO lineHeight is not scored (not a real visual value)
+ok 104 - fidelity: AUTO lineHeight is not scored (not a real visual value)
+  ---
+  duration_ms: 0.632709
+  ...
+# Subtest: scssCoverage: full coverage when all ::ng-deep selectors survive
+ok 105 - scssCoverage: full coverage when all ::ng-deep selectors survive
+  ---
+  duration_ms: 0.36725
+  ...
+# Subtest: scssCoverage: flags dropped library-internal selectors
+ok 106 - scssCoverage: flags dropped library-internal selectors
+  ---
+  duration_ms: 0.129458
+  ...
+# Subtest: scssCoverage: null exemplar is a hard FAIL, never score 1
+ok 107 - scssCoverage: null exemplar is a hard FAIL, never score 1
+  ---
+  duration_ms: 0.120291
+  ...
+# Subtest: parses FIGML into a valid exact-text transcript
+ok 108 - parses FIGML into a valid exact-text transcript
+  ---
+  duration_ms: 4.194458
+  ...
+# Subtest: extracts exact text strings (no OCR guessing)
+ok 109 - extracts exact text strings (no OCR guessing)
+  ---
+  duration_ms: 0.910917
+  ...
+# Subtest: maps component instances to button/input semantics
+ok 110 - maps component instances to button/input semantics
+  ---
+  duration_ms: 0.954958
+  ...
+# Subtest: captures the fill color census
+ok 111 - captures the fill color census
+  ---
+  duration_ms: 0.567209
+  ...
+# Subtest: fails gracefully on non-FIGML XML
+ok 112 - fails gracefully on non-FIGML XML
+  ---
+  duration_ms: 0.104375
+  ...
+# Subtest: glyph: empty-TEXT inside a named icon INSTANCE keeps type/style and gains glyphName
+ok 113 - glyph: empty-TEXT inside a named icon INSTANCE keeps type/style and gains glyphName
+  ---
+  duration_ms: 0.471041
+  ...
+# Subtest: glyph: VECTOR node carries its Figma name as glyphName
+ok 114 - glyph: VECTOR node carries its Figma name as glyphName
+  ---
+  duration_ms: 0.696375
+  ...
+# Subtest: v3: captures frame fill colors (header/body containers)
+ok 115 - v3: captures frame fill colors (header/body containers)
+  ---
+  duration_ms: 0.604959
+  ...
+# Subtest: v3: colored divider rectangle keeps its fill (bg:\#fbc02d)
+ok 116 - v3: colored divider rectangle keeps its fill (bg:\#fbc02d)
+  ---
+  duration_ms: 0.696042
+  ...
+# Subtest: v3: hidden layer (visible=false) is surfaced as hidden:true, not dropped
+ok 117 - v3: hidden layer (visible=false) is surfaced as hidden:true, not dropped
+  ---
+  duration_ms: 0.644375
+  ...
+# Subtest: v3: fills/fill metadata wrappers are NOT emitted as nodes
+ok 118 - v3: fills/fill metadata wrappers are NOT emitted as nodes
+  ---
+  duration_ms: 0.455958
+  ...
+# Subtest: table: repeated flush full-width rows mark the container as table
+ok 119 - table: repeated flush full-width rows mark the container as table
+  ---
+  duration_ms: 0.376708
+  ...
+# Subtest: fidelity: radius/padding/gap captured on frames
+ok 120 - fidelity: radius/padding/gap captured on frames
+  ---
+  duration_ms: 0.537167
+  ...
+# Subtest: fidelity: rectangle keeps its cornerRadius
+ok 121 - fidelity: rectangle keeps its cornerRadius
+  ---
+  duration_ms: 0.370625
+  ...
+# Subtest: fidelity: lineHeight captured; zero letterSpacing + AUTO lineHeight dropped
+ok 122 - fidelity: lineHeight captured; zero letterSpacing + AUTO lineHeight dropped
+  ---
+  duration_ms: 0.276875
+  ...
+# Subtest: fidelity: spacing census from padding + itemSpacing
+ok 123 - fidelity: spacing census from padding + itemSpacing
+  ---
+  duration_ms: 0.864125
+  ...
+# Subtest: table: layout-grid metadata is NOT flagged as a table
+ok 124 - table: layout-grid metadata is NOT flagged as a table
+  ---
+  duration_ms: 0.423959
+  ...
+# Subtest: defect \#6: Checkbox_FNC is typed `checkbox`, not a bare `card`
+ok 125 - defect \#6: Checkbox_FNC is typed `checkbox`, not a bare `card`
+  ---
+  duration_ms: 0.329625
+  ...
+# Subtest: defect \#3: VECTOR icon carries its fill color
+ok 126 - defect \#3: VECTOR icon carries its fill color
+  ---
+  duration_ms: 0.19225
+  ...
+# Subtest: layout: per-corner radius + stroke/border + space-between preserved
+ok 127 - layout: per-corner radius + stroke/border + space-between preserved
+  ---
+  duration_ms: 0.399084
+  ...
+# Subtest: design-6: a bare GROUP container is traversed, not dropped (nested table preserved)
+ok 128 - design-6: a bare GROUP container is traversed, not dropped (nested table preserved)
+  ---
+  duration_ms: 0.397375
+  ...
+# Subtest: design-6: GROUP-wrapped frame still detected as a table
+ok 129 - design-6: GROUP-wrapped frame still detected as a table
+  ---
+  duration_ms: 0.325458
+  ...
+# Subtest: design-6: LINE divider takes its visible stroke color as bg
+ok 130 - design-6: LINE divider takes its visible stroke color as bg
+  ---
+  duration_ms: 0.432583
+  ...
+# Subtest: design-6: node-level strokeWeight + visible stroke captured; invisible stroke skipped
+ok 131 - design-6: node-level strokeWeight + visible stroke captured; invisible stroke skipped
+  ---
+  duration_ms: 0.1755
+  ...
+# Subtest: design-2/3/7: SPACE_BETWEEN + wide itemSpacing → justify, NOT gap:497
+ok 132 - design-2/3/7: SPACE_BETWEEN + wide itemSpacing → justify, NOT gap:497
+  ---
+  duration_ms: 0.673583
+  ...
+# Subtest: B1: override overriddenField=visible false marks the node hidden; other overrides do not
+ok 133 - B1: override overriddenField=visible false marks the node hidden; other overrides do not
+  ---
+  duration_ms: 0.176125
+  ...
+# Subtest: required: the XML's explicit required flag is surfaced (absent stays distinguishable)
+ok 134 - required: the XML's explicit required flag is surfaced (absent stays distinguishable)
+  ---
+  duration_ms: 0.201583
+  ...
+# Subtest: fs-trace: counts reads and separates allowlisted from repo reads
+ok 135 - fs-trace: counts reads and separates allowlisted from repo reads
+  ---
+  duration_ms: 11.691833
+  ...
+# Subtest: fs-trace: glob is counted and never throws on a real glob
+ok 136 - fs-trace: glob is counted and never throws on a real glob
+  ---
+  duration_ms: 4.296958
+  ...
+# Subtest: guard: refuses publish to public npmjs when catalogs are embedded
+ok 137 - guard: refuses publish to public npmjs when catalogs are embedded
+  ---
+  duration_ms: 77.462958
+  ...
+# Subtest: guard: allows publish to the org registry (npm.uii.ac.id)
+ok 138 - guard: allows publish to the org registry (npm.uii.ac.id)
+  ---
+  duration_ms: 37.705166
+  ...
+# Subtest: guard: --registry= form and NPM_CONFIG_REGISTRY env are honored
+ok 139 - guard: --registry= form and NPM_CONFIG_REGISTRY env are honored
+  ---
+  duration_ms: 123.16625
+  ...
+# Subtest: handoff renders framework, convention, and resolved capabilities
+ok 140 - handoff renders framework, convention, and resolved capabilities
+  ---
+  duration_ms: 1.186917
+  ...
+# Subtest: handoff excludes null capabilities and never inlines the corpus
+ok 141 - handoff excludes null capabilities and never inlines the corpus
+  ---
+  duration_ms: 0.104084
+  ...
+# Subtest: handoff bounds design tokens and marks golden references
+ok 142 - handoff bounds design tokens and marks golden references
+  ---
+  duration_ms: 0.408
+  ...
+# Subtest: handoff degrades honestly for a non-Angular project
+ok 143 - handoff degrades honestly for a non-Angular project
+  ---
+  duration_ms: 0.164666
+  ...
+# Subtest: init writes .sliceui/handoff.md as the canonical contract
+ok 144 - init writes .sliceui/handoff.md as the canonical contract
+  ---
+  duration_ms: 1566.245
+  ...
+# Subtest: init runs the referee codebase-head without crashing and returns warnings
+ok 145 - init runs the referee codebase-head without crashing and returns warnings
+  ---
+  duration_ms: 1531.335792
+  ...
+# Subtest: init --framework forces the target framework (Jalur B)
+ok 146 - init --framework forces the target framework (Jalur B)
+  ---
+  duration_ms: 58.830209
+  ...
+# Subtest: init --profile generic overrides a UII fingerprint (Jalur B)
+ok 147 - init --profile generic overrides a UII fingerprint (Jalur B)
+  ---
+  duration_ms: 63.705333
+  ...
+# Subtest: init writes loadedClassRegistry into conventions.json (verify gate wiring)
+ok 148 - init writes loadedClassRegistry into conventions.json (verify gate wiring)
+  ---
+  duration_ms: 77.963792
+  ...
+# Subtest: init does NOT write the duplicate blobs into project-context.json (PR 2 dedup)
+ok 149 - init does NOT write the duplicate blobs into project-context.json (PR 2 dedup)
+  ---
+  duration_ms: 292.054584
+  ...
+# Subtest: init is idempotent and does not crash on a re-run (referee head runs twice)
+ok 150 - init is idempotent and does not crash on a re-run (referee head runs twice)
+  ---
+  duration_ms: 289.247458
+  ...
+# Subtest: inspect: header carries design, fidelity, and source
+ok 151 - inspect: header carries design, fidelity, and source
+  ---
+  duration_ms: 12.931291
+  ...
+# Subtest: inspect: structure tree exposes table headers + all designed rows, not an opaque leaf
+ok 152 - inspect: structure tree exposes table headers + all designed rows, not an opaque leaf
+  ---
+  duration_ms: 1.315083
+  ...
+# Subtest: inspect: required capabilities derive from the design inventory
+ok 153 - inspect: required capabilities derive from the design inventory
+  ---
+  duration_ms: 0.779083
+  ...
+# Subtest: inspect: critical visual facts surface the authored values
+ok 154 - inspect: critical visual facts surface the authored values
+  ---
+  duration_ms: 1.188875
+  ...
+# Subtest: inspect: degraded/static input is labelled honestly
+ok 155 - inspect: degraded/static input is labelled honestly
+  ---
+  duration_ms: 0.319334
+  ...
+# Subtest: inspect: json projection is machine-readable and complete
+ok 156 - inspect: json projection is machine-readable and complete
+  ---
+  duration_ms: 0.279958
+  ...
+# Subtest: install copies the skill and writes a version manifest
+ok 157 - install copies the skill and writes a version manifest
+  ---
+  duration_ms: 167.116292
+  ...
+# Subtest: install backs up a user-modified SKILL.md instead of clobbering it
+ok 158 - install backs up a user-modified SKILL.md instead of clobbering it
+  ---
+  duration_ms: 64.884333
+  ...
+# Subtest: install is idempotent when nothing changed (no backups)
+ok 159 - install is idempotent when nothing changed (no backups)
+  ---
+  duration_ms: 301.241584
+  ...
+# Subtest: install ships the companion sliceui-handoff skill as a sibling dir
+ok 160 - install ships the companion sliceui-handoff skill as a sibling dir
+  ---
+  duration_ms: 13.468
+  ...
+# Subtest: handoff skill source ships with frontmatter and the CLI-less rules section
+ok 161 - handoff skill source ships with frontmatter and the CLI-less rules section
+  ---
+  duration_ms: 0.640708
+  ...
+# Subtest: handoff skill: Design tokens pointer must be verified, not assumed
+ok 162 - handoff skill: Design tokens pointer must be verified, not assumed
+  ---
+  duration_ms: 0.323083
+  ...
+# Subtest: parser: captures FILL sizing + centered alignment on a fill-width button
+ok 163 - parser: captures FILL sizing + centered alignment on a fill-width button
+  ---
+  duration_ms: 6.111167
+  ...
+# Subtest: parser: captures HUG sizing (content-determined) for a hug button
+ok 164 - parser: captures HUG sizing (content-determined) for a hug button
+  ---
+  duration_ms: 1.280292
+  ...
+# Subtest: inspect: fill-width + centered button padding is marked geometry-sensitive
+ok 165 - inspect: fill-width + centered button padding is marked geometry-sensitive
+  ---
+  duration_ms: 2.594
+  ...
+# Subtest: inspect: hug-content button padding stays a normal authored padding
+ok 166 - inspect: hug-content button padding stays a normal authored padding
+  ---
+  duration_ms: 0.398083
+  ...
+# Subtest: detects ngx-select-ex and captures a local usage sample
+ok 167 - detects ngx-select-ex and captures a local usage sample
+  ---
+  duration_ms: 36.47625
+  ...
+# Subtest: detects ngx-datatable for table category
+ok 168 - detects ngx-datatable for table category
+  ---
+  duration_ms: 21.599083
+  ...
+# Subtest: returns library:null when a category has no matching library
+ok 169 - returns library:null when a category has no matching library
+  ---
+  duration_ms: 6.446875
+  ...
+# Subtest: bare <ngx-select> tag with no import → ngx-select (local), not ngx-select-ex
+ok 170 - bare <ngx-select> tag with no import → ngx-select (local), not ngx-select-ex
+  ---
+  duration_ms: 51.210166
+  ...
+# Subtest: @danielmoncada/angular-datetime-picker detected for date category
+ok 171 - @danielmoncada/angular-datetime-picker detected for date category
+  ---
+  duration_ms: 31.6105
+  ...
+# Subtest: commented-out import does not trigger a library
+ok 172 - commented-out import does not trigger a library
+  ---
+  duration_ms: 25.497417
+  ...
+# Subtest: package.json deps resolve capabilities even with no usage (fresh scaffold)
+ok 173 - package.json deps resolve capabilities even with no usage (fresh scaffold)
+  ---
+  duration_ms: 8.184833
+  ...
+# Subtest: local usage wins over an installed package (import-first)
+ok 174 - local usage wins over an installed package (import-first)
+  ---
+  duration_ms: 21.607208
+  ...
+# Subtest: package-name matching captures a local sample even when the entry has a display label
+ok 175 - package-name matching captures a local sample even when the entry has a display label
+  ---
+  duration_ms: 12.041542
+  ...
+# Subtest: sampleScss: local sample carries the component's stylesheet
+ok 176 - sampleScss: local sample carries the component's stylesheet
+  ---
+  duration_ms: 20.210208
+  ...
+# Subtest: mahasiswa-tarif: the page frame's own 20px padding reaches the transcript
+ok 177 - mahasiswa-tarif: the page frame's own 20px padding reaches the transcript
+  ---
+  duration_ms: 23.9435
+  ...
+# Subtest: mahasiswa-tarif: a field's required flag is read from <variantProperties>
+ok 178 - mahasiswa-tarif: a field's required flag is read from <variantProperties>
+  ---
+  duration_ms: 18.047666
+  ...
+# Subtest: mahasiswa-tarif: the 'Get data' icon resolves to fa-refresh, not native-plain
+ok 179 - mahasiswa-tarif: the 'Get data' icon resolves to fa-refresh, not native-plain
+  ---
+  duration_ms: 24.147042
+  ...
+# Subtest: mahasiswa-tarif: a field's variantName does NOT leak onto its nested caret icon
+ok 180 - mahasiswa-tarif: a field's variantName does NOT leak onto its nested caret icon
+  ---
+  duration_ms: 10.796833
+  ...
+# Subtest: mahasiswa-tarif: the SPACE_BETWEEN footer demands [paginationAlign]='right'
+ok 181 - mahasiswa-tarif: the SPACE_BETWEEN footer demands [paginationAlign]='right'
+  ---
+  duration_ms: 45.994209
+  ...
+# Subtest: mahasiswa-tarif: containerPadding catches the 5px fallback and accepts 20px
+ok 182 - mahasiswa-tarif: containerPadding catches the 5px fallback and accepts 20px
+  ---
+  duration_ms: 10.956708
+  ...
+# Subtest: FIX-001: the mock student table uses reserved synthetic values, never real data
+ok 183 - FIX-001: the mock student table uses reserved synthetic values, never real data
+  ---
+  duration_ms: 0.429333
+  ...
+# Subtest: catalog has the full component inventory (public + internal tagged)
+ok 184 - catalog has the full component inventory (public + internal tagged)
+  ---
+  duration_ms: 0.763708
+  ...
+# Subtest: catalog captures the full uii-table surface (inputs/outputs with types)
+ok 185 - catalog captures the full uii-table surface (inputs/outputs with types)
+  ---
+  duration_ms: 0.098667
+  ...
+# Subtest: catalog carries models, services, directives, pipes, modules (typing source of truth)
+ok 186 - catalog carries models, services, directives, pipes, modules (typing source of truth)
+  ---
+  duration_ms: 0.145416
+  ...
+# Subtest: action→auth→icon tables are derived from the catalog (never drift)
+ok 187 - action→auth→icon tables are derived from the catalog (never drift)
+  ---
+  duration_ms: 0.097041
+  ...
+# Subtest: renderPilarReferenceMd renders the full agent-facing reference (components + typing)
+ok 188 - renderPilarReferenceMd renders the full agent-facing reference (components + typing)
+  ---
+  duration_ms: 1.257167
+  ...
+# Subtest: pilar showcase catalog covers every doc-* with real working examples
+ok 189 - pilar showcase catalog covers every doc-* with real working examples
+  ---
+  duration_ms: 0.230208
+  ...
+# Subtest: renderPilarShowcaseMd renders the full agent-facing showcase (index + examples)
+ok 190 - renderPilarShowcaseMd renders the full agent-facing showcase (index + examples)
+  ---
+  duration_ms: 0.719
+  ...
+# Subtest: pilar-golden: hand-written pilar slice passes verify (gate not false-negative)
+ok 191 - pilar-golden: hand-written pilar slice passes verify (gate not false-negative)
+  ---
+  duration_ms: 141.630875
+  ...
+# Subtest: pilar-golden: hand-written pilar slice passes the catalog type-check
+ok 192 - pilar-golden: hand-written pilar slice passes the catalog type-check
+  ---
+  duration_ms: 1019.541542
+  ...
+# Subtest: pilar-golden: a drifted slice (wrong columns type) is rejected by the type-check
+ok 193 - pilar-golden: a drifted slice (wrong columns type) is rejected by the type-check
+  ---
+  duration_ms: 260.766042
+  ...
+# Subtest: pilar-mount: golden pilar slice mounts and renders rows
+ok 194 - pilar-mount: golden pilar slice mounts and renders rows # SKIP
+  ---
+  duration_ms: 0.607791
+  ...
+# Subtest: pilar-mount: a leaf component (uii-pagination) mounts first (leaf-first smoke)
+ok 195 - pilar-mount: a leaf component (uii-pagination) mounts first (leaf-first smoke) # SKIP
+  ---
+  duration_ms: 0.055334
+  ...
+# Subtest: roundtrip: every extracted model compiles as valid TypeScript (AST round-trip fidelity)
+ok 196 - roundtrip: every extracted model compiles as valid TypeScript (AST round-trip fidelity)
+  ---
+  duration_ms: 866.220083
+  ...
+# Subtest: roundtrip: model dependency closure — every referenced pilar type is cataloged (the CssStyle gap)
+ok 197 - roundtrip: model dependency closure — every referenced pilar type is cataloged (the CssStyle gap)
+  ---
+  duration_ms: 0.540959
+  ...
+# Subtest: roundtrip: registry sample bindings all declared by the catalog (binding contract)
+ok 198 - roundtrip: registry sample bindings all declared by the catalog (binding contract)
+  ---
+  duration_ms: 0.402834
+  ...
+# Subtest: roundtrip: showcase example bindings all declared by the catalog (binding contract)
+ok 199 - roundtrip: showcase example bindings all declared by the catalog (binding contract)
+  ---
+  duration_ms: 0.409791
+  ...
+# Subtest: roundtrip: catalog uii-table surface ⊇ verify's legal binding set
+ok 200 - roundtrip: catalog uii-table surface ⊇ verify's legal binding set
+  ---
+  duration_ms: 0.101
+  ...
+# Subtest: roundtrip: checked-in catalog matches a fresh extraction from PILAR_CHECKOUT (dev-only)
+ok 201 - roundtrip: checked-in catalog matches a fresh extraction from PILAR_CHECKOUT (dev-only) # SKIP
+  ---
+  duration_ms: 0.042791
+  ...
+# Subtest: roundtrip: catalog carries a version and it is a plausible pilar semver
+ok 202 - roundtrip: catalog carries a version and it is a plausible pilar semver
+  ---
+  duration_ms: 0.097667
+  ...
+# Subtest: version status: exact match → no skew, no message
+ok 203 - version status: exact match → no skew, no message
+  ---
+  duration_ms: 16.451
+  ...
+# Subtest: version status: installed newer than catalog → skew warning with regen command
+ok 204 - version status: installed newer than catalog → skew warning with regen command
+  ---
+  duration_ms: 12.059792
+  ...
+# Subtest: version status: catalog newer than installed → also skew (bindings may not exist yet)
+ok 205 - version status: catalog newer than installed → also skew (bindings may not exist yet)
+  ---
+  duration_ms: 8.465916
+  ...
+# Subtest: version status: no pilar dep → not present, silent (generic project)
+ok 206 - version status: no pilar dep → not present, silent (generic project)
+  ---
+  duration_ms: 3.291334
+  ...
+# Subtest: init surfaces the skew warning for a UII project with mismatched pilar
+ok 207 - init surfaces the skew warning for a UII project with mismatched pilar
+  ---
+  duration_ms: 251.671
+  ...
+# Subtest: init is silent on skew when versions match
+ok 208 - init is silent on skew when versions match
+  ---
+  duration_ms: 56.954542
+  ...
+# Subtest: doctor reports a Pilar catalog line (warn on skew, ok on match, n/a on generic)
+ok 209 - doctor reports a Pilar catalog line (warn on skew, ok on match, n/a on generic)
+  ---
+  duration_ms: 725.327458
+  ...
+# Subtest: implementation-plan: excludes unrelated capabilities (table in, select out)
+ok 210 - implementation-plan: excludes unrelated capabilities (table in, select out)
+  ---
+  duration_ms: 30.103333
+  ...
+# Subtest: implementation-plan: designed-visible rows remain unchanged
+ok 211 - implementation-plan: designed-visible rows remain unchanged
+  ---
+  duration_ms: 19.325292
+  ...
+# Subtest: implementation-plan: the compact plan is far smaller than the raw corpus
+ok 212 - implementation-plan: the compact plan is far smaller than the raw corpus
+  ---
+  duration_ms: 13.147583
+  ...
+# Subtest: implementation-plan: effective recipes reflect the merger (zero silent override)
+ok 213 - implementation-plan: effective recipes reflect the merger (zero silent override)
+  ---
+  duration_ms: 20.952208
+  ...
+# Subtest: merge: project width 384 (PAGE_SPECIFIC_GEOMETRY) does not override explicit design width 260
+ok 214 - merge: project width 384 (PAGE_SPECIFIC_GEOMETRY) does not override explicit design width 260
+  ---
+  duration_ms: 1.156208
+  ...
+# Subtest: merge: project radius 6 (DESIGN_OVERRIDABLE) yields to explicit design radius 4
+ok 215 - merge: project radius 6 (DESIGN_OVERRIDABLE) yields to explicit design radius 4
+  ---
+  duration_ms: 1.631
+  ...
+# Subtest: merge: structural dropdown z-index survives when non-conflicting
+ok 216 - merge: structural dropdown z-index survives when non-conflicting
+  ---
+  duration_ms: 0.298583
+  ...
+# Subtest: merge: variable geometry across samples is excluded (PAGE_SPECIFIC_GEOMETRY)
+ok 217 - merge: variable geometry across samples is excluded (PAGE_SPECIFIC_GEOMETRY)
+  ---
+  duration_ms: 0.176167
+  ...
+# Subtest: merge: stable focus style promotes to STATE_STYLE and is preserved
+ok 218 - merge: stable focus style promotes to STATE_STYLE and is preserved
+  ---
+  duration_ms: 0.210708
+  ...
+# Subtest: merge: zero silent A1 override is structural (every override is a recorded conflict)
+ok 219 - merge: zero silent A1 override is structural (every override is a recorded conflict)
+  ---
+  duration_ms: 0.839667
+  ...
+# Subtest: merge: capability-aware — a form recipe yields to the FIELD radius, not an unrelated table's
+ok 220 - merge: capability-aware — a form recipe yields to the FIELD radius, not an unrelated table's
+  ---
+  duration_ms: 0.174917
+  ...
+# Subtest: cross-topology: a linear form field's explicit width beats a project default
+ok 221 - cross-topology: a linear form field's explicit width beats a project default
+  ---
+  duration_ms: 0.095791
+  ...
+# Subtest: cross-topology: a grid card's explicit radius beats a project radius
+ok 222 - cross-topology: a grid card's explicit radius beats a project radius
+  ---
+  duration_ms: 0.13875
+  ...
+# Subtest: cross-topology: an overlay badge's structural z-index survives
+ok 223 - cross-topology: an overlay badge's structural z-index survives
+  ---
+  duration_ms: 0.132458
+  ...
+# Subtest: cross-topology: color conflicts are NOT resolved at property level (deferred to browser)
+ok 224 - cross-topology: color conflicts are NOT resolved at property level (deferred to browser)
+  ---
+  duration_ms: 0.083292
+  ...
+# Subtest: boundary: unsupported route/navigation generation is rejected
+ok 225 - boundary: unsupported route/navigation generation is rejected
+  ---
+  duration_ms: 1.180708
+  ...
+# Subtest: boundary: an invented HTTP service is rejected
+ok 226 - boundary: an invented HTTP service is rejected
+  ---
+  duration_ms: 0.085292
+  ...
+# Subtest: boundary: an invented modal target is rejected
+ok 227 - boundary: an invented modal target is rejected
+  ---
+  duration_ms: 0.071791
+  ...
+# Subtest: boundary: the safe default handler invents nothing
+ok 228 - boundary: the safe default handler invents nothing
+  ---
+  duration_ms: 0.067958
+  ...
+# Subtest: boundary: a plain mock component with a TODO handler passes
+ok 229 - boundary: a plain mock component with a TODO handler passes
+  ---
+  duration_ms: 0.059792
+  ...
+# Subtest: boundary: every forbidden category is enumerated in the policy
+ok 230 - boundary: every forbidden category is enumerated in the policy
+  ---
+  duration_ms: 0.093084
+  ...
+# Subtest: knowledge-graph: holds framework, capabilities, declaration-level recipes, boundary
+ok 231 - knowledge-graph: holds framework, capabilities, declaration-level recipes, boundary
+  ---
+  duration_ms: 1.845084
+  ...
+# Subtest: knowledge-graph: recipes are declaration-level, not whole blocks
+ok 232 - knowledge-graph: recipes are declaration-level, not whole blocks
+  ---
+  duration_ms: 0.940625
+  ...
+# Subtest: knowledge-graph: hash is deterministic and project-scoped
+ok 233 - knowledge-graph: hash is deterministic and project-scoped
+  ---
+  duration_ms: 0.886208
+  ...
+# Subtest: knowledge-graph: project context cannot contain design facts
+ok 234 - knowledge-graph: project context cannot contain design facts
+  ---
+  duration_ms: 0.261875
+  ...
+# Subtest: mining-exclusion: a generated file is excluded from recipe-confidence by default
+ok 235 - mining-exclusion: a generated file is excluded from recipe-confidence by default
+  ---
+  duration_ms: 180.197584
+  ...
+# Subtest: mining-exclusion: three REAL components promote; a generated copy still adds nothing
+ok 236 - mining-exclusion: three REAL components promote; a generated copy still adds nothing
+  ---
+  duration_ms: 3.432375
+  ...
+# Subtest: mining-exclusion: explicit approval (includeGenerated) is the only inclusion mechanism
+ok 237 - mining-exclusion: explicit approval (includeGenerated) is the only inclusion mechanism
+  ---
+  duration_ms: 3.838333
+  ...
+# Subtest: mining-exclusion: listProjectScss never lists a generated source
+ok 238 - mining-exclusion: listProjectScss never lists a generated source
+  ---
+  duration_ms: 38.087292
+  ...
+# Subtest: production: mining the real fixture tree yields declarations + a parse failure
+ok 239 - production: mining the real fixture tree yields declarations + a parse failure
+  ---
+  duration_ms: 425.910667
+  ...
+# Subtest: production: the Project Knowledge Graph consumes mined declarations (not injected observations)
+ok 240 - production: the Project Knowledge Graph consumes mined declarations (not injected observations)
+  ---
+  duration_ms: 30.182958
+  ...
+# Subtest: production: `sliceui plan` uses mined observations with no caller injection
+ok 241 - production: `sliceui plan` uses mined observations with no caller injection
+  ---
+  duration_ms: 557.27175
+  ...
+# Subtest: production: mining does not mutate the Design Intent Graph hash
+ok 242 - production: mining does not mutate the Design Intent Graph hash
+  ---
+  duration_ms: 13.860291
+  ...
+# Subtest: parseDeclarations: splits a block body into property/value/important
+ok 243 - parseDeclarations: splits a block body into property/value/important
+  ---
+  duration_ms: 1.1245
+  ...
+# Subtest: classify: variable geometry becomes PAGE_SPECIFIC_GEOMETRY
+ok 244 - classify: variable geometry becomes PAGE_SPECIFIC_GEOMETRY
+  ---
+  duration_ms: 0.456083
+  ...
+# Subtest: classify: stable radius becomes DESIGN_OVERRIDABLE
+ok 245 - classify: stable radius becomes DESIGN_OVERRIDABLE
+  ---
+  duration_ms: 0.771542
+  ...
+# Subtest: classify: z-index becomes STRUCTURAL_INTERNAL
+ok 246 - classify: z-index becomes STRUCTURAL_INTERNAL
+  ---
+  duration_ms: 0.065208
+  ...
+# Subtest: classify: a focus selector becomes STATE_STYLE
+ok 247 - classify: a focus selector becomes STATE_STYLE
+  ---
+  duration_ms: 0.059042
+  ...
+# Subtest: classify: geometry with low usage and no variance stays UNVERIFIED_SAMPLE
+ok 248 - classify: geometry with low usage and no variance stays UNVERIFIED_SAMPLE
+  ---
+  duration_ms: 0.051
+  ...
+# Subtest: classify: width:100% on an internal fill wrapper is STRUCTURAL_INTERNAL (not page-specific)
+ok 249 - classify: width:100% on an internal fill wrapper is STRUCTURAL_INTERNAL (not page-specific)
+  ---
+  duration_ms: 0.123917
+  ...
+# Subtest: classify: position:absolute on an overlay is STRUCTURAL_INTERNAL (not page-specific)
+ok 250 - classify: position:absolute on an overlay is STRUCTURAL_INTERNAL (not page-specific)
+  ---
+  duration_ms: 0.079167
+  ...
+# Subtest: classify: top:0 on a portal is STRUCTURAL_INTERNAL (offset from responsibility)
+ok 251 - classify: top:0 on a portal is STRUCTURAL_INTERNAL (offset from responsibility)
+  ---
+  duration_ms: 0.169208
+  ...
+# Subtest: classify: portability tracks usage count (0.9 / 0.7 / 0.35)
+ok 252 - classify: portability tracks usage count (0.9 / 0.7 / 0.35)
+  ---
+  duration_ms: 0.227417
+  ...
+# Subtest: mineRecipeDeclarations: counts by semantics for the report
+ok 253 - mineRecipeDeclarations: counts by semantics for the report
+  ---
+  duration_ms: 0.267833
+  ...
+# Subtest: mine: nested selectors are flattened by sass (`.card { .header {…} }` → `.card .header`)
+ok 254 - mine: nested selectors are flattened by sass (`.card { .header {…} }` → `.card .header`)
+  ---
+  duration_ms: 163.092375
+  ...
+# Subtest: mine: ::ng-deep selectors are normalized (prefix + leading dot stripped)
+ok 255 - mine: ::ng-deep selectors are normalized (prefix + leading dot stripped)
+  ---
+  duration_ms: 2.74425
+  ...
+# Subtest: mine: a pseudo-state selector is flagged and classified STATE_STYLE when stable
+ok 256 - mine: a pseudo-state selector is flagged and classified STATE_STYLE when stable
+  ---
+  duration_ms: 14.212917
+  ...
+# Subtest: mine: media-query context is separated from the base rule
+ok 257 - mine: media-query context is separated from the base rule
+  ---
+  duration_ms: 4.868667
+  ...
+# Subtest: mine: duplicate declarations in ONE component count as one independent usage
+ok 258 - mine: duplicate declarations in ONE component count as one independent usage
+  ---
+  duration_ms: 3.295791
+  ...
+# Subtest: mine: the same declaration across THREE independent components counts as three usages
+ok 259 - mine: the same declaration across THREE independent components counts as three usages
+  ---
+  duration_ms: 8.38625
+  ...
+# Subtest: mine: copied same-name component in two dirs (hope/slice) dedups to one usage
+ok 260 - mine: copied same-name component in two dirs (hope/slice) dedups to one usage
+  ---
+  duration_ms: 3.533416
+  ...
+# Subtest: mine: search width 384/301/420 across independent pages → PAGE_SPECIFIC_GEOMETRY
+ok 261 - mine: search width 384/301/420 across independent pages → PAGE_SPECIFIC_GEOMETRY
+  ---
+  duration_ms: 4.471708
+  ...
+# Subtest: mine: stable focus border color → STATE_STYLE
+ok 262 - mine: stable focus border color → STATE_STYLE
+  ---
+  duration_ms: 3.525542
+  ...
+# Subtest: mine: stable dropdown portal z-index → STRUCTURAL_INTERNAL
+ok 263 - mine: stable dropdown portal z-index → STRUCTURAL_INTERNAL
+  ---
+  duration_ms: 1.642833
+  ...
+# Subtest: mine: width:100% on an internal fill wrapper is NOT page-specific
+ok 264 - mine: width:100% on an internal fill wrapper is NOT page-specific
+  ---
+  duration_ms: 0.687
+  ...
+# Subtest: mine: position:absolute on an overlay is NOT page-specific
+ok 265 - mine: position:absolute on an overlay is NOT page-specific
+  ---
+  duration_ms: 0.795334
+  ...
+# Subtest: normalize: colors, zero-units, decimals canonicalize; units stay distinct
+ok 266 - normalize: colors, zero-units, decimals canonicalize; units stay distinct
+  ---
+  duration_ms: 0.139792
+  ...
+# Subtest: normalize: border-radius 4 identical values collapse to one
+ok 267 - normalize: border-radius 4 identical values collapse to one
+  ---
+  duration_ms: 0.150708
+  ...
+# Subtest: mine: malformed SCSS is recorded as a parse failure, never silently dropped
+ok 268 - mine: malformed SCSS is recorded as a parse failure, never silently dropped
+  ---
+  duration_ms: 11.789709
+  ...
+# Subtest: mine: deterministic order and knowledge-graph hash
+ok 269 - mine: deterministic order and knowledge-graph hash
+  ---
+  duration_ms: 6.927333
+  ...
+# Subtest: mine: componentIdentity strips .component.scss and leading underscore
+ok 270 - mine: componentIdentity strips .component.scss and leading underscore
+  ---
+  duration_ms: 0.080834
+  ...
+# Subtest: verdict: buildRefereeVerdict produces a versioned, source-body-free verdict
+ok 271 - verdict: buildRefereeVerdict produces a versioned, source-body-free verdict
+  ---
+  duration_ms: 2.727167
+  ...
+# Subtest: verdict: snapshotFingerprint changes when conventions.json changes
+ok 272 - verdict: snapshotFingerprint changes when conventions.json changes
+  ---
+  duration_ms: 42.488875
+  ...
+# Subtest: verdict: assessRefereeVerdict returns missing when the verdict file is absent
+ok 273 - verdict: assessRefereeVerdict returns missing when the verdict file is absent
+  ---
+  duration_ms: 30.664583
+  ...
+# Subtest: verdict: assessRefereeVerdict returns fresh-pass for a matching fingerprint
+ok 274 - verdict: assessRefereeVerdict returns fresh-pass for a matching fingerprint
+  ---
+  duration_ms: 53.048459
+  ...
+# Subtest: verdict: assessRefereeVerdict returns stale on snapshot fingerprint mismatch
+ok 275 - verdict: assessRefereeVerdict returns stale on snapshot fingerprint mismatch
+  ---
+  duration_ms: 28.926625
+  ...
+# Subtest: verdict: assessRefereeVerdict returns stale on project fingerprint mismatch
+ok 276 - verdict: assessRefereeVerdict returns stale on project fingerprint mismatch
+  ---
+  duration_ms: 20.877958
+  ...
+# Subtest: verdict: assessRefereeVerdict returns invalid for malformed JSON and unknown schema
+ok 277 - verdict: assessRefereeVerdict returns invalid for malformed JSON and unknown schema
+  ---
+  duration_ms: 39.95
+  ...
+# Subtest: verdict: assessRefereeVerdict returns fresh-fail for a stored failed verdict
+ok 278 - verdict: assessRefereeVerdict returns fresh-fail for a stored failed verdict
+  ---
+  duration_ms: 22.947291
+  ...
+# Subtest: referee split: codebaseEvidenceFindings scans but liveRefereeFindings does not glob the repo
+ok 279 - referee split: codebaseEvidenceFindings scans but liveRefereeFindings does not glob the repo
+  ---
+  duration_ms: 25.301792
+  ...
+# Subtest: referee split: liveRefereeFindings (bounded) does not flag a target in a different directory
+ok 280 - referee split: liveRefereeFindings (bounded) does not flag a target in a different directory
+  ---
+  duration_ms: 1.34925
+  ...
+# Subtest: referee: flags duplicate component selectors (silent hazard)
+ok 281 - referee: flags duplicate component selectors (silent hazard)
+  ---
+  duration_ms: 36.689625
+  ...
+# Subtest: referee: no duplicate-selector finding when all selectors are unique
+ok 282 - referee: no duplicate-selector finding when all selectors are unique
+  ---
+  duration_ms: 21.712125
+  ...
+# Subtest: referee: F12 — duplicate selectors are repo-preexisting (non-blocking), target-exists is blocking
+ok 283 - referee: F12 — duplicate selectors are repo-preexisting (non-blocking), target-exists is blocking
+  ---
+  duration_ms: 22.52725
+  ...
+# Subtest: referee: wellAvailable=stale when claimed but absent from templates
+ok 284 - referee: wellAvailable=stale when claimed but absent from templates
+  ---
+  duration_ms: 23.488959
+  ...
+# Subtest: referee: mockRowsFloor 15 is a sane floor (transcript 20 handled by verify, not stale)
+ok 285 - referee: mockRowsFloor 15 is a sane floor (transcript 20 handled by verify, not stale)
+  ---
+  duration_ms: 27.781417
+  ...
+# Subtest: referee: flags mockRowsFloor=0 as an insane floor
+ok 286 - referee: flags mockRowsFloor=0 as an insane floor
+  ---
+  duration_ms: 80.225458
+  ...
+# Subtest: referee: cell-html absent from project is informational, not a fail
+ok 287 - referee: cell-html absent from project is informational, not a fail
+  ---
+  duration_ms: 20.1505
+  ...
+# Subtest: referee: flags app shell in sampleComponents
+ok 288 - referee: flags app shell in sampleComponents
+  ---
+  duration_ms: 18.432833
+  ...
+# Subtest: referee: all green on a correct project
+ok 289 - referee: all green on a correct project
+  ---
+  duration_ms: 25.807625
+  ...
+# Subtest: referee: target-exists flags a real-API component (STOP, don't overwrite)
+ok 290 - referee: target-exists flags a real-API component (STOP, don't overwrite)
+  ---
+  duration_ms: 40.745833
+  ...
+# Subtest: referee: target-exists flags a mock-data component
+ok 291 - referee: target-exists flags a mock-data component
+  ---
+  duration_ms: 22.660167
+  ...
+# Subtest: referee: target-exists fires on a CLASS name, not just the file basename
+ok 292 - referee: target-exists fires on a CLASS name, not just the file basename
+  ---
+  duration_ms: 18.704042
+  ...
+# Subtest: referee: target-exists finds a component outside componentDir (monorepo library)
+ok 293 - referee: target-exists finds a component outside componentDir (monorepo library)
+  ---
+  duration_ms: 20.669667
+  ...
+# Subtest: referee: classNameToFileStem normalizes Angular class names to kebab stems
+ok 294 - referee: classNameToFileStem normalizes Angular class names to kebab stems
+  ---
+  duration_ms: 0.489208
+  ...
+# Subtest: referee: no target-exists when --target is a NEW component
+ok 295 - referee: no target-exists when --target is a NEW component
+  ---
+  duration_ms: 19.832333
+  ...
+# Subtest: referee: target-exists PASSES (does not red-flag) a SliceUI-generated component (re-run safe)
+ok 296 - referee: target-exists PASSES (does not red-flag) a SliceUI-generated component (re-run safe)
+  ---
+  duration_ms: 20.617166
+  ...
+# Subtest: PR6B: geometry facts derive from transcript design facts only
+ok 297 - PR6B: geometry facts derive from transcript design facts only
+  ---
+  duration_ms: 1.709666
+  ...
+# Subtest: PR6B: every fact carries id/category/box/tolerance/trust/mapping — no invented expected
+ok 298 - PR6B: every fact carries id/category/box/tolerance/trust/mapping — no invented expected
+  ---
+  duration_ms: 1.357416
+  ...
+# Subtest: PR6B: an empty transcript yields no facts (never invented)
+ok 299 - PR6B: an empty transcript yields no facts (never invented)
+  ---
+  duration_ms: 0.080084
+  ...
+# Subtest: PR6B: compareGeometry — required unmapped fact is non-green; optional unmapped skips
+ok 300 - PR6B: compareGeometry — required unmapped fact is non-green; optional unmapped skips
+  ---
+  duration_ms: 0.235416
+  ...
+# Subtest: PR6B: compareGeometry — tolerance boundary semantics (inside/at/outside)
+ok 301 - PR6B: compareGeometry — tolerance boundary semantics (inside/at/outside)
+  ---
+  duration_ms: 0.15475
+  ...
+# Subtest: PR6B: compareGeometry — an optional mismatch is a warning, never a blocking fail
+ok 302 - PR6B: compareGeometry — an optional mismatch is a warning, never a blocking fail
+  ---
+  duration_ms: 0.097333
+  ...
+# Subtest: PR6B: known-good geometry fixture passes (root padding, control height, line-height, divider)
+ok 303 - PR6B: known-good geometry fixture passes (root padding, control height, line-height, divider)
+  ---
+  duration_ms: 4049.139458
+  ...
+# Subtest: PR6B: defect geometry fixture visual-fails with a measurable delta
+ok 304 - PR6B: defect geometry fixture visual-fails with a measurable delta
+  ---
+  duration_ms: 1669.940125
+  ...
+# Subtest: PR6B: geometry diagnostics are deterministic across repeated runs
+ok 305 - PR6B: geometry diagnostics are deterministic across repeated runs
+  ---
+  duration_ms: 3348.572542
+  ...
+# Subtest: PR6B: tolerances are centralized (no scattered magic numbers)
+ok 306 - PR6B: tolerances are centralized (no scattered magic numbers)
+  ---
+  duration_ms: 0.504459
+  ...
+# Subtest: PR6Bc MAP-001: an ambiguous required mapping is non-green (no first-pick)
+ok 307 - PR6Bc MAP-001: an ambiguous required mapping is non-green (no first-pick)
+  ---
+  duration_ms: 0.233375
+  ...
+# Subtest: PR6Bc MAP-001: a missing required mapping is non-green, not a mismatch
+ok 308 - PR6Bc MAP-001: a missing required mapping is non-green, not a mismatch
+  ---
+  duration_ms: 0.094416
+  ...
+# Subtest: PR6Bc MAP-001: optional ambiguity is a visible non-blocking warning
+ok 309 - PR6Bc MAP-001: optional ambiguity is a visible non-blocking warning
+  ---
+  duration_ms: 0.061458
+  ...
+# Subtest: PR6Bc DOC-001: control-height is required for a literal visible control box
+ok 310 - PR6Bc DOC-001: control-height is required for a literal visible control box
+  ---
+  duration_ms: 0.20725
+  ...
+# Subtest: PR6Bc DOC-001: control-height tolerance boundaries (40±2)
+ok 311 - PR6Bc DOC-001: control-height tolerance boundaries (40±2)
+  ---
+  duration_ms: 0.137291
+  ...
+# Subtest: PR6Bc MAP-001 (browser): two visible controls matching one required fact → non-green
+ok 312 - PR6Bc MAP-001 (browser): two visible controls matching one required fact → non-green
+  ---
+  duration_ms: 1740.001458
+  ...
+# Subtest: PR6Bc AGG (browser): zero required geometry facts is non-green, never a false pass
+ok 313 - PR6Bc AGG (browser): zero required geometry facts is non-green, never a false pass
+  ---
+  duration_ms: 1935.232708
+  ...
+# Subtest: PR6Bc MAP-001 (browser): a hidden duplicate does NOT create false ambiguity
+ok 314 - PR6Bc MAP-001 (browser): a hidden duplicate does NOT create false ambiguity
+  ---
+  duration_ms: 1576.181208
+  ...
+# Subtest: PR6C: structural facts come from the transcript, never from the map
+ok 315 - PR6C: structural facts come from the transcript, never from the map
+  ---
+  duration_ms: 1.340292
+  ...
+# Subtest: PR6C: a design node with a fact but NO locator emits nothing (no guessed locator)
+ok 316 - PR6C: a design node with a fact but NO locator emits nothing (no guessed locator)
+  ---
+  duration_ms: 0.253833
+  ...
+# Subtest: PR6C (browser): known-good structural fixture passes every family
+ok 317 - PR6C (browser): known-good structural fixture passes every family
+  ---
+  duration_ms: 1492.528333
+  ...
+# Subtest: PR6C (browser): each intended structural defect is caught with a measurable delta
+ok 318 - PR6C (browser): each intended structural defect is caught with a measurable delta
+  ---
+  duration_ms: 894.345709
+  ...
+# Subtest: PR6C: radius tolerance boundary (exact/at/outside)
+ok 319 - PR6C: radius tolerance boundary (exact/at/outside)
+  ---
+  duration_ms: 0.438958
+  ...
+# Subtest: PR6C: exact-match families compare by equality, not by pixel tolerance
+ok 320 - PR6C: exact-match families compare by equality, not by pixel tolerance
+  ---
+  duration_ms: 0.231209
+  ...
+# Subtest: PR6C: font-weight uses the centralized weight tolerance (exact enum)
+ok 321 - PR6C: font-weight uses the centralized weight tolerance (exact enum)
+  ---
+  duration_ms: 0.191958
+  ...
+# Subtest: PR6C: a fact family may contribute several facts without collapsing to the first
+ok 322 - PR6C: a fact family may contribute several facts without collapsing to the first
+  ---
+  duration_ms: 0.178583
+  ...
+# Subtest: PR6C (browser): unintended horizontal overflow is non-green; a fitting container passes
+ok 323 - PR6C (browser): unintended horizontal overflow is non-green; a fitting container passes
+  ---
+  duration_ms: 2037.743792
+  ...
+# Subtest: PR6C: a selector-map-bound required fact that maps to nothing is non-green
+ok 324 - PR6C: a selector-map-bound required fact that maps to nothing is non-green
+  ---
+  duration_ms: 0.257792
+  ...
+# Subtest: PR6C: a selector-map-bound required fact matching several elements is ambiguous
+ok 325 - PR6C: a selector-map-bound required fact matching several elements is ambiguous
+  ---
+  duration_ms: 0.076083
+  ...
+# Subtest: PR6Cc BOR-001 (browser): a uniform border with a wrong bottom/left side is non-green
+ok 326 - PR6Cc BOR-001 (browser): a uniform border with a wrong bottom/left side is non-green
+  ---
+  duration_ms: 1880.7715
+  ...
+# Subtest: PR6Cc OVF-001 (browser): a required mapped element outside the viewport is non-green
+ok 327 - PR6Cc OVF-001 (browser): a required mapped element outside the viewport is non-green
+  ---
+  duration_ms: 1881.930709
+  ...
+# Subtest: PR6Cc OVF-001 (browser): overflow:hidden without measurable clipping still passes
+ok 328 - PR6Cc OVF-001 (browser): overflow:hidden without measurable clipping still passes
+  ---
+  duration_ms: 824.614792
+  ...
+# Subtest: PR6Cc BOR-001 (pure): uniform border facts carry four sides, never a scalar
+ok 329 - PR6Cc BOR-001 (pure): uniform border facts carry four sides, never a scalar
+  ---
+  duration_ms: 0.284
+  ...
+# Subtest: PR6Cc OVF-001 (pure): a mapped required element contributes objective overflow facts
+ok 330 - PR6Cc OVF-001 (pure): a mapped required element contributes objective overflow facts
+  ---
+  duration_ms: 0.099208
+  ...
+# Subtest: PR6Cc BOR-001: an ABSENT required border fails despite the ±1px numeric tolerance
+ok 331 - PR6Cc BOR-001: an ABSENT required border fails despite the ±1px numeric tolerance
+  ---
+  duration_ms: 0.149375
+  ...
+# Subtest: PR6Cc BOR-001: each individual absent side fails, and the diagnostic names it
+ok 332 - PR6Cc BOR-001: each individual absent side fails, and the diagnostic names it
+  ---
+  duration_ms: 0.078834
+  ...
+# Subtest: PR6Cc BOR-001: presence does not disturb the normal non-zero tolerance boundary
+ok 333 - PR6Cc BOR-001: presence does not disturb the normal non-zero tolerance boundary
+  ---
+  duration_ms: 0.085458
+  ...
+# Subtest: PR6Cc BOR-001: a required border-color at 0px width cannot pass on computed color alone
+ok 334 - PR6Cc BOR-001: a required border-color at 0px width cannot pass on computed color alone
+  ---
+  duration_ms: 0.039625
+  ...
+# Subtest: PR6Cc BOR-001 (browser): an entirely absent required border is a visual-fail
+ok 335 - PR6Cc BOR-001 (browser): an entirely absent required border is a visual-fail
+  ---
+  duration_ms: 2956.052583
+  ...
+# Subtest: PR6Cc BOR-001 (browser): a fully transparent border color is not an opaque pass
+ok 336 - PR6Cc BOR-001 (browser): a fully transparent border color is not an opaque pass
+  ---
+  duration_ms: 566.778
+  ...
+# Subtest: PR6Cc AGG-001 (browser): a required style mismatch outranks the zero-required-geometry guard
+ok 337 - PR6Cc AGG-001 (browser): a required style mismatch outranks the zero-required-geometry guard
+  ---
+  duration_ms: 567.141917
+  ...
+# Subtest: PR6Cc AGG-001 (browser): zero required evidence stays unverifiable when nothing failed
+ok 338 - PR6Cc AGG-001 (browser): zero required evidence stays unverifiable when nothing failed
+  ---
+  duration_ms: 559.65975
+  ...
+# Subtest: PR6Cc AGG-001 (browser): a runtime error outranks a geometry failure
+ok 339 - PR6Cc AGG-001 (browser): a runtime error outranks a geometry failure
+  ---
+  duration_ms: 561.123041
+  ...
+# Subtest: PR6Cc DIA-001 (browser): projected diagnostics carry a bounded detail, never undefined
+ok 340 - PR6Cc DIA-001 (browser): projected diagnostics carry a bounded detail, never undefined
+  ---
+  duration_ms: 587.290583
+  ...
+# Subtest: mount: human reference renders design values + encapsulation while the machine slice drifts (A/B)
+ok 341 - mount: human reference renders design values + encapsulation while the machine slice drifts (A/B)
+  ---
+  duration_ms: 5187.368459
+  ...
+# Subtest: mount: probe gathers title + divider facts (not a silent no-op)
+ok 342 - mount: probe gathers title + divider facts (not a silent no-op)
+  ---
+  duration_ms: 947.153084
+  ...
+# Subtest: render: human reference renders design values while the machine slice drifts (A/B on the same design)
+ok 343 - render: human reference renders design values while the machine slice drifts (A/B on the same design)
+  ---
+  duration_ms: 4627.924291
+  ...
+# Subtest: render: probe gathers title + divider facts (not a silent no-op)
+ok 344 - render: probe gathers title + divider facts (not a silent no-op)
+  ---
+  duration_ms: 935.05925
+  ...
+# Subtest: paginationEvidence compiles the design footer into total/pageSize runtime state
+ok 345 - paginationEvidence compiles the design footer into total/pageSize runtime state
+  ---
+  duration_ms: 2.145166
+  ...
+# Subtest: visible-state fact is scoped to footers the component's OWN template renders
+ok 346 - visible-state fact is scoped to footers the component's OWN template renders
+  ---
+  duration_ms: 1.000375
+  ...
+# Subtest: a design without pagination evidence emits no visible-state fact (no forced state)
+ok 347 - a design without pagination evidence emits no visible-state fact (no forced state)
+  ---
+  duration_ms: 0.09275
+  ...
+# Subtest: spacing (browser): effective rendered distance — known-good passes
+ok 348 - spacing (browser): effective rendered distance — known-good passes
+  ---
+  duration_ms: 3729.524958
+  ...
+# Subtest: spacing (browser): design gap stacked on a child margin fails on the EFFECTIVE distance
+ok 349 - spacing (browser): design gap stacked on a child margin fails on the EFFECTIVE distance
+  ---
+  duration_ms: 1870.407875
+  ...
+# Subtest: visibility (browser): designed pagination state renders → pass
+ok 350 - visibility (browser): designed pagination state renders → pass
+  ---
+  duration_ms: 2237.252666
+  ...
+# Subtest: visibility (browser): runtime state that prevents the designed pagination → FAIL
+ok 351 - visibility (browser): runtime state that prevents the designed pagination → FAIL
+  ---
+  duration_ms: 1525.32925
+  ...
+# Subtest: cascade (browser): an authored override that LOSES the cascade is caught by computed style
+ok 352 - cascade (browser): an authored override that LOSES the cascade is caught by computed style
+  ---
+  duration_ms: 1731.968209
+  ...
+# Subtest: cascade (browser): a production-proven recipe that wins the cascade PASSES
+ok 353 - cascade (browser): a production-proven recipe that wins the cascade PASSES
+  ---
+  duration_ms: 1596.251375
+  ...
+# Subtest: cascade (browser): a plain override that already wins is NOT failed for lacking !important
+ok 354 - cascade (browser): a plain override that already wins is NOT failed for lacking !important
+  ---
+  duration_ms: 1846.99675
+  ...
+# Subtest: renders radius/padding/gap from node fields (the double-drop fix)
+ok 355 - renders radius/padding/gap from node fields (the double-drop fix)
+  ---
+  duration_ms: 0.872958
+  ...
+# Subtest: renders lineHeight in the style summary
+ok 356 - renders lineHeight in the style summary
+  ---
+  duration_ms: 0.097291
+  ...
+# Subtest: renders the spacing tokens block for the figml path
+ok 357 - renders the spacing tokens block for the figml path
+  ---
+  duration_ms: 0.232
+  ...
+# Subtest: render-verify: correct reference (hope) renders design values → pass
+ok 358 - render-verify: correct reference (hope) renders design values → pass
+  ---
+  duration_ms: 3633.33825
+  ...
+# Subtest: render-verify: drifted title color (slice) → visual-fail with measurable delta
+ok 359 - render-verify: drifted title color (slice) → visual-fail with measurable delta
+  ---
+  duration_ms: 1391.060083
+  ...
+# Subtest: render-verify: geometry facts measure root padding + divider (deterministic tolerance)
+ok 360 - render-verify: geometry facts measure root padding + divider (deterministic tolerance)
+  ---
+  duration_ms: 1124.444917
+  ...
+# Subtest: render-verify: no transcript → unverifiable (never a silent pass)
+ok 361 - render-verify: no transcript → unverifiable (never a silent pass)
+  ---
+  duration_ms: 0.570666
+  ...
+# Subtest: render-verify: missing fixture → fixture-unavailable (non-green)
+ok 362 - render-verify: missing fixture → fixture-unavailable (non-green)
+  ---
+  duration_ms: 0.322208
+  ...
+# Subtest: render-verify: exit-code contract maps every state non-green except pass
+ok 363 - render-verify: exit-code contract maps every state non-green except pass
+  ---
+  duration_ms: 0.073167
+  ...
+# Subtest: PR6A: parseViewport rejects oversized / malformed dimensions (RNS-001)
+ok 364 - PR6A: parseViewport rejects oversized / malformed dimensions (RNS-001)
+  ---
+  duration_ms: 1.006875
+  ...
+# Subtest: PR6A: a blocked external request makes render non-green with a sanitized diagnostic (NET-001)
+ok 365 - PR6A: a blocked external request makes render non-green with a sanitized diagnostic (NET-001)
+  ---
+  duration_ms: 2929.042375
+  ...
+# Subtest: PR6A: no transcript → unverifiable (unchanged); runtime error captured as non-green
+ok 366 - PR6A: no transcript → unverifiable (unchanged); runtime error captured as non-green
+  ---
+  duration_ms: 0.296417
+  ...
+# Subtest: resolve: badge \#fef2f2 + icon \#f44444 → fa-exclamation-circle (NOT triangle)
+ok 367 - resolve: badge \#fef2f2 + icon \#f44444 → fa-exclamation-circle (NOT triangle)
+  ---
+  duration_ms: 1.266458
+  ...
+# Subtest: resolve: label co-occurrence surfaces candidates, never guesses by bg alone
+ok 368 - resolve: label co-occurrence surfaces candidates, never guesses by bg alone
+  ---
+  duration_ms: 0.18325
+  ...
+# Subtest: resolve: OOV badge (no label-custom-* pairs icon) → native-plain fallback, not silent drop
+ok 369 - resolve: OOV badge (no label-custom-* pairs icon) → native-plain fallback, not silent drop
+  ---
+  duration_ms: 0.097542
+  ...
+# Subtest: resolve: bare icon resolves its color to the fa-* set
+ok 370 - resolve: bare icon resolves its color to the fa-* set
+  ---
+  duration_ms: 0.104625
+  ...
+# Subtest: resolve: non-styled structural nodes are skipped
+ok 371 - resolve: non-styled structural nodes are skipped
+  ---
+  duration_ms: 0.187
+  ...
+# Subtest: resolve: caret icon resolves by NAME (fa-caret-down), not color-first fa-search
+ok 372 - resolve: caret icon resolves by NAME (fa-caret-down), not color-first fa-search
+  ---
+  duration_ms: 0.247292
+  ...
+# Subtest: resolve: eye icon nested under a Vector leaf inherits the FA name from its wrapper (not fa-search)
+ok 373 - resolve: eye icon nested under a Vector leaf inherits the FA name from its wrapper (not fa-search)
+  ---
+  duration_ms: 0.298292
+  ...
+# Subtest: resolve: pencil-alt icon nested under a Vector leaf inherits the FA name from its wrapper
+ok 374 - resolve: pencil-alt icon nested under a Vector leaf inherits the FA name from its wrapper
+  ---
+  duration_ms: 0.245041
+  ...
+# Subtest: resolve: ambiguous-color bare icon with NO name surfaces the family + a fallback, not a confident fa-search
+ok 375 - resolve: ambiguous-color bare icon with NO name surfaces the family + a fallback, not a confident fa-search
+  ---
+  duration_ms: 0.519667
+  ...
+# Subtest: resolve: unambiguous-color bare icon (single family) still resolves to that glyph
+ok 376 - resolve: unambiguous-color bare icon (single family) still resolves to that glyph
+  ---
+  duration_ms: 0.179792
+  ...
+# Subtest: resolve: badge with status text 'Dibatalkan' → label-custom-cancel (text beats color co-occurrence)
+ok 377 - resolve: badge with status text 'Dibatalkan' → label-custom-cancel (text beats color co-occurrence)
+  ---
+  duration_ms: 0.17325
+  ...
+# Subtest: resolve: button variant secondary → btn-secondary when in vocabulary
+ok 378 - resolve: button variant secondary → btn-secondary when in vocabulary
+  ---
+  duration_ms: 0.092333
+  ...
+# Subtest: resolve: button variant with no matching btn-* falls back native-plain (not invented)
+ok 379 - resolve: button variant with no matching btn-* falls back native-plain (not invented)
+  ---
+  duration_ms: 0.111541
+  ...
+# Subtest: resolve: button with no variant maps white bg → btn-secondary (outline action)
+ok 380 - resolve: button with no variant maps white bg → btn-secondary (outline action)
+  ---
+  duration_ms: 0.134333
+  ...
+# Subtest: resolve: button with no variant maps solid bg → btn-primary
+ok 381 - resolve: button with no variant maps solid bg → btn-primary
+  ---
+  duration_ms: 0.07575
+  ...
+# Subtest: resolve: button with no variant and no btn-* in vocab falls back native-plain (not invented)
+ok 382 - resolve: button with no variant and no btn-* in vocab falls back native-plain (not invented)
+  ---
+  duration_ms: 0.128833
+  ...
+# Subtest: resolve: Icon_primary / Icon_white names are generic (no false glyph), contextual fallback
+ok 383 - resolve: Icon_primary / Icon_white names are generic (no false glyph), contextual fallback
+  ---
+  duration_ms: 0.114042
+  ...
+# Subtest: resolve: F8 — a Figma variantName on an icon resolves the glyph (sync), not a fallback
+ok 384 - resolve: F8 — a Figma variantName on an icon resolves the glyph (sync), not a fallback
+  ---
+  duration_ms: 0.237709
+  ...
+# Subtest: resolve: an icon INSTANCE wrapper's variantName is inherited by its colored Vector child
+ok 385 - resolve: an icon INSTANCE wrapper's variantName is inherited by its colored Vector child
+  ---
+  duration_ms: 0.587833
+  ...
+# Subtest: resolve: F8 — fallback note no longer invents a specific (wrong) glyph example
+ok 386 - resolve: F8 — fallback note no longer invents a specific (wrong) glyph example
+  ---
+  duration_ms: 0.175166
+  ...
+# Subtest: resolve: badge 'Aktif' bg \#eef6ff is detected as a badge
+ok 387 - resolve: badge 'Aktif' bg \#eef6ff is detected as a badge
+  ---
+  duration_ms: 0.6875
+  ...
+# Subtest: resolve: empty-TEXT glyph with toggle-on name → fa-toggle-on (NOT the \#03337b 3-icon family)
+ok 388 - resolve: empty-TEXT glyph with toggle-on name → fa-toggle-on (NOT the \#03337b 3-icon family)
+  ---
+  duration_ms: 0.264583
+  ...
+# Subtest: resolve: empty-TEXT glyph inherits the wrapper's glyphName (no glyphName of its own)
+ok 389 - resolve: empty-TEXT glyph inherits the wrapper's glyphName (no glyphName of its own)
+  ---
+  duration_ms: 0.271541
+  ...
+# Subtest: resolve: toggle-off name resolves fa-toggle-off; bare toggle defaults to fa-toggle-on
+ok 390 - resolve: toggle-off name resolves fa-toggle-off; bare toggle defaults to fa-toggle-on
+  ---
+  duration_ms: 0.213542
+  ...
+# Subtest: resolve: real text is never treated as a glyph, even with a glyphName present
+ok 391 - resolve: real text is never treated as a glyph, even with a glyphName present
+  ---
+  duration_ms: 0.110125
+  ...
+# Subtest: resolve: 10 identical badges group into 1 entry with count+ids; leaves stay full
+ok 392 - resolve: 10 identical badges group into 1 entry with count+ids; leaves stay full
+  ---
+  duration_ms: 1.426292
+  ...
+# Subtest: resolve: distinct evidence signatures stay in separate groups
+ok 393 - resolve: distinct evidence signatures stay in separate groups
+  ---
+  duration_ms: 0.310334
+  ...
+# Subtest: PR4: every resolved group carries a valid classification/authority/confidence
+ok 394 - PR4: every resolved group carries a valid classification/authority/confidence
+  ---
+  duration_ms: 0.615959
+  ...
+# Subtest: PR4: icon metadata (variantName) beats label text and color — sync stays sync
+ok 395 - PR4: icon metadata (variantName) beats label text and color — sync stays sync
+  ---
+  duration_ms: 0.256791
+  ...
+# Subtest: PR4: corpus color icon is a semantic hypothesis, not a design fact
+ok 396 - PR4: corpus color icon is a semantic hypothesis, not a design fact
+  ---
+  duration_ms: 0.182125
+  ...
+# Subtest: PR4: text-based icon resolution marks fallbackUsed and lowers confidence
+ok 397 - PR4: text-based icon resolution marks fallbackUsed and lowers confidence
+  ---
+  duration_ms: 0.148375
+  ...
+# Subtest: PR4: status text-table mapping is stronger than co-occurrence
+ok 398 - PR4: status text-table mapping is stronger than co-occurrence
+  ---
+  duration_ms: 0.343542
+  ...
+# Subtest: PR4: status color alone is never exact — the real 'Aktif' case stays a hint
+ok 399 - PR4: status color alone is never exact — the real 'Aktif' case stays a hint
+  ---
+  duration_ms: 0.336208
+  ...
+# Subtest: PR4: confidence is deterministic — same input, same score and ordering
+ok 400 - PR4: confidence is deterministic — same input, same score and ordering
+  ---
+  duration_ms: 0.414417
+  ...
+# Subtest: PR4: candidate and evidence budgets hold
+ok 401 - PR4: candidate and evidence budgets hold
+  ---
+  duration_ms: 0.214042
+  ...
+# Subtest: PR4: public API precedence — paginationAlign recommended, behavioral CSS rejected
+ok 402 - PR4: public API precedence — paginationAlign recommended, behavioral CSS rejected
+  ---
+  duration_ms: 0.521875
+  ...
+# Subtest: PR4: no public API in catalog degrades to hint, never silently verified
+ok 403 - PR4: no public API in catalog degrades to hint, never silently verified
+  ---
+  duration_ms: 0.635584
+  ...
+# Subtest: PR4: no distributed-footer evidence → no paginationAlign recommendation (no modal-style guessing)
+ok 404 - PR4: no distributed-footer evidence → no paginationAlign recommendation (no modal-style guessing)
+  ---
+  duration_ms: 0.062083
+  ...
+# Subtest: PR4: resolveTranscript threads pilar into behaviorBindings
+ok 405 - PR4: resolveTranscript threads pilar into behaviorBindings
+  ---
+  duration_ms: 0.094542
+  ...
+# Subtest: PR4: confidenceLevel maps scores to named levels
+ok 406 - PR4: confidenceLevel maps scores to named levels
+  ---
+  duration_ms: 0.058125
+  ...
+# Subtest: PR4: resolved schema version exported
+ok 407 - PR4: resolved schema version exported
+  ---
+  duration_ms: 0.034291
+  ...
+# Subtest: PR4: resolver + policy are snapshot-only (no fs/glob imports)
+ok 408 - PR4: resolver + policy are snapshot-only (no fs/glob imports)
+  ---
+  duration_ms: 2.338625
+  ...
+# Subtest: PR4: artifact budget — provenance does not leak source bodies or full corpus blocks
+ok 409 - PR4: artifact budget — provenance does not leak source bodies or full corpus blocks
+  ---
+  duration_ms: 0.450916
+  ...
+# Subtest: PR4: legacy schema-1 groups remain readable — v2 typing is purely additive
+ok 410 - PR4: legacy schema-1 groups remain readable — v2 typing is purely additive
+  ---
+  duration_ms: 0.1555
+  ...
+# Subtest: PR4: resolve → spec → agent-context roundtrip is consistent
+ok 411 - PR4: resolve → spec → agent-context roundtrip is consistent
+  ---
+  duration_ms: 53.0735
+  ...
+# Subtest: PR4-corrective: multiple equal co-occurrence candidates → no silent selection, candidates surfaced
+ok 412 - PR4-corrective: multiple equal co-occurrence candidates → no silent selection, candidates surfaced
+  ---
+  duration_ms: 0.214417
+  ...
+# Subtest: PR4-corrective: one co-occurrence candidate still selects as hint (real Aktif case unchanged)
+ok 413 - PR4-corrective: one co-occurrence candidate still selects as hint (real Aktif case unchanged)
+  ---
+  duration_ms: 0.088458
+  ...
+# Subtest: PR4-corrective: zero candidates remains unresolved + fallback, no invented class
+ok 414 - PR4-corrective: zero candidates remains unresolved + fallback, no invented class
+  ---
+  duration_ms: 0.065458
+  ...
+# Subtest: PR4-corrective: multiple candidates ordering is stable regardless of corpus order
+ok 415 - PR4-corrective: multiple candidates ordering is stable regardless of corpus order
+  ---
+  duration_ms: 0.1075
+  ...
+# Subtest: PR4-corrective: more than maxCandidates is bounded to top 3, deterministic
+ok 416 - PR4-corrective: more than maxCandidates is bounded to top 3, deterministic
+  ---
+  duration_ms: 0.084875
+  ...
+# Subtest: PR4-corrective: color-only status is never authoritative or high confidence
+ok 417 - PR4-corrective: color-only status is never authoritative or high confidence
+  ---
+  duration_ms: 1.645
+  ...
+# Subtest: PR6C selector-map: a valid map resolves a unique target
+ok 418 - PR6C selector-map: a valid map resolves a unique target
+  ---
+  duration_ms: 1.057292
+  ...
+# Subtest: PR6C selector-map: an unknown schema version is rejected
+ok 419 - PR6C selector-map: an unknown schema version is rejected
+  ---
+  duration_ms: 0.154416
+  ...
+# Subtest: PR6C selector-map: duplicate design-node mapping is rejected
+ok 420 - PR6C selector-map: duplicate design-node mapping is rejected
+  ---
+  duration_ms: 0.297708
+  ...
+# Subtest: PR6C selector-map: expected-value fields are rejected at the mapping level
+ok 421 - PR6C selector-map: expected-value fields are rejected at the mapping level
+  ---
+  duration_ms: 0.322
+  ...
+# Subtest: PR6C selector-map: expected-value fields are rejected inside the locator
+ok 422 - PR6C selector-map: expected-value fields are rejected inside the locator
+  ---
+  duration_ms: 0.097042
+  ...
+# Subtest: PR6C selector-map: no accepted map ever yields an expected value to the geometry layer
+ok 423 - PR6C selector-map: no accepted map ever yields an expected value to the geometry layer
+  ---
+  duration_ms: 0.370291
+  ...
+# Subtest: PR6C selector-map: unsafe or executable selector content is rejected
+ok 424 - PR6C selector-map: unsafe or executable selector content is rejected
+  ---
+  duration_ms: 0.098875
+  ...
+# Subtest: PR6C selector-map: selector length is bounded and empty selectors rejected
+ok 425 - PR6C selector-map: selector length is bounded and empty selectors rejected
+  ---
+  duration_ms: 0.085875
+  ...
+# Subtest: PR6C selector-map: only the css strategy is accepted; a bad shape is rejected
+ok 426 - PR6C selector-map: only the css strategy is accepted; a bad shape is rejected
+  ---
+  duration_ms: 0.186292
+  ...
+# Subtest: PR6C selector-map: an optional mapping is carried, and a non-boolean is rejected
+ok 427 - PR6C selector-map: an optional mapping is carried, and a non-boolean is rejected
+  ---
+  duration_ms: 0.170333
+  ...
+# Subtest: PR6Cc SCH-001: semantic-exception fields are rejected by name
+ok 428 - PR6Cc SCH-001: semantic-exception fields are rejected by name
+  ---
+  duration_ms: 0.162417
+  ...
+# Subtest: PR6Cc SCH-001: case and separator variants are rejected
+ok 429 - PR6Cc SCH-001: case and separator variants are rejected
+  ---
+  duration_ms: 0.624458
+  ...
+# Subtest: PR6Cc SCH-001: nested and array-contained semantic fields are rejected recursively
+ok 430 - PR6Cc SCH-001: nested and array-contained semantic fields are rejected recursively
+  ---
+  duration_ms: 0.113833
+  ...
+# Subtest: PR6Cc SCH-001: unknown fields are rejected at every level (strict allowlist)
+ok 431 - PR6Cc SCH-001: unknown fields are rejected at every level (strict allowlist)
+  ---
+  duration_ms: 0.144625
+  ...
+# Subtest: PR6Cc SCH-001: an innocent selector string is still accepted
+ok 432 - PR6Cc SCH-001: an innocent selector string is still accepted
+  ---
+  duration_ms: 0.08525
+  ...
+# Subtest: snapshot: splitProjectContext removes the duplicate blobs from project-context
+ok 433 - snapshot: splitProjectContext removes the duplicate blobs from project-context
+  ---
+  duration_ms: 0.887292
+  ...
+# Subtest: snapshot: loadConventionsSnapshot reads the canonical file (new snapshot)
+ok 434 - snapshot: loadConventionsSnapshot reads the canonical file (new snapshot)
+  ---
+  duration_ms: 22.089417
+  ...
+# Subtest: snapshot: legacy snapshot falls back to project-context.json when conventions.json missing
+ok 435 - snapshot: legacy snapshot falls back to project-context.json when conventions.json missing
+  ---
+  duration_ms: 19.029583
+  ...
+# Subtest: snapshot: legacy loadedClassRegistry fills an incomplete canonical file
+ok 436 - snapshot: legacy loadedClassRegistry fills an incomplete canonical file
+  ---
+  duration_ms: 14.691375
+  ...
+# Subtest: snapshot: mixed identical copies are stable and non-conflicting
+ok 437 - snapshot: mixed identical copies are stable and non-conflicting
+  ---
+  duration_ms: 6.336583
+  ...
+# Subtest: snapshot: canonical and legacy conflict → canonical wins + diagnostic (never silent)
+ok 438 - snapshot: canonical and legacy conflict → canonical wins + diagnostic (never silent)
+  ---
+  duration_ms: 7.806667
+  ...
+# Subtest: snapshot: present-but-empty canonical is NOT missing (valid snapshot)
+ok 439 - snapshot: present-but-empty canonical is NOT missing (valid snapshot)
+  ---
+  duration_ms: 7.690166
+  ...
+# Subtest: snapshot: truly missing (no canonical, no legacy) returns null + source none + diagnostic
+ok 440 - snapshot: truly missing (no canonical, no legacy) returns null + source none + diagnostic
+  ---
+  duration_ms: 6.211417
+  ...
+# Subtest: snapshot: malformed canonical + no legacy → null + corruption diagnostic (not silent empty)
+ok 441 - snapshot: malformed canonical + no legacy → null + corruption diagnostic (not silent empty)
+  ---
+  duration_ms: 9.201833
+  ...
+# Subtest: snapshot: malformed canonical + valid legacy falls back to legacy (with corruption diagnostic)
+ok 442 - snapshot: malformed canonical + valid legacy falls back to legacy (with corruption diagnostic)
+  ---
+  duration_ms: 6.157542
+  ...
+# Subtest: snapshot: splitProjectContext is a no-op on a malformed/empty ctx
+ok 443 - snapshot: splitProjectContext is a no-op on a malformed/empty ctx
+  ---
+  duration_ms: 1.426041
+  ...
+# Subtest: snapshot: CLI verify exits non-zero (NOT green) when no ground truth exists (VER-001)
+ok 444 - snapshot: CLI verify exits non-zero (NOT green) when no ground truth exists (VER-001)
+  ---
+  duration_ms: 945.890667
+  ...
+# Subtest: spec: includes every transcript node id in document order
+ok 445 - spec: includes every transcript node id in document order
+  ---
+  duration_ms: 3.142583
+  ...
+# Subtest: spec: resolved idioms are inline and honest (no invented idiom)
+ok 446 - spec: resolved idioms are inline and honest (no invented idiom)
+  ---
+  duration_ms: 2.055375
+  ...
+# Subtest: spec: copies only reusable corpus blocks verbatim
+ok 447 - spec: copies only reusable corpus blocks verbatim
+  ---
+  duration_ms: 0.294125
+  ...
+# Subtest: spec: P0-4 — prunes select/table corpus to the design's actual capabilities
+ok 448 - spec: P0-4 — prunes select/table corpus to the design's actual capabilities
+  ---
+  duration_ms: 0.71425
+  ...
+# Subtest: spec: carries the layout recipe (N+button flex, grid sum ≤ 12)
+ok 449 - spec: carries the layout recipe (N+button flex, grid sum ≤ 12)
+  ---
+  duration_ms: 0.207083
+  ...
+# Subtest: spec: F9 — inline geometry [x,y w×h] and a divider inset verdict
+ok 450 - spec: F9 — inline geometry [x,y w×h] and a divider inset verdict
+  ---
+  duration_ms: 1.1735
+  ...
+# Subtest: PR4 spec: corpus co-occurrence idiom renders as a labelled hint, not a bare fact
+ok 451 - PR4 spec: corpus co-occurrence idiom renders as a labelled hint, not a bare fact
+  ---
+  duration_ms: 0.996209
+  ...
+# Subtest: PR4 spec: behavior binding section names the API and the rejected CSS
+ok 452 - PR4 spec: behavior binding section names the API and the rejected CSS
+  ---
+  duration_ms: 0.841792
+  ...
+# Subtest: PR4 spec: FALLBACK stays visible (never silently dropped)
+ok 453 - PR4 spec: FALLBACK stays visible (never silently dropped)
+  ---
+  duration_ms: 0.460792
+  ...
+# Subtest: PR4 spec: without pilar the behavior binding states it is unverified
+ok 454 - PR4 spec: without pilar the behavior binding states it is unverified
+  ---
+  duration_ms: 0.473334
+  ...
+# Subtest: PR4-corrective spec: ambiguous status shows candidates, not a selected recommendation
+ok 455 - PR4-corrective spec: ambiguous status shows candidates, not a selected recommendation
+  ---
+  duration_ms: 0.798542
+  ...
+# Subtest: PR4-corrective spec: behavior binding labels recommendation as hint, capability as verified
+ok 456 - PR4-corrective spec: behavior binding labels recommendation as hint, capability as verified
+  ---
+  duration_ms: 0.27
+  ...
+# Subtest: decodeBmp round-trips a 24-bit BMP
+ok 457 - decodeBmp round-trips a 24-bit BMP
+  ---
+  duration_ms: 2.151167
+  ...
+# Subtest: decodeBmp rejects non-BMP magic
+ok 458 - decodeBmp rejects non-BMP magic
+  ---
+  duration_ms: 0.405125
+  ...
+# Subtest: extractColorsAndBands finds a dominant background and a content band
+ok 459 - extractColorsAndBands finds a dominant background and a content band
+  ---
+  duration_ms: 2.007333
+  ...
+# Subtest: bandColumns splits a band with two separated groups
+ok 460 - bandColumns splits a band with two separated groups
+  ---
+  duration_ms: 0.596084
+  ...
+# Subtest: extracts SCSS variables with literal values
+ok 461 - extracts SCSS variables with literal values
+  ---
+  duration_ms: 130.587375
+  ...
+# Subtest: reference values (another var / calc) become value:null
+ok 462 - reference values (another var / calc) become value:null
+  ---
+  duration_ms: 28.158042
+  ...
+# Subtest: extracts CSS custom props and mixins
+ok 463 - extracts CSS custom props and mixins
+  ---
+  duration_ms: 8.781292
+  ...
+# Subtest: skips node_modules style paths (design-system stylesheets)
+ok 464 - skips node_modules style paths (design-system stylesheets)
+  ---
+  duration_ms: 6.431041
+  ...
+# Subtest: timing: aggregates per-command count + total from the log
+ok 465 - timing: aggregates per-command count + total from the log
+  ---
+  duration_ms: 8.840958
+  ...
+# Subtest: timing: generate gap = first verify ts − last resolve ts (the LLM's own work)
+ok 466 - timing: generate gap = first verify ts − last resolve ts (the LLM's own work)
+  ---
+  duration_ms: 0.122833
+  ...
+# Subtest: timing: verify retries counted beyond the first verify
+ok 467 - timing: verify retries counted beyond the first verify
+  ---
+  duration_ms: 0.115709
+  ...
+# Subtest: timing: malformed lines are skipped, not fatal
+ok 468 - timing: malformed lines are skipped, not fatal
+  ---
+  duration_ms: 0.48525
+  ...
+# Subtest: timing: no gap when verify runs before resolve (or either is absent)
+ok 469 - timing: no gap when verify runs before resolve (or either is absent)
+  ---
+  duration_ms: 0.219
+  ...
+# Subtest: timing: infra commands are never logged
+ok 470 - timing: infra commands are never logged
+  ---
+  duration_ms: 0.1245
+  ...
+# Subtest: alignment: edge gaps classify END / START / CENTER / STRETCH
+ok 471 - alignment: edge gaps classify END / START / CENTER / STRETCH
+  ---
+  duration_ms: 0.76925
+  ...
+# Subtest: alignment: explicit metadata beats geometry inference
+ok 472 - alignment: explicit metadata beats geometry inference
+  ---
+  duration_ms: 0.075083
+  ...
+# Subtest: sibling-ratio: 1:1:1 and 1:1 are normalized from equal FILL widths
+ok 473 - sibling-ratio: 1:1:1 and 1:1 are normalized from equal FILL widths
+  ---
+  duration_ms: 0.986542
+  ...
+# Subtest: sibling-ratio: mixed widths rationalize to a simple ratio
+ok 474 - sibling-ratio: mixed widths rationalize to a simple ratio
+  ---
+  duration_ms: 0.079917
+  ...
+# Subtest: item-distance: next.start − prev.end is the rendered distance
+ok 475 - item-distance: next.start − prev.end is the rendered distance
+  ---
+  duration_ms: 0.09925
+  ...
+# Subtest: relative-size: child/parent is scale-invariant
+ok 476 - relative-size: child/parent is scale-invariant
+  ---
+  duration_ms: 0.087417
+  ...
+# Subtest: anchor: a top-right badge anchors END/START
+ok 477 - anchor: a top-right badge anchors END/START
+  ---
+  duration_ms: 0.0935
+  ...
+# Subtest: sizing: explicit metadata > layoutGrow > geometry
+ok 478 - sizing: explicit metadata > layoutGrow > geometry
+  ---
+  duration_ms: 0.269083
+  ...
+# Subtest: property: sibling ratios are normalized and invariant under uniform scale
+ok 479 - property: sibling ratios are normalized and invariant under uniform scale
+  ---
+  duration_ms: 2.235375
+  ...
+# Subtest: metamorphic: translation preserves alignment and ratios
+ok 480 - metamorphic: translation preserves alignment and ratios
+  ---
+  duration_ms: 0.261791
+  ...
+# Subtest: metamorphic: uniform scale preserves normalized relationships
+ok 481 - metamorphic: uniform scale preserves normalized relationships
+  ---
+  duration_ms: 0.11275
+  ...
+# Subtest: /Users/bsi-2-2200019/Development/freelance/sliceui-skill/test/topology/fixtures.mjs
+ok 53 - /Users/bsi-2-2200019/Development/freelance/sliceui-skill/test/topology/fixtures.mjs
+  ---
+  duration_ms: 60.698834
+  ...
+# Subtest: inspect: the five design-intent sections render when an intent graph is supplied
+ok 483 - inspect: the five design-intent sections render when an intent graph is supplied
+  ---
+  duration_ms: 2.153833
+  ...
+# Subtest: inspect: no design-intent sections are emitted without an intent graph
+ok 484 - inspect: no design-intent sections are emitted without an intent graph
+  ---
+  duration_ms: 0.196958
+  ...
+# Subtest: intent-graph: freeze deep-freezes the graph so project adaptation cannot mutate it
+ok 485 - intent-graph: freeze deep-freezes the graph so project adaptation cannot mutate it
+  ---
+  duration_ms: 4.628458
+  ...
+# Subtest: intent-graph: hash is deterministic (same design → same hash)
+ok 486 - intent-graph: hash is deterministic (same design → same hash)
+  ---
+  duration_ms: 1.21425
+  ...
+# Subtest: metamorphic: adding a hidden node does not change visible content or topology
+ok 487 - metamorphic: adding a hidden node does not change visible content or topology
+  ---
+  duration_ms: 1.343542
+  ...
+# Subtest: metamorphic: reordering siblings changes only the ORDER edges
+ok 488 - metamorphic: reordering siblings changes only the ORDER edges
+  ---
+  duration_ms: 1.367333
+  ...
+# Subtest: intent-graph: project context cannot affect the hash (graph is project-independent)
+ok 489 - intent-graph: project context cannot affect the hash (graph is project-independent)
+  ---
+  duration_ms: 0.455625
+  ...
+# Subtest: mahasiswa-tarif: the filter row is LINEAR with a 1:1:1:1 sibling ratio
+ok 490 - mahasiswa-tarif: the filter row is LINEAR with a 1:1:1:1 sibling ratio
+  ---
+  duration_ms: 28.162041
+  ...
+# Subtest: mahasiswa-tarif: the table is REPEATED with 8 headers and 5 designed-visible rows
+ok 491 - mahasiswa-tarif: the table is REPEATED with 8 headers and 5 designed-visible rows
+  ---
+  duration_ms: 19.003125
+  ...
+# Subtest: mahasiswa-tarif: exact designed rows use the reserved synthetic values, never replaced
+ok 492 - mahasiswa-tarif: exact designed rows use the reserved synthetic values, never replaced
+  ---
+  duration_ms: 13.203583
+  ...
+# Subtest: mahasiswa-tarif: the pagination footer compiles to runtime state total 215 / page 5
+ok 493 - mahasiswa-tarif: the pagination footer compiles to runtime state total 215 / page 5
+  ---
+  duration_ms: 12.601042
+  ...
+# Subtest: mahasiswa-tarif: the design's visible content is retained (evidence retention)
+ok 494 - mahasiswa-tarif: the design's visible content is retained (evidence retention)
+  ---
+  duration_ms: 10.95
+  ...
+# Subtest: raw-graph: layoutGrow survives ingestion (lossless — the legacy path drops it)
+ok 495 - raw-graph: layoutGrow survives ingestion (lossless — the legacy path drops it)
+  ---
+  duration_ms: 36.355791
+  ...
+# Subtest: raw-graph: local and absolute bounds are both retained
+ok 496 - raw-graph: local and absolute bounds are both retained
+  ---
+  duration_ms: 21.911125
+  ...
+# Subtest: raw-graph: hidden nodes are retained as evidence, not dropped
+ok 497 - raw-graph: hidden nodes are retained as evidence, not dropped
+  ---
+  duration_ms: 16.824458
+  ...
+# Subtest: raw-graph: every visible text node survives (evidence retention ≥ 99%)
+ok 498 - raw-graph: every visible text node survives (evidence retention ≥ 99%)
+  ---
+  duration_ms: 13.896875
+  ...
+# Subtest: visibility: HIDDEN_EXPLICIT, HIDDEN_BY_ANCESTOR, and TRANSPARENT are classified
+ok 499 - visibility: HIDDEN_EXPLICIT, HIDDEN_BY_ANCESTOR, and TRANSPARENT are classified
+  ---
+  duration_ms: 1.29125
+  ...
+# Subtest: visibility: hidden-by-override is surfaced as HIDDEN_EXPLICIT
+ok 500 - visibility: hidden-by-override is surfaced as HIDDEN_EXPLICIT
+  ---
+  duration_ms: 0.261209
+  ...
+# Subtest: topology: a 2×3 card layout classifies as GRID
+ok 501 - topology: a 2×3 card layout classifies as GRID
+  ---
+  duration_ms: 6.62425
+  ...
+# Subtest: topology: an absolutely-positioned badge classifies as OVERLAY with a top-right anchor
+ok 502 - topology: an absolutely-positioned badge classifies as OVERLAY with a top-right anchor
+  ---
+  duration_ms: 1.326625
+  ...
+# Subtest: topology: three same-height stacked items classify as REPEATED
+ok 503 - topology: three same-height stacked items classify as REPEATED
+  ---
+  duration_ms: 1.06625
+  ...
+# Subtest: topology: a horizontal filter row is LINEAR (not REPEATED), ratio 1:1:1:1
+ok 504 - topology: a horizontal filter row is LINEAR (not REPEATED), ratio 1:1:1:1
+  ---
+  duration_ms: 1.848083
+  ...
+# Subtest: topology: mixed FIXED + FILL + HUG siblings are LINEAR with per-node sizing
+ok 505 - topology: mixed FIXED + FILL + HUG siblings are LINEAR with per-node sizing
+  ---
+  duration_ms: 1.264417
+  ...
+# Subtest: topology: a SPACE_BETWEEN toolbar has an END-aligned action
+ok 506 - topology: a SPACE_BETWEEN toolbar has an END-aligned action
+  ---
+  duration_ms: 0.607875
+  ...
+# Subtest: topology: hidden actions are excluded from the implementation surface
+ok 507 - topology: hidden actions are excluded from the implementation surface
+  ---
+  duration_ms: 0.774334
+  ...
+# Subtest: topology: sibling ratios 1:1 and 1:1:1 are derived from two separate rows
+ok 508 - topology: sibling ratios 1:1 and 1:1:1 are derived from two separate rows
+  ---
+  duration_ms: 4.092541
+  ...
+# Subtest: transcribe auto-detects XML → figml (tier 0, exact, no key)
+ok 509 - transcribe auto-detects XML → figml (tier 0, exact, no key)
+  ---
+  duration_ms: 123.548042
+  ...
+# Subtest: transcribe surfaces a fidelity score on the FIGML path
+ok 510 - transcribe surfaces a fidelity score on the FIGML path
+  ---
+  duration_ms: 89.274208
+  ...
+# Subtest: transcribe reports read-error for a missing XML path
+ok 511 - transcribe reports read-error for a missing XML path
+  ---
+  duration_ms: 0.25075
+  ...
+# Subtest: emptyTranscript produces a valid transcript
+ok 512 - emptyTranscript produces a valid transcript
+  ---
+  duration_ms: 0.88525
+  ...
+# Subtest: a valid tier-1 transcript passes
+ok 513 - a valid tier-1 transcript passes
+  ---
+  duration_ms: 0.195291
+  ...
+# Subtest: rejects a missing layout array
+ok 514 - rejects a missing layout array
+  ---
+  duration_ms: 0.113834
+  ...
+# Subtest: rejects a bad color hex
+ok 515 - rejects a bad color hex
+  ---
+  duration_ms: 0.18075
+  ...
+# Subtest: rejects an unknown layout type
+ok 516 - rejects an unknown layout type
+  ---
+  duration_ms: 0.109667
+  ...
+# Subtest: allows duplicate node ids (Figma reuses instance ids legitimately)
+ok 517 - allows duplicate node ids (Figma reuses instance ids legitimately)
+  ---
+  duration_ms: 0.071708
+  ...
+# Subtest: generic project (name w/o uii, no uii deps, no uii .npmrc) → profile generic, pilar invisible
+ok 518 - generic project (name w/o uii, no uii deps, no uii .npmrc) → profile generic, pilar invisible
+  ---
+  duration_ms: 532.056833
+  ...
+# Subtest: UII project (folder name uii-gateway) → profile uii, pilar resolves
+ok 519 - UII project (folder name uii-gateway) → profile uii, pilar resolves
+  ---
+  duration_ms: 253.615083
+  ...
+# Subtest: UII project via @uiigateway/core dep (repo name not uii) → profile uii
+ok 520 - UII project via @uiigateway/core dep (repo name not uii) → profile uii
+  ---
+  duration_ms: 644.714958
+  ...
+# Subtest: init writes .sliceui/uii-profile.md only for a UII project (not for generic)
+ok 521 - init writes .sliceui/uii-profile.md only for a UII project (not for generic)
+  ---
+  duration_ms: 769.148833
+  ...
+# Subtest: UII_AUTHKEY_BY_ACTION is the org alias map (single home for the grammar)
+ok 522 - UII_AUTHKEY_BY_ACTION is the org alias map (single home for the grammar)
+  ---
+  duration_ms: 0.183583
+  ...
+# Subtest: removes .sliceui/ and sliceui-owned .env.local
+ok 523 - removes .sliceui/ and sliceui-owned .env.local
+  ---
+  duration_ms: 464.287041
+  ...
+# Subtest: keeps a .env.local that has non-sliceui keys
+ok 524 - keeps a .env.local that has non-sliceui keys
+  ---
+  duration_ms: 76.268708
+  ...
+# Subtest: drops the .sliceui/ line from .gitignore, keeps .env.local line
+ok 525 - drops the .sliceui/ line from .gitignore, keeps .env.local line
+  ---
+  duration_ms: 22.955125
+  ...
+# Subtest: no-op when nothing is installed
+ok 526 - no-op when nothing is installed
+  ---
+  duration_ms: 0.41875
+  ...
+# Subtest: adapter: a representative Angular build mounts and collects evidence through the interface
+ok 527 - adapter: a representative Angular build mounts and collects evidence through the interface
+  ---
+  duration_ms: 2114.329166
+  ...
+# Subtest: adapter: the Pilar project-real mount is GATED (never a fake PASS when the checkout is absent)
+ok 528 - adapter: the Pilar project-real mount is GATED (never a fake PASS when the checkout is absent)
+  ---
+  duration_ms: 0.795209
+  ...
+# Subtest: adapter: empty evidence is an honest empty shape (no fabricated measurements)
+ok 529 - adapter: empty evidence is an honest empty shape (no fabricated measurements)
+  ---
+  duration_ms: 0.699291
+  ...
+# Subtest: applicability: FIGML-only → perceptual is NOT_APPLICABLE (no raster oracle)
+ok 530 - applicability: FIGML-only → perceptual is NOT_APPLICABLE (no raster oracle)
+  ---
+  duration_ms: 0.703584
+  ...
+# Subtest: applicability: a raster design → perceptual REQUIRED; FIGML + reference image → REQUIRED backstop
+ok 531 - applicability: a raster design → perceptual REQUIRED; FIGML + reference image → REQUIRED backstop
+  ---
+  duration_ms: 0.07225
+  ...
+# Subtest: applicability: an unknown source → UNAVAILABLE, never silently required
+ok 532 - applicability: an unknown source → UNAVAILABLE, never silently required
+  ---
+  duration_ms: 0.061041
+  ...
+# Subtest: applicability: NOT_APPLICABLE is REMOVED from the denominator; SKIP/UNVERIFIABLE are not a mechanism
+ok 533 - applicability: NOT_APPLICABLE is REMOVED from the denominator; SKIP/UNVERIFIABLE are not a mechanism
+  ---
+  duration_ms: 0.206375
+  ...
+# Subtest: applicability: a gated private mount makes project-real UNAVAILABLE (in the denominator, unproven)
+ok 534 - applicability: a gated private mount makes project-real UNAVAILABLE (in the denominator, unproven)
+  ---
+  duration_ms: 0.14075
+  ...
+# Subtest: /Users/bsi-2-2200019/Development/freelance/sliceui-skill/test/verification/browser-harness.mjs
+ok 65 - /Users/bsi-2-2200019/Development/freelance/sliceui-skill/test/verification/browser-harness.mjs
+  ---
+  duration_ms: 38.153292
+  ...
+# Subtest: alignment (browser): END-aligned child touching the parent end edge passes
+ok 536 - alignment (browser): END-aligned child touching the parent end edge passes
+  ---
+  duration_ms: 1888.639792
+  ...
+# Subtest: alignment (browser): expected END but rendered START fails from DOM geometry
+ok 537 - alignment (browser): expected END but rendered START fails from DOM geometry
+  ---
+  duration_ms: 1788.4505
+  ...
+# Subtest: alignment (browser): expected CENTER but visibly offset fails
+ok 538 - alignment (browser): expected CENTER but visibly offset fails
+  ---
+  duration_ms: 1593.479459
+  ...
+# Subtest: relative size (browser): child/parent ratio ≈ 301/969 passes with dimensions + delta reported
+ok 539 - relative size (browser): child/parent ratio ≈ 301/969 passes with dimensions + delta reported
+  ---
+  duration_ms: 1652.09025
+  ...
+# Subtest: relative size (browser): a materially different ratio fails
+ok 540 - relative size (browser): a materially different ratio fails
+  ---
+  duration_ms: 1573.846542
+  ...
+# Subtest: containment (browser): a critical child inside its parent passes
+ok 541 - containment (browser): a critical child inside its parent passes
+  ---
+  duration_ms: 1101.911875
+  ...
+# Subtest: containment (browser): a child escaping its intended parent fails
+ok 542 - containment (browser): a child escaping its intended parent fails
+  ---
+  duration_ms: 734.054417
+  ...
+# Subtest: containment (browser): an explicitly escaping overlay topology is NOT failed
+ok 543 - containment (browser): an explicitly escaping overlay topology is NOT failed
+  ---
+  duration_ms: 1051.089875
+  ...
+# Subtest: grid (browser): 3×2 CSS grid tracks match intent
+ok 544 - grid (browser): 3×2 CSS grid tracks match intent
+  ---
+  duration_ms: 1001.583666
+  ...
+# Subtest: grid (browser): a 2-column render fails a 3-column intent
+ok 545 - grid (browser): a 2-column render fails a 3-column intent
+  ---
+  duration_ms: 1013.263333
+  ...
+# Subtest: anchor (browser): a top-right badge stays anchored (getBoundingClientRect deltas)
+ok 546 - anchor (browser): a top-right badge stays anchored (getBoundingClientRect deltas)
+  ---
+  duration_ms: 1063.679083
+  ...
+# Subtest: anchor (browser): the wrong corner fails
+ok 547 - anchor (browser): the wrong corner fails
+  ---
+  duration_ms: 865.097708
+  ...
+# Subtest: repeated content (browser): designed-visible data renders exactly → pass
+ok 548 - repeated content (browser): designed-visible data renders exactly → pass
+  ---
+  duration_ms: 929.340792
+  ...
+# Subtest: repeated content (browser): designed values replaced by representative synthetic data → fail
+ok 549 - repeated content (browser): designed values replaced by representative synthetic data → fail
+  ---
+  duration_ms: 707.997208
+  ...
+# Subtest: sibling ratio (browser, full path): equal flex siblings → 1:1 PASS
+ok 550 - sibling ratio (browser, full path): equal flex siblings → 1:1 PASS
+  ---
+  duration_ms: 2152.253125
+  ...
+# Subtest: sibling ratio (browser, full path): one fixed sibling → fails for the right reason
+ok 551 - sibling ratio (browser, full path): one fixed sibling → fails for the right reason
+  ---
+  duration_ms: 1671.080959
+  ...
+# Subtest: sibling-ratio: 1:1 and 1:1:1 known-good
+ok 552 - sibling-ratio: 1:1 and 1:1:1 known-good
+  ---
+  duration_ms: 1.686917
+  ...
+# Subtest: sibling-ratio: a 6.4:1 sibling fails against 1:1 (the second container lacks grow)
+ok 553 - sibling-ratio: a 6.4:1 sibling fails against 1:1 (the second container lacks grow)
+  ---
+  duration_ms: 0.749333
+  ...
+# Subtest: alignment: START / CENTER / END / STRETCH
+ok 554 - alignment: START / CENTER / END / STRETCH
+  ---
+  duration_ms: 0.329625
+  ...
+# Subtest: relative-size: child/parent = 0.5
+ok 555 - relative-size: child/parent = 0.5
+  ---
+  duration_ms: 0.972208
+  ...
+# Subtest: item-distance: next.start − prev.end catches stacked margins (known-bad)
+ok 556 - item-distance: next.start − prev.end catches stacked margins (known-bad)
+  ---
+  duration_ms: 0.478583
+  ...
+# Subtest: containment: a child escaping its container fails
+ok 557 - containment: a child escaping its container fails
+  ---
+  duration_ms: 0.265792
+  ...
+# Subtest: grid-track: 3 columns × 2 rows known-good / wrong count fails
+ok 558 - grid-track: 3 columns × 2 rows known-good / wrong count fails
+  ---
+  duration_ms: 0.610583
+  ...
+# Subtest: anchor: top-right badge anchors END/START; a left-anchored badge fails END
+ok 559 - anchor: top-right badge anchors END/START; a left-anchored badge fails END
+  ---
+  duration_ms: 0.392666
+  ...
+# Subtest: relationship: a missing rect is unverifiable, never a false pass
+ok 560 - relationship: a missing rect is unverifiable, never a false pass
+  ---
+  duration_ms: 0.313667
+  ...
+# Subtest: overflow (browser): fluid content stays inside the viewport at both widths
+ok 561 - overflow (browser): fluid content stays inside the viewport at both widths
+  ---
+  duration_ms: 1893.344375
+  ...
+# Subtest: overflow (browser): wide content inside an INTENDED scroller does not overflow the page
+ok 562 - overflow (browser): wide content inside an INTENDED scroller does not overflow the page
+  ---
+  duration_ms: 1806.725667
+  ...
+# Subtest: overflow (browser): a fixed desktop child causes document-level overflow → FAIL
+ok 563 - overflow (browser): a fixed desktop child causes document-level overflow → FAIL
+  ---
+  duration_ms: 1737.309041
+  ...
+# Subtest: overlap (browser): toolbar controls wrap without overlap at the narrow width
+ok 564 - overlap (browser): toolbar controls wrap without overlap at the narrow width
+  ---
+  duration_ms: 1354.281
+  ...
+# Subtest: overlap (browser): overlapping controls at a narrow viewport → FAIL (rects compared)
+ok 565 - overlap (browser): overlapping controls at a narrow viewport → FAIL (rects compared)
+  ---
+  duration_ms: 1059.1395
+  ...
+# Subtest: clipping (browser): a critical action stays inside the usable region
+ok 566 - clipping (browser): a critical action stays inside the usable region
+  ---
+  duration_ms: 966.387
+  ...
+# Subtest: clipping (browser): a critical action outside the usable region → FAIL
+ok 567 - clipping (browser): a critical action outside the usable region → FAIL
+  ---
+  duration_ms: 1031.280625
+  ...
+# Subtest: fill (browser): a FILL intent node tracks its parent at wide AND narrow widths
+ok 568 - fill (browser): a FILL intent node tracks its parent at wide AND narrow widths
+  ---
+  duration_ms: 1281.374
+  ...
+# Subtest: fill (browser): a FILL intent node pinned to a desktop width stops tracking → FAIL
+ok 569 - fill (browser): a FILL intent node pinned to a desktop width stops tracking → FAIL
+  ---
+  duration_ms: 1208.468541
+  ...
+# Subtest: table strategy (browser): the intended scroll container absorbs the table width
+ok 570 - table strategy (browser): the intended scroll container absorbs the table width
+  ---
+  duration_ms: 1076.535875
+  ...
+# Subtest: table strategy (browser): a table with no scroll strategy widens the whole page → FAIL
+ok 571 - table strategy (browser): a table with no scroll strategy widens the whole page → FAIL
+  ---
+  duration_ms: 1000.607667
+  ...
+# Subtest: responsive semantics: a supplied width is DESIGN_VERIFIED; an unsupplied width is RESPONSIVE_INFERRED
+ok 572 - responsive semantics: a supplied width is DESIGN_VERIFIED; an unsupplied width is RESPONSIVE_INFERRED
+  ---
+  duration_ms: 1.072541
+  ...
+# Subtest: responsive semantics: an inferred-width PASS adds NO design-fidelity coverage
+ok 573 - responsive semantics: an inferred-width PASS adds NO design-fidelity coverage
+  ---
+  duration_ms: 0.123416
+  ...
+# Subtest: adapter maturity: a representative fixture proves mechanics, never production maturity
+ok 574 - adapter maturity: a representative fixture proves mechanics, never production maturity
+  ---
+  duration_ms: 0.077125
+  ...
+# Subtest: adapter maturity: an unavailable REQUIRED private adapter cannot produce PASS/L5-L6/release-ready
+ok 575 - adapter maturity: an unavailable REQUIRED private adapter cannot produce PASS/L5-L6/release-ready
+  ---
+  duration_ms: 0.104167
+  ...
+# Subtest: adapter maturity: with the mount available and passing, L6/release are reachable
+ok 576 - adapter maturity: with the mount available and passing, L6/release are reachable
+  ---
+  duration_ms: 0.078042
+  ...
+# Subtest: semantic styles (browser): all targets matched → pass; unresolvable stays non-blocking
+ok 577 - semantic styles (browser): all targets matched → pass; unresolvable stays non-blocking
+  ---
+  duration_ms: 1527.937125
+  ...
+# Subtest: semantic styles (browser): wrong values fail, and never cross target (fg ≠ bg ≠ border)
+ok 578 - semantic styles (browser): wrong values fail, and never cross target (fg ≠ bg ≠ border)
+  ---
+  duration_ms: 1277.621584
+  ...
+# Subtest: semantic styles (browser): focus state color is its own target (good/bad)
+ok 579 - semantic styles (browser): focus state color is its own target (good/bad)
+  ---
+  duration_ms: 3378.164042
+  ...
+# Subtest: semantic-style: foreground text color ≠ background ≠ border ≠ icon fill
+ok 580 - semantic-style: foreground text color ≠ background ≠ border ≠ icon fill
+  ---
+  duration_ms: 0.978834
+  ...
+# Subtest: semantic-style: a state selector maps to STATE, not foreground
+ok 581 - semantic-style: a state selector maps to STATE, not foreground
+  ---
+  duration_ms: 0.08025
+  ...
+# Subtest: semantic-style: a placeholder maps distinctly
+ok 582 - semantic-style: a placeholder maps distinctly
+  ---
+  duration_ms: 0.135041
+  ...
+# Subtest: semantic-style: an unresolvable property returns null (never fabricated)
+ok 583 - semantic-style: an unresolvable property returns null (never fabricated)
+  ---
+  duration_ms: 0.117834
+  ...
+# Subtest: semantic-style: computedPropertyFor maps each target to its CSS property
+ok 584 - semantic-style: computedPropertyFor maps each target to its CSS property
+  ---
+  duration_ms: 0.074583
+  ...
+# Subtest: plan: compiles ratio + table + text + runtime + responsive checks from the intent graph
+ok 585 - plan: compiles ratio + table + text + runtime + responsive checks from the intent graph
+  ---
+  duration_ms: 2.344875
+  ...
+# Subtest: verifyIntent: known-good evidence passes; a wrong ratio fails; a missing rect is unverifiable
+ok 586 - verifyIntent: known-good evidence passes; a wrong ratio fails; a missing rect is unverifiable
+  ---
+  duration_ms: 2.350541
+  ...
+# Subtest: verifyIntent: designed-visible content mutation fails the content layer
+ok 587 - verifyIntent: designed-visible content mutation fails the content layer
+  ---
+  duration_ms: 0.139084
+  ...
+# Subtest: verifyIntent: a style check with an unresolvable property is unresolved (not blocking)
+ok 588 - verifyIntent: a style check with an unresolvable property is unresolved (not blocking)
+  ---
+  duration_ms: 0.341625
+  ...
+# Subtest: nearestProjectRoot: skips projects/*/package.json and finds the workspace .sliceui/
+ok 589 - nearestProjectRoot: skips projects/*/package.json and finds the workspace .sliceui/
+  ---
+  duration_ms: 164.509166
+  ...
+# Subtest: nearestProjectRoot: workspace root (angular.json) wins over a library package.json
+ok 590 - nearestProjectRoot: workspace root (angular.json) wins over a library package.json
+  ---
+  duration_ms: 13.994541
+  ...
+# Subtest: nearestProjectRoot: plain repo still finds the nearest package.json with .sliceui/
+ok 591 - nearestProjectRoot: plain repo still finds the nearest package.json with .sliceui/
+  ---
+  duration_ms: 5.404708
+  ...
+# Subtest: parseArgs: accepts --conventions alongside --xml/--transcript
+ok 592 - parseArgs: accepts --conventions alongside --xml/--transcript
+  ---
+  duration_ms: 0.409417
+  ...
+# Subtest: pairGroundTruth: pairs by artifact folder name (a name → a folder)
+ok 593 - pairGroundTruth: pairs by artifact folder name (a name → a folder)
+  ---
+  duration_ms: 241.701958
+  ...
+# Subtest: F1: unpaired name → null artifacts + unpaired flag, never a wrong-design fallback
+ok 594 - F1: unpaired name → null artifacts + unpaired flag, never a wrong-design fallback
+  ---
+  duration_ms: 17.203417
+  ...
+# Subtest: F1: token-overlap pairs word-order differences (modal-detail-x ≈ x-modal-detail)
+ok 595 - F1: token-overlap pairs word-order differences (modal-detail-x ≈ x-modal-detail)
+  ---
+  duration_ms: 48.378708
+  ...
+# Subtest: F1: config pairings map overrides when the name shares nothing with the design stem
+ok 596 - F1: config pairings map overrides when the name shares nothing with the design stem
+  ---
+  duration_ms: 50.171709
+  ...
+# Subtest: readOwningModules: reads modules at and above componentDir, not the whole repo
+ok 597 - readOwningModules: reads modules at and above componentDir, not the whole repo
+  ---
+  duration_ms: 836.252
+  ...
+# Subtest: readOwningModules: declines to read at all without componentDir (no silent root fallback)
+ok 598 - readOwningModules: declines to read at all without componentDir (no silent root fallback)
+  ---
+  duration_ms: 18.679209
+  ...
+# Subtest: PR5: normalizeComponentName accepts all equivalent target forms
+ok 599 - PR5: normalizeComponentName accepts all equivalent target forms
+  ---
+  duration_ms: 0.931166
+  ...
+# Subtest: PR5: normalizeComponentName rejects path traversal and separators
+ok 600 - PR5: normalizeComponentName rejects path traversal and separators
+  ---
+  duration_ms: 0.137459
+  ...
+# Subtest: PR5: normalizeComponentName rejects an ambiguous non-name
+ok 601 - PR5: normalizeComponentName rejects an ambiguous non-name
+  ---
+  duration_ms: 0.072333
+  ...
+# Subtest: PR5: resolveComponentStem does not collide with a similarly-prefixed name (boundary)
+ok 602 - PR5: resolveComponentStem does not collide with a similarly-prefixed name (boundary)
+  ---
+  duration_ms: 0.195083
+  ...
+# Subtest: PR5: resolveComponentStem surfaces true ambiguity, never first-picks
+ok 603 - PR5: resolveComponentStem surfaces true ambiguity, never first-picks
+  ---
+  duration_ms: 0.160584
+  ...
+# Subtest: PR5c EXT-001: malformed snapshot headline says UNVERIFIED and exits 3
+ok 604 - PR5c EXT-001: malformed snapshot headline says UNVERIFIED and exits 3
+  ---
+  duration_ms: 2222.547209
+  ...
+# Subtest: PR5c EXT-001: valid pass headline unchanged, exit 0
+ok 605 - PR5c EXT-001: valid pass headline unchanged, exit 0
+  ---
+  duration_ms: 1076.885125
+  ...
+# Subtest: PR5c EXT-001: invalid input headline/exit unchanged
+ok 606 - PR5c EXT-001: invalid input headline/exit unchanged
+  ---
+  duration_ms: 533.0955
+  ...
+# Subtest: PR6Cc MAP-002: loadSelectorMap resolves the bounded sibling map and validates it strictly
+ok 607 - PR6Cc MAP-002: loadSelectorMap resolves the bounded sibling map and validates it strictly
+  ---
+  duration_ms: 78.815875
+  ...
+# Subtest: PR6Cc MAP-002 (process): the CLI structural defect visual-fails when a map is present; direct and CLI paths agree
+ok 608 - PR6Cc MAP-002 (process): the CLI structural defect visual-fails when a map is present; direct and CLI paths agree
+  ---
+  duration_ms: 3583.875584
+  ...
+# Subtest: PR6Cc MAP-002 (process): the CLI known-good structural fixture passes with a map
+ok 609 - PR6Cc MAP-002 (process): the CLI known-good structural fixture passes with a map
+  ---
+  duration_ms: 2067.048209
+  ...
+# Subtest: PR6Cc MAP-002 (process): an invalid map is invalid-input, exit 2, before any browser
+ok 610 - PR6Cc MAP-002 (process): an invalid map is invalid-input, exit 2, before any browser
+  ---
+  duration_ms: 913.153709
+  ...
+# Subtest: PR6Cc MAP-002 (process): static verify without --render reads no selector map and launches no browser
+ok 611 - PR6Cc MAP-002 (process): static verify without --render reads no selector map and launches no browser
+  ---
+  duration_ms: 673.625292
+  ...
+# Subtest: verify: a faithful component passes all checks
+ok 612 - verify: a faithful component passes all checks
+  ---
+  duration_ms: 31.911667
+  ...
+# Subtest: verify: scssCoverage fails when ::ng-deep selectors dropped
+ok 613 - verify: scssCoverage fails when ::ng-deep selectors dropped
+  ---
+  duration_ms: 3.171209
+  ...
+# Subtest: verify: scssCoverage does NOT demand a rejected alignment recipe (G3 reconciliation)
+ok 614 - verify: scssCoverage does NOT demand a rejected alignment recipe (G3 reconciliation)
+  ---
+  duration_ms: 1.524
+  ...
+# Subtest: verify: textCoverage fails when the Cari button is dropped
+ok 615 - verify: textCoverage fails when the Cari button is dropped
+  ---
+  duration_ms: 3.09875
+  ...
+# Subtest: verify: checkboxColumn without XML evidence fails
+ok 616 - verify: checkboxColumn without XML evidence fails
+  ---
+  duration_ms: 2.321459
+  ...
+# Subtest: verify: checkboxColumn absent when XML HAS checkbox fails
+ok 617 - verify: checkboxColumn absent when XML HAS checkbox fails
+  ---
+  duration_ms: 1.180833
+  ...
+# Subtest: verify: tableBindings forbids server/advanced inputs a mock slice must not bind
+ok 618 - verify: tableBindings forbids server/advanced inputs a mock slice must not bind
+  ---
+  duration_ms: 5.544917
+  ...
+# Subtest: verify: F7 — [checkboxColumn]="false" is a deliberate OFF, not a violation
+ok 619 - verify: F7 — [checkboxColumn]="false" is a deliberate OFF, not a violation
+  ---
+  duration_ms: 2.017333
+  ...
+# Subtest: verify: F7 — [showSummary]="false" is not flagged as a forbidden binding
+ok 620 - verify: F7 — [showSummary]="false" is not flagged as a forbidden binding
+  ---
+  duration_ms: 3.363292
+  ...
+# Subtest: verify: F7 — [showSummary]="true" is still forbidden (usage claim)
+ok 621 - verify: F7 — [showSummary]="true" is still forbidden (usage claim)
+  ---
+  duration_ms: 7.468541
+  ...
+# Subtest: verify: tableBindings still allows the mock-appropriate binding set
+ok 622 - verify: tableBindings still allows the mock-appropriate binding set
+  ---
+  duration_ms: 1.759166
+  ...
+# Subtest: verify: pilarBindings rejects a binding name not declared by the catalog
+ok 623 - verify: pilarBindings rejects a binding name not declared by the catalog
+  ---
+  duration_ms: 2.679959
+  ...
+# Subtest: verify: pilarBindings rejects a hallucinated pilar component tag
+ok 624 - verify: pilarBindings rejects a hallucinated pilar component tag
+  ---
+  duration_ms: 2.375667
+  ...
+# Subtest: verify: invented status-label classes warn classVocabulary (not fail)
+ok 625 - verify: invented status-label classes warn classVocabulary (not fail)
+  ---
+  duration_ms: 2.327167
+  ...
+# Subtest: verify: classVocabulary skips (not passes) when no vocabulary — closes all-skip false-green
+ok 626 - verify: classVocabulary skips (not passes) when no vocabulary — closes all-skip false-green
+  ---
+  duration_ms: 0.901417
+  ...
+# Subtest: verify: an all-skip run (missing ground truth) is NOT green — closes the false-green
+ok 627 - verify: an all-skip run (missing ground truth) is NOT green — closes the false-green
+  ---
+  duration_ms: 2.060708
+  ...
+# Subtest: verify: F11 — anatomy does NOT warn for a missing skeleton without design loading evidence
+ok 628 - verify: F11 — anatomy does NOT warn for a missing skeleton without design loading evidence
+  ---
+  duration_ms: 8.399167
+  ...
+# Subtest: verify: anatomy WARNS when the design evidences a loading state but the skeleton is missing
+ok 629 - verify: anatomy WARNS when the design evidences a loading state but the skeleton is missing
+  ---
+  duration_ms: 3.027958
+  ...
+# Subtest: verify: mockRowCount WARNS when a paginated table is under the policy floor
+ok 630 - verify: mockRowCount WARNS when a paginated table is under the policy floor
+  ---
+  duration_ms: 0.529291
+  ...
+# Subtest: verify: mockRowCount WARNS (not fails) when a paginated table exceeds the policy floor
+ok 631 - verify: mockRowCount WARNS (not fails) when a paginated table exceeds the policy floor
+  ---
+  duration_ms: 0.959459
+  ...
+# Subtest: verify: mockRowCount passes ANY row count with no fixed-floor policy (remediation §13)
+ok 632 - verify: mockRowCount passes ANY row count with no fixed-floor policy (remediation §13)
+  ---
+  duration_ms: 1.395916
+  ...
+# Subtest: verify: F4 — mockRowCount counts the [rows]-bound array, not the largest (columns)
+ok 633 - verify: F4 — mockRowCount counts the [rows]-bound array, not the largest (columns)
+  ---
+  duration_ms: 1.004709
+  ...
+# Subtest: verify: F4 — mockRowCount skips when all complement bindings are explicitly false
+ok 634 - verify: F4 — mockRowCount skips when all complement bindings are explicitly false
+  ---
+  duration_ms: 0.640541
+  ...
+# Subtest: verify: F4 — mockRowCount counts the [rows]-bound array when it differs from the largest
+ok 635 - verify: F4 — mockRowCount counts the [rows]-bound array when it differs from the largest
+  ---
+  duration_ms: 1.138625
+  ...
+# Subtest: verify: mockRowCount ignores a trailing comma (15 rows stay 15, not 16)
+ok 636 - verify: mockRowCount ignores a trailing comma (15 rows stay 15, not 16)
+  ---
+  duration_ms: 1.001333
+  ...
+# Subtest: verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not applicable)
+ok 637 - verify: mockRowCount SKIPS a plain HTML <table> detail list (floor 15 not applicable)
+  ---
+  duration_ms: 1.773959
+  ...
+# Subtest: verify: libraryTable FAILS a plain <table> in a uii-table project (no downgrade)
+ok 638 - verify: libraryTable FAILS a plain <table> in a uii-table project (no downgrade)
+  ---
+  duration_ms: 0.814375
+  ...
+# Subtest: verify: libraryTable PASSES when the project's <uii-table> is used
+ok 639 - verify: libraryTable PASSES when the project's <uii-table> is used
+  ---
+  duration_ms: 1.831167
+  ...
+# Subtest: verify: libraryTable SKIPS a project with no library-table convention
+ok 640 - verify: libraryTable SKIPS a project with no library-table convention
+  ---
+  duration_ms: 1.145167
+  ...
+# Subtest: verify: classVocabulary FAILS an invented btn-* class (btn-gray)
+ok 641 - verify: classVocabulary FAILS an invented btn-* class (btn-gray)
+  ---
+  duration_ms: 2.039083
+  ...
+# Subtest: verify: classVocabulary FAIL is actionable (canonical button + structural wrapper)
+ok 642 - verify: classVocabulary FAIL is actionable (canonical button + structural wrapper)
+  ---
+  duration_ms: 1.29275
+  ...
+# Subtest: verify: classVocabulary does NOT flag id="btn-*" (an element id, not a class)
+ok 643 - verify: classVocabulary does NOT flag id="btn-*" (an element id, not a class)
+  ---
+  duration_ms: 1.206666
+  ...
+# Subtest: verify: classVocabulary does NOT flag framework btn-primary (Report \#2 §4.2)
+ok 644 - verify: classVocabulary does NOT flag framework btn-primary (Report \#2 §4.2)
+  ---
+  duration_ms: 2.722333
+  ...
+# Subtest: verify: libraryTable SKIPS a plain detail table with NO pagination evidence (Report \#1 §6.3)
+ok 645 - verify: libraryTable SKIPS a plain detail table with NO pagination evidence (Report \#1 §6.3)
+  ---
+  duration_ms: 1.182334
+  ...
+# Subtest: verify: pilarInjection warns when uii-* present but pilar not injected (Report \#2 §4.6)
+ok 646 - verify: pilarInjection warns when uii-* present but pilar not injected (Report \#2 §4.6)
+  ---
+  duration_ms: 1.194625
+  ...
+# Subtest: verify: pilarInjection skips when pilar IS injected
+ok 647 - verify: pilarInjection skips when pilar IS injected
+  ---
+  duration_ms: 1.095208
+  ...
+# Subtest: verify: tableBindings warns on (rowsChanged) binding (Report \#1 §6.1 footgun)
+ok 648 - verify: tableBindings warns on (rowsChanged) binding (Report \#1 §6.1 footgun)
+  ---
+  duration_ms: 1.098459
+  ...
+# Subtest: verify: no-exemplar never scores pass (empty corpus → skip, not pass)
+ok 649 - verify: no-exemplar never scores pass (empty corpus → skip, not pass)
+  ---
+  duration_ms: 10.236875
+  ...
+# Subtest: verify: noHashedSelectors fails on [_ngcontent] leak
+ok 650 - verify: noHashedSelectors fails on [_ngcontent] leak
+  ---
+  duration_ms: 0.959292
+  ...
+# Subtest: verify: iconColor fails when badge icon color is invented (\#f9933f triangle vs \#f44444 design)
+ok 651 - verify: iconColor fails when badge icon color is invented (\#f9933f triangle vs \#f44444 design)
+  ---
+  duration_ms: 1.103708
+  ...
+# Subtest: verify: iconColor does NOT flag a structural blue action icon (\#03337b)
+ok 652 - verify: iconColor does NOT flag a structural blue action icon (\#03337b)
+  ---
+  duration_ms: 1.937042
+  ...
+# Subtest: verify: phantomWrapper fails when well wrapper has no transcript counterpart
+ok 653 - verify: phantomWrapper fails when well wrapper has no transcript counterpart
+  ---
+  duration_ms: 0.48425
+  ...
+# Subtest: verify: phantomWrapper skips the well clause when the project has no well idiom
+ok 654 - verify: phantomWrapper skips the well clause when the project has no well idiom
+  ---
+  duration_ms: 0.651917
+  ...
+# Subtest: verify: ngxSelectBinding fails when a select lacks [(ngModel)]
+ok 655 - verify: ngxSelectBinding fails when a select lacks [(ngModel)]
+  ---
+  duration_ms: 0.929042
+  ...
+# Subtest: verify: ngxSelectBinding passes when bound with [(ngModel)] + (select)
+ok 656 - verify: ngxSelectBinding passes when bound with [(ngModel)] + (select)
+  ---
+  duration_ms: 0.51875
+  ...
+# Subtest: verify: ngxSelectBinding skips when no <ngx-select> present
+ok 657 - verify: ngxSelectBinding skips when no <ngx-select> present
+  ---
+  duration_ms: 3.195834
+  ...
+# Subtest: verify: F2 — declaredInModule does NOT pass on a route `component: X` reference
+ok 658 - verify: F2 — declaredInModule does NOT pass on a route `component: X` reference
+  ---
+  duration_ms: 0.586167
+  ...
+# Subtest: verify: F2 — declaredInModule passes only when the class is INSIDE declarations: [...]
+ok 659 - verify: F2 — declaredInModule passes only when the class is INSIDE declarations: [...]
+  ---
+  duration_ms: 0.259791
+  ...
+# Subtest: verify: declaredInModule skips when no declarations array is parseable
+ok 660 - verify: declaredInModule skips when no declarations array is parseable
+  ---
+  duration_ms: 0.294625
+  ...
+# Subtest: verify: declaredInModule warns when the component class is missing from declarations
+ok 661 - verify: declaredInModule warns when the component class is missing from declarations
+  ---
+  duration_ms: 1.009875
+  ...
+# Subtest: verify: declaredInModule passes when the class is declared
+ok 662 - verify: declaredInModule passes when the class is declared
+  ---
+  duration_ms: 0.818041
+  ...
+# Subtest: verify: declaredInModule skips without module source
+ok 663 - verify: declaredInModule skips without module source
+  ---
+  duration_ms: 0.301
+  ...
+# Subtest: verify: F3 — rowAuth recognizes Object.assign(new AuthorizationModel(), {…})
+ok 664 - verify: F3 — rowAuth recognizes Object.assign(new AuthorizationModel(), {…})
+  ---
+  duration_ms: 1.728166
+  ...
+# Subtest: verify: rowAuth passes when actionColumn rows carry the required auth flag
+ok 665 - verify: rowAuth passes when actionColumn rows carry the required auth flag
+  ---
+  duration_ms: 1.8355
+  ...
+# Subtest: verify: rowAuth fails when actionColumn rows lack the auth flag (edit→canUpdate)
+ok 666 - verify: rowAuth fails when actionColumn rows lack the auth flag (edit→canUpdate)
+  ---
+  duration_ms: 0.940042
+  ...
+# Subtest: verify: rowAuth skips without [actionColumn] or without <Aksi> evidence
+ok 667 - verify: rowAuth skips without [actionColumn] or without <Aksi> evidence
+  ---
+  duration_ms: 3.576375
+  ...
+# Subtest: verify: rowAuth skips when actionColumn is explicitly false (no phantom auth)
+ok 668 - verify: rowAuth skips when actionColumn is explicitly false (no phantom auth)
+  ---
+  duration_ms: 1.848791
+  ...
+# Subtest: verify: rowAuth skips a hidden <Aksi> (visible=false via override)
+ok 669 - verify: rowAuth skips a hidden <Aksi> (visible=false via override)
+  ---
+  duration_ms: 1.330834
+  ...
+# Subtest: verify: filterRowButton fails when the XML Cari button is dropped
+ok 670 - verify: filterRowButton fails when the XML Cari button is dropped
+  ---
+  duration_ms: 3.76925
+  ...
+# Subtest: verify: filterRowButton passes when a Cari button is rendered
+ok 671 - verify: filterRowButton passes when a Cari button is rendered
+  ---
+  duration_ms: 0.708334
+  ...
+# Subtest: verify: filterRowButton skips when the XML has no filter button
+ok 672 - verify: filterRowButton skips when the XML has no filter button
+  ---
+  duration_ms: 0.394875
+  ...
+# Subtest: verify: buttonOrder fails when bulk buttons are row-reverse
+ok 673 - verify: buttonOrder fails when bulk buttons are row-reverse
+  ---
+  duration_ms: 0.503875
+  ...
+# Subtest: verify: buttonOrder skips when there is no reverse signal
+ok 674 - verify: buttonOrder skips when there is no reverse signal
+  ---
+  duration_ms: 1.965583
+  ...
+# Subtest: verify: tableOptions fails when search/limit/pagination bindings dropped
+ok 675 - verify: tableOptions fails when search/limit/pagination bindings dropped
+  ---
+  duration_ms: 2.317667
+  ...
+# Subtest: verify: tableOptions passes when all three bindings present
+ok 676 - verify: tableOptions passes when all three bindings present
+  ---
+  duration_ms: 0.764291
+  ...
+# Subtest: verify: F14 — a search_bar inside a filter card does NOT require [searchOptions]
+ok 677 - verify: F14 — a search_bar inside a filter card does NOT require [searchOptions]
+  ---
+  duration_ms: 0.657833
+  ...
+# Subtest: verify: tableOptions skips without table or without XML evidence
+ok 678 - verify: tableOptions skips without table or without XML evidence
+  ---
+  duration_ms: 0.771625
+  ...
+# Subtest: verify: policy — [paginationAlign] is no longer a forbidden table input
+ok 679 - verify: policy — [paginationAlign] is no longer a forbidden table input
+  ---
+  duration_ms: 0.358875
+  ...
+# Subtest: verify: tableOptions requires [paginationAlign]='right' when the XML footer distributes its children
+ok 680 - verify: tableOptions requires [paginationAlign]='right' when the XML footer distributes its children
+  ---
+  duration_ms: 3.74125
+  ...
+# Subtest: verify: tableOptions accepts every quoting form of [paginationAlign]='right'
+ok 681 - verify: tableOptions accepts every quoting form of [paginationAlign]='right'
+  ---
+  duration_ms: 4.0285
+  ...
+# Subtest: verify: tableOptions rejects a right-aligned footer bound to a non-right alignment
+ok 682 - verify: tableOptions rejects a right-aligned footer bound to a non-right alignment
+  ---
+  duration_ms: 1.126791
+  ...
+# Subtest: verify: tableOptions does NOT require [paginationAlign] without distribution evidence
+ok 683 - verify: tableOptions does NOT require [paginationAlign] without distribution evidence
+  ---
+  duration_ms: 0.840542
+  ...
+# Subtest: verify: a design whose root frame is named 'Page' does not demand paginationAlign
+ok 684 - verify: a design whose root frame is named 'Page' does not demand paginationAlign
+  ---
+  duration_ms: 0.37125
+  ...
+# Subtest: verify: SUI006 warns when pagination alignment is overridden through ::ng-deep
+ok 685 - verify: SUI006 warns when pagination alignment is overridden through ::ng-deep
+  ---
+  duration_ms: 0.358917
+  ...
+# Subtest: verify: SUI006 does NOT warn on the corpus's VISUAL pagination ::ng-deep
+ok 686 - verify: SUI006 does NOT warn on the corpus's VISUAL pagination ::ng-deep
+  ---
+  duration_ms: 0.365625
+  ...
+# Subtest: verify: requiredMarker fails a marker that was emitted but hidden
+ok 687 - verify: requiredMarker fails a marker that was emitted but hidden
+  ---
+  duration_ms: 0.37525
+  ...
+# Subtest: verify: requiredMarker passes a visible marker and skips when none is emitted
+ok 688 - verify: requiredMarker passes a visible marker and skips when none is emitted
+  ---
+  duration_ms: 0.549625
+  ...
+# Subtest: verify: containerPadding warns when the design's explicit padding is replaced by a fallback
+ok 689 - verify: containerPadding warns when the design's explicit padding is replaced by a fallback
+  ---
+  duration_ms: 0.577
+  ...
+# Subtest: verify: containerPadding passes the correct shorthand and per-side forms
+ok 690 - verify: containerPadding passes the correct shorthand and per-side forms
+  ---
+  duration_ms: 1.653625
+  ...
+# Subtest: verify: containerPadding skips when it has no ground truth to judge against
+ok 691 - verify: containerPadding skips when it has no ground truth to judge against
+  ---
+  duration_ms: 1.66475
+  ...
+# Subtest: verify: F6 — scssCoverage does not require search/pagination SCSS when bindings are OFF
+ok 692 - verify: F6 — scssCoverage does not require search/pagination SCSS when bindings are OFF
+  ---
+  duration_ms: 0.474667
+  ...
+# Subtest: verify: scssCoverage requires the bare .gateway-table shell when a table is in play
+ok 693 - verify: scssCoverage requires the bare .gateway-table shell when a table is in play
+  ---
+  duration_ms: 0.914125
+  ...
+# Subtest: verify: gridColumns fails when a filter row's col spans exceed 12
+ok 694 - verify: gridColumns fails when a filter row's col spans exceed 12
+  ---
+  duration_ms: 0.547417
+  ...
+# Subtest: verify: gridColumns passes when spans total ≤ 12
+ok 695 - verify: gridColumns passes when spans total ≤ 12
+  ---
+  duration_ms: 0.314417
+  ...
+# Subtest: verify: noTranslation fails on a | translate pipe
+ok 696 - verify: noTranslation fails on a | translate pipe
+  ---
+  duration_ms: 0.302792
+  ...
+# Subtest: verify: noTranslation passes on literal text
+ok 697 - verify: noTranslation passes on literal text
+  ---
+  duration_ms: 0.3305
+  ...
+# Subtest: verify: ngxSelectBinding fails when a select uses formControlName (legacy reactive form)
+ok 698 - verify: ngxSelectBinding fails when a select uses formControlName (legacy reactive form)
+  ---
+  duration_ms: 0.87125
+  ...
+# Subtest: verify: inventedUtility fails on a Bootstrap-4 w-100 utility (dead in BS3)
+ok 699 - verify: inventedUtility fails on a Bootstrap-4 w-100 utility (dead in BS3)
+  ---
+  duration_ms: 0.980792
+  ...
+# Subtest: verify: inventedUtility fails on a Bootstrap-4 mr-2 margin utility
+ok 700 - verify: inventedUtility fails on a Bootstrap-4 mr-2 margin utility
+  ---
+  duration_ms: 0.882292
+  ...
+# Subtest: verify: inventedUtility passes on the BS3 idiom (btn-block)
+ok 701 - verify: inventedUtility passes on the BS3 idiom (btn-block)
+  ---
+  duration_ms: 0.693792
+  ...
+# Subtest: verify: inventedUtility skips when there is no class vocabulary
+ok 702 - verify: inventedUtility skips when there is no class vocabulary
+  ---
+  duration_ms: 0.332875
+  ...
+# Subtest: verify: inventedUtility fails on gap-2 (atomic utility the project never uses)
+ok 703 - verify: inventedUtility fails on gap-2 (atomic utility the project never uses)
+  ---
+  duration_ms: 0.304042
+  ...
+# Subtest: verify: inventedUtility fails on rounded-xl (not in vocabulary)
+ok 704 - verify: inventedUtility fails on rounded-xl (not in vocabulary)
+  ---
+  duration_ms: 0.278625
+  ...
+# Subtest: verify: inventedUtility fails on mt-4 the project never uses (mirror the team)
+ok 705 - verify: inventedUtility fails on mt-4 the project never uses (mirror the team)
+  ---
+  duration_ms: 0.291416
+  ...
+# Subtest: verify: inventedUtility does not flag framework grid/layout base (row, col-md-*)
+ok 706 - verify: inventedUtility does not flag framework grid/layout base (row, col-md-*)
+  ---
+  duration_ms: 0.286333
+  ...
+# Subtest: verify: inventedUtility does not flag semantic classes (label-custom-warning in vocab)
+ok 707 - verify: inventedUtility does not flag semantic classes (label-custom-warning in vocab)
+  ---
+  duration_ms: 0.281458
+  ...
+# Subtest: verify: styleFidelity fails when the title color drifts from the design (\#555 vs \#000)
+ok 708 - verify: styleFidelity fails when the title color drifts from the design (\#555 vs \#000)
+  ---
+  duration_ms: 1.090083
+  ...
+# Subtest: verify: styleFidelity passes when title + divider colors are preserved
+ok 709 - verify: styleFidelity passes when title + divider colors are preserved
+  ---
+  duration_ms: 0.561166
+  ...
+# Subtest: verify: styleFidelity PASS is an honest subset claim, never a whole-UI 100%
+ok 710 - verify: styleFidelity PASS is an honest subset claim, never a whole-UI 100%
+  ---
+  duration_ms: 0.355042
+  ...
+# Subtest: verify: styleFidelity comparable set is deterministic on identical input (no silent denominator drift)
+ok 711 - verify: styleFidelity comparable set is deterministic on identical input (no silent denominator drift)
+  ---
+  duration_ms: 0.824292
+  ...
+# Subtest: verify: styleFidelity does not confuse .summary-row with .summary-row-danger (boundary)
+ok 712 - verify: styleFidelity does not confuse .summary-row with .summary-row-danger (boundary)
+  ---
+  duration_ms: 0.370459
+  ...
+# Subtest: verify: styleFidelity skips when a variable token colors the title (cannot resolve, not a fail)
+ok 713 - verify: styleFidelity skips when a variable token colors the title (cannot resolve, not a fail)
+  ---
+  duration_ms: 1.734792
+  ...
+# Subtest: verify: styleFidelity skips without a transcript
+ok 714 - verify: styleFidelity skips without a transcript
+  ---
+  duration_ms: 0.779167
+  ...
+# Subtest: verify: styleFidelity value-coverage fails on font-size drift on an authored rule (<80%)
+ok 715 - verify: styleFidelity value-coverage fails on font-size drift on an authored rule (<80%)
+  ---
+  duration_ms: 0.9355
+  ...
+# Subtest: verify: styleFidelity value-coverage passes on authored rule with matching values
+ok 716 - verify: styleFidelity value-coverage passes on authored rule with matching values
+  ---
+  duration_ms: 1.128708
+  ...
+# Subtest: verify: styleFidelity does NOT judge a reused project class (copy-convention-first, not a fail)
+ok 717 - verify: styleFidelity does NOT judge a reused project class (copy-convention-first, not a fail)
+  ---
+  duration_ms: 0.3495
+  ...
+# Subtest: verify: styleFidelity DOM-aware — a label is NOT mis-attributed to a sibling .scheme-box (no false positive)
+ok 718 - verify: styleFidelity DOM-aware — a label is NOT mis-attributed to a sibling .scheme-box (no false positive)
+  ---
+  duration_ms: 0.381583
+  ...
+# Subtest: verify: styleFidelity DOM-aware — an authored .control-label with correct values PASSES
+ok 719 - verify: styleFidelity DOM-aware — an authored .control-label with correct values PASSES
+  ---
+  duration_ms: 0.351375
+  ...
+# Subtest: verify: styleFidelity FAILS when an authored rule omits the design font-size (title renders 2x large)
+ok 720 - verify: styleFidelity FAILS when an authored rule omits the design font-size (title renders 2x large)
+  ---
+  duration_ms: 0.335375
+  ...
+# Subtest: verify: styleFidelity PASSES when the title size is authored
+ok 721 - verify: styleFidelity PASSES when the title size is authored
+  ---
+  duration_ms: 0.353125
+  ...
+# Subtest: verify: styleFidelity does NOT flag a size inherited from an authored ancestor
+ok 722 - verify: styleFidelity does NOT flag a size inherited from an authored ancestor
+  ---
+  duration_ms: 0.275834
+  ...
+# Subtest: verify: styleFidelity skips token-valued authored rules (cannot resolve, never false-flagged)
+ok 723 - verify: styleFidelity skips token-valued authored rules (cannot resolve, never false-flagged)
+  ---
+  duration_ms: 0.241
+  ...
+# Subtest: verify: styleFidelity does NOT mis-attribute library-internal text (column header) to an authored h1
+ok 724 - verify: styleFidelity does NOT mis-attribute library-internal text (column header) to an authored h1
+  ---
+  duration_ms: 0.360084
+  ...
+# Subtest: verify: styleFidelity does NOT mis-attribute a pagination label ('data') to a button
+ok 725 - verify: styleFidelity does NOT mis-attribute a pagination label ('data') to a button
+  ---
+  duration_ms: 0.258916
+  ...
+# Subtest: verify: styleFidelity skips hidden transcript nodes (not renderable, not a style fact)
+ok 726 - verify: styleFidelity skips hidden transcript nodes (not renderable, not a style fact)
+  ---
+  duration_ms: 0.255833
+  ...
+# Subtest: verify: scssCoverage fails when a corpus token sits only in a comment or emptied rule
+ok 727 - verify: scssCoverage fails when a corpus token sits only in a comment or emptied rule
+  ---
+  duration_ms: 0.324333
+  ...
+# Subtest: verify: scssCoverage treats a dropped advisory micro-effect (toggle-caret) as warn, not fail
+ok 728 - verify: scssCoverage treats a dropped advisory micro-effect (toggle-caret) as warn, not fail
+  ---
+  duration_ms: 0.417791
+  ...
+# Subtest: verify: scssCoverage passes when a nested corpus block's token appears in a live rule
+ok 729 - verify: scssCoverage passes when a nested corpus block's token appears in a live rule
+  ---
+  duration_ms: 0.253625
+  ...
+# Subtest: verify: textCoverage fails when a button label lives only in a TS comment (not rendered)
+ok 730 - verify: textCoverage fails when a button label lives only in a TS comment (not rendered)
+  ---
+  duration_ms: 0.783958
+  ...
+# Subtest: verify: textCoverage fails when the button is behind *ngIf=false (never renders)
+ok 731 - verify: textCoverage fails when the button is behind *ngIf=false (never renders)
+  ---
+  duration_ms: 0.3745
+  ...
+# Subtest: verify: textCoverage passes for text rendered via placeholder attribute
+ok 732 - verify: textCoverage passes for text rendered via placeholder attribute
+  ---
+  duration_ms: 0.324958
+  ...
+# Subtest: verify: filterRowButton catches a non-Cari filter action (Terapkan) when dropped
+ok 733 - verify: filterRowButton catches a non-Cari filter action (Terapkan) when dropped
+  ---
+  duration_ms: 0.327542
+  ...
+# Subtest: verify: gridColumns fails on breakpoint-less col-6 spans exceeding 12
+ok 734 - verify: gridColumns fails on breakpoint-less col-6 spans exceeding 12
+  ---
+  duration_ms: 0.349792
+  ...
+# Subtest: verify: gridColumns passes on breakpoint-less col-3 spans totaling 12
+ok 735 - verify: gridColumns passes on breakpoint-less col-3 spans totaling 12
+  ---
+  duration_ms: 0.321417
+  ...
+# Subtest: verify: iconColor fails when a design-semantic badge icon is styled a neutral (\#333 for \#f44444)
+ok 736 - verify: iconColor fails when a design-semantic badge icon is styled a neutral (\#333 for \#f44444)
+  ---
+  duration_ms: 0.580583
+  ...
+# Subtest: verify: iconColor parses 3-hex colors (no false pass on an unmatched shorthand)
+ok 737 - verify: iconColor parses 3-hex colors (no false pass on an unmatched shorthand)
+  ---
+  duration_ms: 1.169458
+  ...
+# Subtest: verify: noBareNgDeep fails on an agent-added bare ::ng-deep not blessed by the corpus
+ok 738 - verify: noBareNgDeep fails on an agent-added bare ::ng-deep not blessed by the corpus
+  ---
+  duration_ms: 0.932792
+  ...
+# Subtest: verify: noBareNgDeep passes when corpus-blessed bare ::ng-deep is copied verbatim
+ok 739 - verify: noBareNgDeep passes when corpus-blessed bare ::ng-deep is copied verbatim
+  ---
+  duration_ms: 0.432208
+  ...
+# Subtest: verify: scssCompiles fails on unbalanced SCSS braces
+ok 740 - verify: scssCompiles fails on unbalanced SCSS braces
+  ---
+  duration_ms: 0.334708
+  ...
+# Subtest: verify: scssCompiles passes on balanced SCSS
+ok 741 - verify: scssCompiles passes on balanced SCSS
+  ---
+  duration_ms: 0.3285
+  ...
+# Subtest: verify: loadedClass fails a utility class absent from the loaded CSS registry
+ok 742 - verify: loadedClass fails a utility class absent from the loaded CSS registry
+  ---
+  duration_ms: 0.491958
+  ...
+# Subtest: verify: loadedClass passes a utility class present in the registry
+ok 743 - verify: loadedClass passes a utility class present in the registry
+  ---
+  duration_ms: 0.335125
+  ...
+# Subtest: verify: loadedClass skips without a registry (back-compat)
+ok 744 - verify: loadedClass skips without a registry (back-compat)
+  ---
+  duration_ms: 0.319625
+  ...
+# Subtest: verify: loadedClass skips when registry resolved no stylesheet (source none — under-resolved)
+ok 745 - verify: loadedClass skips when registry resolved no stylesheet (source none — under-resolved)
+  ---
+  duration_ms: 0.314792
+  ...
+# Subtest: verify: loadedClass does NOT gate breakpoint grid columns against a scss (non-dist) registry
+ok 746 - verify: loadedClass does NOT gate breakpoint grid columns against a scss (non-dist) registry
+  ---
+  duration_ms: 0.376958
+  ...
+# Subtest: verify: inventedLayout warns on a shadow/max-width/margin-auto with no design evidence
+ok 747 - verify: inventedLayout warns on a shadow/max-width/margin-auto with no design evidence
+  ---
+  duration_ms: 0.372458
+  ...
+# Subtest: verify: inventedLayout passes when the design evidences the effect
+ok 748 - verify: inventedLayout passes when the design evidences the effect
+  ---
+  duration_ms: 0.355458
+  ...
+# Subtest: verify: inventedLayout skips deep-CSS (library internal is judged elsewhere)
+ok 749 - verify: inventedLayout skips deep-CSS (library internal is judged elsewhere)
+  ---
+  duration_ms: 0.387083
+  ...
+# Subtest: verify: deadCode warns on an unused import and injected-but-unused service
+ok 750 - verify: deadCode warns on an unused import and injected-but-unused service
+  ---
+  duration_ms: 0.953542
+  ...
+# Subtest: verify: deadCode passes a clean component
+ok 751 - verify: deadCode passes a clean component
+  ---
+  duration_ms: 0.46175
+  ...
+# Subtest: PR5: modalWrapper warns on a modal/card wrapper the design never evidences
+ok 752 - PR5: modalWrapper warns on a modal/card wrapper the design never evidences
+  ---
+  duration_ms: 0.142625
+  ...
+# Subtest: PR5: modalWrapper passes when the design evidences a modal frame
+ok 753 - PR5: modalWrapper passes when the design evidences a modal frame
+  ---
+  duration_ms: 0.091542
+  ...
+# Subtest: PR5: modalWrapper skips a neutral wrapper (no semantic class, no modal marker)
+ok 754 - PR5: modalWrapper skips a neutral wrapper (no semantic class, no modal marker)
+  ---
+  duration_ms: 0.085041
+  ...
+# Subtest: PR5: frameworkSyntax fails Angular ≤13 incompatible syntax
+ok 755 - PR5: frameworkSyntax fails Angular ≤13 incompatible syntax
+  ---
+  duration_ms: 0.737042
+  ...
+# Subtest: PR5: frameworkSyntax skips without an Angular ≤13 version snapshot
+ok 756 - PR5: frameworkSyntax skips without an Angular ≤13 version snapshot
+  ---
+  duration_ms: 0.115292
+  ...
+# Subtest: PR5: every check is decorated with stable id/category/trust/severity
+ok 757 - PR5: every check is decorated with stable id/category/trust/severity
+  ---
+  duration_ms: 0.37575
+  ...
+# Subtest: PR5: primaryState reflects fail / unverifiable / pass
+ok 758 - PR5: primaryState reflects fail / unverifiable / pass
+  ---
+  duration_ms: 0.047917
+  ...
+# Subtest: PR5: verifyComponent result carries a primary state and pass stays correct
+ok 759 - PR5: verifyComponent result carries a primary state and pass stays correct
+  ---
+  duration_ms: 0.143458
+  ...
+# Subtest: PR5c: comments and string literals do not trigger frameworkSyntax
+ok 760 - PR5c: comments and string literals do not trigger frameworkSyntax
+  ---
+  duration_ms: 1.824792
+  ...
+# Subtest: PR5c: executable syntax is still detected
+ok 761 - PR5c: executable syntax is still detected
+  ---
+  duration_ms: 0.74575
+  ...
+# Subtest: PR5c: code after a comment/string remains visible
+ok 762 - PR5c: code after a comment/string remains visible
+  ---
+  duration_ms: 0.113625
+  ...
+# Subtest: PR5c: identifier boundaries — non-target identifiers do not false-positive
+ok 763 - PR5c: identifier boundaries — non-target identifiers do not false-positive
+  ---
+  duration_ms: 0.388083
+  ...
+# Subtest: PR5c: frameworkSyntax skips without an Angular ≤13 snapshot (version gating intact)
+ok 764 - PR5c: frameworkSyntax skips without an Angular ≤13 snapshot (version gating intact)
+  ---
+  duration_ms: 0.420542
+  ...
+# Subtest: PR5c: frameworkSyntax diagnostics retain stable metadata
+ok 765 - PR5c: frameworkSyntax diagnostics retain stable metadata
+  ---
+  duration_ms: 0.141458
+  ...
+# Subtest: PR5c: maskNonExecutable preserves offsets (executable token index unchanged)
+ok 766 - PR5c: maskNonExecutable preserves offsets (executable token index unchanged)
+  ---
+  duration_ms: 0.245125
+  ...
+# Subtest: extractConventions (Vue): :deep() corpus + SFC anatomy, Tailwind skips class vocabulary
+ok 767 - extractConventions (Vue): :deep() corpus + SFC anatomy, Tailwind skips class vocabulary
+  ---
+  duration_ms: 32.277458
+  ...
+# Subtest: extractConventions (Vue): reusable = library-internal deep selector
+ok 768 - extractConventions (Vue): reusable = library-internal deep selector
+  ---
+  duration_ms: 107.317333
+  ...
+# Subtest: renderConventionsMd (Vue): Vue-native, never Angular idiom
+ok 769 - renderConventionsMd (Vue): Vue-native, never Angular idiom
+  ---
+  duration_ms: 0.760958
+  ...
+1..769
+# tests 769
+# suites 0
+# pass 766
+# fail 0
+# cancelled 0
+# skipped 3
+# todo 0
+# duration_ms 33798.084125

@@ -127,9 +127,9 @@ function renderTableStructure(table, depth, out) {
     const headers = rowCells(header);
     if (headers.length) out.push({ depth: depth + 1, label: `columns: ${headers.join(" | ")}` });
   }
-  if (dataRows.length) {
-    out.push({ depth: depth + 1, label: `rows (${dataRows.length}): ${rowCells(dataRows[0]).join(" | ")}` });
-  }
+  dataRows.forEach((row, i) => {
+    out.push({ depth: depth + 1, label: `row ${i + 1}/${dataRows.length}: ${rowCells(row).join(" | ")}` });
+  });
 }
 
 /** The visible cells of a row/group: text cells verbatim, status badges by their status text,
@@ -234,7 +234,7 @@ function exactContentSummary(intentGraph) {
   const tables = (intentGraph.tables ?? []).map((t) => ({
     headers: t.headers.map((h) => h.value),
     rowCount: t.designedVisibleRows.length,
-    representative: t.designedVisibleRows[0]?.cells.map((c) => c.value) ?? [],
+    rows: t.designedVisibleRows.map((r) => r.cells.map((c) => c.value)),
   }));
   return { textCount: (intentGraph.content ?? []).length, tables };
 }
@@ -247,7 +247,7 @@ function uncertaintySummary(intentGraph) {
   const facts = [];
   for (const c of intentGraph.constraints ?? []) {
     if (c.confidence != null && c.confidence < 0.5) {
-      facts.push({ type: c.type, confidence: c.confidence, verificationRequired: c.verificationRequired ?? false });
+      facts.push({ type: c.type, confidence: c.confidence, childId: c.childId, parentId: c.parentId, verificationRequired: c.verificationRequired ?? false });
     }
   }
   return facts.slice(0, 12);
@@ -272,6 +272,24 @@ export function buildInspect(transcript, { conventions = {}, projectContext = {}
   // Behavioral facts / dangerous defaults — only for the capabilities in play (Workstream E).
   const capabilitiesFull = selectCapabilities(inventory, projectContext?.capabilities ?? {}, pilar);
   const dangerousDefaults = selectDangerousDefaults(inventory, capabilitiesFull, pilar, frameworkConstraints(projectContext));
+  // Closed read-set (foundation): name the library + source file for each capability in play,
+  // so the agent reads exactly what is listed and never has to search the codebase for the wiring.
+  const capabilityRefs = capabilitiesFull.map((c) => ({
+    role: c.role,
+    library: c.library ?? null,
+    source: c.source ?? null,
+    referencePath: c.referencePath ?? null,
+    sampleHtmlPath: c.sampleHtmlPath ?? null,
+    wiringExample: c.wiringExample ?? null,
+    tsExample: c.tsExample ?? null,
+  }));
+  const references = (projectContext?.sampleComponents ?? []).map((s) => ({
+    path: s.path,
+    selector: s.selector ?? null,
+    golden: Boolean(s.golden),
+  }));
+  const goldenRefs = references.filter((r) => r.golden);
+  const reusableClasses = (conventions?.classVocabulary ?? []).map((c) => c.name).slice(0, 40);
   // Compile the design's pagination footer into the runtime state it implies (render-reality B):
   // the agent must generate mock state that actually renders the designed pagination.
   const pagination = paginationEvidence(transcript);
@@ -289,6 +307,10 @@ export function buildInspect(transcript, { conventions = {}, projectContext = {}
     tier: meta.tier ?? null,
     structure,
     capabilities,
+    capabilityRefs,
+    goldenRefs,
+    references,
+    reusableClasses,
     visualFacts: facts,
     mappings,
     recipes,
@@ -345,7 +367,8 @@ function renderIntentSections(j, L) {
   L.push(`- ${intent.exactContent?.textCount ?? 0} visible text/icon nodes (A1 design, exact)`);
   for (const t of intent.exactContent?.tables ?? []) {
     L.push(`- table columns: ${t.headers.join(" | ")}`);
-    L.push(`- ${t.rowCount} designed-visible rows; representative: ${t.representative.join(" | ")}`);
+    L.push(`- ${t.rowCount} designed-visible rows (A1 immutable — render ALL exactly):`);
+    for (const r of t.rows ?? []) L.push(`  - ${r.join(" | ")}`);
   }
   L.push("");
 
@@ -361,7 +384,8 @@ function renderIntentSections(j, L) {
   L.push("");
   if (!(intent.uncertainty ?? []).length) L.push("_(none — all constraints high confidence)_");
   for (const u of intent.uncertainty ?? []) {
-    L.push(`- ${u.type} confidence ${u.confidence}${u.verificationRequired ? " (render verification required)" : ""}`);
+    const where = u.childId ? ` @ ${u.childId}${u.parentId ? ` (parent ${u.parentId})` : ""}` : "";
+    L.push(`- ${u.type} confidence ${u.confidence}${where}${u.verificationRequired ? " (render verification required)" : ""}`);
   }
   L.push("");
 }
@@ -384,8 +408,25 @@ function renderInspectMarkdown(j) {
 
   L.push("## Required capabilities");
   L.push("");
-  if (!j.capabilities.length) L.push("_(none — plain elements only)_");
-  for (const c of j.capabilities) L.push(`- ${c}`);
+  if (!(j.capabilityRefs ?? []).length) L.push("_(none — plain elements only)_");
+  for (const c of j.capabilityRefs ?? []) {
+    if (c.library) {
+      const paths = [c.sampleHtmlPath, c.referencePath].filter(Boolean);
+      L.push(`- ${c.role} → \`${c.library}\`${paths.length ? ` — Read: ${paths.map((p) => `\`${p}\``).join(" · ")}` : ""}`);
+      if (c.wiringExample) {
+        L.push("  ```html");
+        L.push(c.wiringExample.split("\n").map((l) => `  ${l}`).join("\n"));
+        L.push("  ```");
+      }
+      if (c.tsExample) {
+        L.push("  ```ts");
+        L.push(c.tsExample.split("\n").map((l) => `  ${l}`).join("\n"));
+        L.push("  ```");
+      }
+    } else {
+      L.push(`- ${c.role} — _(unresolved: use native HTML and flag it)_`);
+    }
+  }
   L.push("");
 
   L.push("## Critical visual facts");
@@ -436,10 +477,25 @@ function renderInspectMarkdown(j) {
 
   renderIntentSections(j, L);
 
+  if ((j.references ?? []).length) {
+    L.push("## Project references");
+    L.push("");
+    for (const r of j.references) {
+      L.push(`- \`${r.path}\`${r.golden ? " — **READ FIRST**" : ""}${r.selector ? ` (selector \`${r.selector}\`)` : ""}`);
+    }
+    L.push("");
+  }
+  if ((j.reusableClasses ?? []).length) {
+    L.push("## Reusable classes (reuse, don't invent)");
+    L.push("");
+    L.push(j.reusableClasses.map((c) => `\`${c}\``).join(" "));
+    L.push("");
+  }
+
   L.push("## Next");
   L.push("");
   L.push("- Read `.sliceui/handoff.md` (project contract) first.");
-  L.push("- Implement from this output + the targeted project source references your capabilities name.");
+  L.push("- Implement from this output; read ONLY the source files named above (capabilities + golden references).");
   L.push("- Run `sliceui check <targetDir> <design>` and fix evidence-backed failures.");
   return L.join("\n");
 }
@@ -495,7 +551,7 @@ export async function main(argv) {
     const outDir = join(process.cwd(), ".sliceui", "artifacts", name);
     mkdirSync(outDir, { recursive: true });
     writeFileSync(join(outDir, "spec.md"), buildSpec(transcript, conventions, pilar));
-    const { manifest, markdown } = buildAgentContext({ transcript, conventions, projectContext, pilar, design: name });
+    const { manifest, markdown } = buildAgentContext({ transcript, conventions, projectContext, pilar, design: name, intentGraph });
     writeFileSync(join(outDir, "context-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
     writeFileSync(join(outDir, "agent-context.md"), markdown);
   } catch { /* spec/context are additive cache — a failure must not fail inspect's summary */ }

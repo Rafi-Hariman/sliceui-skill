@@ -84,6 +84,7 @@ export const CHECK_META = Object.freeze({
   pilarInjection: { id: `${PREFIX}-API-007`, category: CATEGORY.COMPONENT_API, trust: TRUST.VERIFIED_CAPABILITY },
   declaredInModule: { id: `${PREFIX}-MODULE-001`, category: CATEGORY.MODULE_WIRING, trust: TRUST.INDEPENDENT },
   frameworkSyntax: { id: `${PREFIX}-SYNTAX-005`, category: CATEGORY.FRAMEWORK_SYNTAX, trust: TRUST.VERIFIED_CAPABILITY },
+  typeCheck: { id: `${PREFIX}-SYNTAX-006`, category: CATEGORY.FRAMEWORK_SYNTAX, trust: TRUST.INDEPENDENT },
 });
 
 /** Severity for a check status (PR 5 §13): fail → error, warn → warning, pass/skip → info. A

@@ -111,6 +111,7 @@ export function buildSpec(transcript, conventions = {}, pilar = null) {
   L.push("Render this into component code in ONE pass. Every element already carries its resolved");
   L.push("idiom inline — do not re-derive or guess. The transcript owns appearance; the idioms own");
   L.push("class/icon names. Emit ONLY the strings shown; anything else is a mistake.");
+  L.push("Node geometry is `[x,y width×height]` (px).");
   L.push("");
 
   // --- elements ---

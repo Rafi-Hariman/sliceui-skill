@@ -32,17 +32,18 @@ test("inspect: header carries design, fidelity, and source", () => {
   assert.ok(markdown.includes("- Source: figml"), "source label");
 });
 
-test("inspect: structure tree exposes table headers + representative row, not an opaque leaf", () => {
+test("inspect: structure tree exposes table headers + all designed rows, not an opaque leaf", () => {
   const { markdown, json } = buildInspect(transcript());
   assert.ok(markdown.includes('Heading "Daftar Mahasiswa"'), "heading label");
   assert.ok(markdown.includes('Select "Program Studi"'), "select = input + icon child");
   assert.ok(markdown.includes('Button "Cari"'), "button label");
   assert.ok(markdown.includes("Table"), "table flag labelled Table");
   assert.ok(markdown.includes('Pagination "Menampilkan 1-10 dari 20 data"'), "pagination text");
-  // Table descendants are exposed compactly: headers + a representative row + count.
+  // Table descendants are exposed fully: headers + every designed-visible row (the gate checks them
+  // all exact, so the agent must have them without re-grepping the XML).
   assert.ok(markdown.includes("columns: Nama | NIM"), "table columns exposed");
-  assert.ok(markdown.includes("rows (2): alice | 123"), "representative row + count exposed");
-  assert.ok(!markdown.includes("bob"), "repetitive rows are not all dumped (only the representative row)");
+  assert.ok(markdown.includes("alice | 123"), "row 1 exposed");
+  assert.ok(markdown.includes("bob"), "row 2 exposed (all designed rows, not just the first)");
   assert.ok(json.structure.some((s) => s.label === "Table" && s.depth === 0), "json structure carries table node");
 });
 

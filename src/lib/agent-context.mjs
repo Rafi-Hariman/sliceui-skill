@@ -143,6 +143,8 @@ function buildCapabilityEntry(category, cap, role, pilar) {
     library: cap.library,
     source: cap.source ?? "registry",
     evidence: role.evidence.slice(0, 8),
+    referencePath: cap.samplePath ?? cap.libSourcePath ?? cap.sampleScssPath ?? null,
+    sampleHtmlPath: cap.sampleHtmlPath ?? null,
   };
 
   const selector = pilarSelector(cap.library);
@@ -329,7 +331,7 @@ export function selectStyleRecipes(inventory, conventions = {}) {
 // ---------- manifest + render ----------
 
 /** Assemble the machine-readable manifest. */
-export function buildContextManifest({ design, generatedAt, sources, framework, inventory, capabilities, dangerousDefaults, styleRecipes, implementationHints, constraints, metrics }) {
+export function buildContextManifest({ design, generatedAt, sources, framework, inventory, capabilities, dangerousDefaults, styleRecipes, implementationHints, uncertainty, constraints, metrics }) {
   return {
     schemaVersion: CONTEXT_SCHEMA_VERSION,
     design,
@@ -341,6 +343,7 @@ export function buildContextManifest({ design, generatedAt, sources, framework, 
     dangerousDefaults,
     styleRecipes,
     implementationHints,
+    uncertainty,
     constraints,
     metrics,
   };
@@ -366,6 +369,20 @@ export function renderAgentContext(manifest) {
   L.push("");
   if (!(manifest.designInventory ?? []).length) L.push("_(none detected)_");
   for (const r of manifest.designInventory ?? []) L.push(`- ${r.role}${r.count > 1 ? ` (×${r.count})` : ""}`);
+
+  if ((manifest.uncertainty ?? []).length) {
+    L.push("");
+    L.push("## Unresolved (design silent — do not guess)");
+    L.push("");
+    L.push("These facts are below confidence threshold. Do NOT silently default them: resolve via");
+    L.push("the project idiom (see hints/recipes) or mark the emitted value `inferred — confirm`.");
+    L.push("");
+    for (const u of manifest.uncertainty) {
+      const where = u.childId ? ` @ ${u.childId}${u.parentId ? ` (parent ${u.parentId})` : ""}` : "";
+      L.push(`- ${u.type} confidence ${u.confidence}${where}`);
+    }
+    L.push("");
+  }
 
   if ((manifest.capabilities ?? []).length) {
     L.push("");
@@ -412,7 +429,14 @@ export function renderAgentContext(manifest) {
         L.push(c.tsExample);
         L.push("```");
       }
-      L.push(`_Source: ${c.source}._`);
+      if (c.referencePath || c.sampleHtmlPath) {
+        L.push(`Read: ${[c.sampleHtmlPath, c.referencePath].filter(Boolean).map((p) => `\`${p}\``).join(" · ")}`);
+      }
+      if (c.selector) {
+        L.push(`_API: machine-extracted from installed \`${c.library}\` (pilar-catalog) — verified, not invented. Sample: ${c.source}._`);
+      } else {
+        L.push(`_Source: ${c.source}._`);
+      }
       L.push("");
     }
   }
@@ -502,13 +526,25 @@ export function measureContext(manifest, markdown, snapshotCapabilityCount = 0) 
 
 // ---------- orchestrator ----------
 
+/** Confidence-threshold summary of unresolved design-intent constraints. Mirrors
+ *  inspect.mjs's `uncertaintySummary` — keep the 0.5 threshold and field set in sync. */
+function uncertaintySummary(intentGraph) {
+  const facts = [];
+  for (const c of intentGraph?.constraints ?? []) {
+    if (c.confidence != null && c.confidence < 0.5) {
+      facts.push({ type: c.type, confidence: c.confidence, childId: c.childId, parentId: c.parentId, verificationRequired: c.verificationRequired ?? false });
+    }
+  }
+  return facts.slice(0, 12);
+}
+
 /**
  * Build the full context package (manifest + markdown) from already-loaded inputs.
  * Pure — no fs. `pilar` is `loadPilar()` output (null in a public install → pilar-specific
  * capability/API/defaults degrade gracefully to the registry sample).
  * @returns {{ manifest: object, markdown: string, metrics: object }}
  */
-export function buildAgentContext({ transcript, conventions = {}, projectContext = {}, pilar = null, design = "design", generatedAt = null }) {
+export function buildAgentContext({ transcript, conventions = {}, projectContext = {}, pilar = null, design = "design", generatedAt = null, intentGraph = null }) {
   const resolved = resolveGroupsOf(transcript, conventions, pilar);
   const resolvedGroups = resolved.groups;
   const inventory = buildDesignInventory(transcript?.layout ?? [], resolvedGroups);
@@ -518,6 +554,7 @@ export function buildAgentContext({ transcript, conventions = {}, projectContext
   const dangerousDefaults = selectDangerousDefaults(inventory, capabilities, pilar, constraints);
   const styleRecipes = selectStyleRecipes(inventory, conventions);
   const implementationHints = selectImplementationHints(resolvedGroups, resolved.behaviorBindings ?? []);
+  const uncertainty = uncertaintySummary(intentGraph);
 
   const sources = {
     spec: "spec.md",
@@ -538,6 +575,7 @@ export function buildAgentContext({ transcript, conventions = {}, projectContext
     dangerousDefaults,
     styleRecipes,
     implementationHints,
+    uncertainty,
     constraints,
     metrics: {},
   });

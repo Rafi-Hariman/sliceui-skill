@@ -1,0 +1,5507 @@
+{
+  "format": "figml-observed",
+  "analyzer": "fast-xml-parser 5.11.1 preserveOrder (same config as production src/lib/figml-parse.mjs:15-21)",
+  "analyzedFiles": [
+    "test/fixtures/mahasiswa-tarif/raw.xml",
+    "tester.xml",
+    "test/fixtures/eval-hope/ground-truth/raw.xml",
+    "test/fixtures/pilar-golden/ground-truth/raw.xml"
+  ],
+  "rootElements": [
+    {
+      "file": "test/fixtures/mahasiswa-tarif/raw.xml",
+      "tag": "?xml"
+    },
+    {
+      "file": "tester.xml",
+      "tag": "?xml"
+    },
+    {
+      "file": "test/fixtures/eval-hope/ground-truth/raw.xml",
+      "tag": "frame"
+    },
+    {
+      "file": "test/fixtures/pilar-golden/ground-truth/raw.xml",
+      "tag": "frame"
+    }
+  ],
+  "elements": {
+    "?xml": {
+      "count": 2,
+      "syntheticCount": 0,
+      "parentElements": [],
+      "childElements": [],
+      "attributes": {
+        "version": {
+          "count": 2,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "1.0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "encoding": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "UTF-8"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "?figml": {
+      "count": 2,
+      "syntheticCount": 0,
+      "parentElements": [],
+      "childElements": [],
+      "attributes": {
+        "version": {
+          "count": 2,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "1.0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "frame": {
+      "count": 4,
+      "syntheticCount": 0,
+      "parentElements": [],
+      "childElements": [
+        "children",
+        "constraints",
+        "fills"
+      ],
+      "attributes": {
+        "id": {
+          "count": 2,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46203",
+            "16601:45839"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 4,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Frame_2048",
+            "Sample Card",
+            "Bill List"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "expanded": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "8"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "270"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "140"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 4,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1274",
+            "400",
+            "1200"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 4,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "814",
+            "1031",
+            "140",
+            "800"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VERTICAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingLeft": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingRight": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingTop": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingBottom": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "horizontalPadding": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "verticalPadding": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisSizingMode": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FIXED"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "itemSpacing": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "10"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 4,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FRAME"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "children": {
+      "count": 153,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Frame",
+        "Icon_Font_Awesome_Free_Solid_C_caret-down",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Status_Beasiswa",
+        "check",
+        "frame",
+        "pressed",
+        "search_bar"
+      ],
+      "childElements": [
+        "Aksi",
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Frame",
+        "Icon_Font_Awesome_Free_Solid_C_caret-down",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Line",
+        "Rectangle",
+        "Status_Beasiswa",
+        "Text",
+        "Vector",
+        "check",
+        "pressed",
+        "search_bar"
+      ],
+      "attributes": {}
+    },
+    "Frame": {
+      "count": 91,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "constraints",
+        "fills",
+        "strokes"
+      ],
+      "attributes": {
+        "id": {
+          "count": 91,
+          "observedTypes": [
+            "figma-node-id",
+            "string"
+          ],
+          "examples": [
+            "16601:46204",
+            "I16601:46491;12:101",
+            "I16601:46491;12:100",
+            "16601:46209",
+            "16601:46210"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 91,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Frame_2042",
+            "Frame_2007",
+            "Frame_2006",
+            "Frame_2693",
+            "Frame_1992"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "expanded": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 91,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 91,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20",
+            "12",
+            "31",
+            "0",
+            "70"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 91,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "20",
+            "12",
+            "0",
+            "144",
+            "22"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 91,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1234",
+            "1210",
+            "1179",
+            "191",
+            "301"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 91,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "746",
+            "40",
+            "63",
+            "14",
+            "41"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutAlign": {
+          "count": 48,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "STRETCH"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 87,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL",
+            "HUG"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 91,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VERTICAL",
+            "HORIZONTAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisAlignItems": {
+          "count": 64,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER",
+            "MAX"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "itemSpacing": {
+          "count": 82,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "20",
+            "7",
+            "10",
+            "3",
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 91,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FRAME"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisSizingMode": {
+          "count": 33,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FIXED"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisSizingMode": {
+          "count": 34,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "AUTO"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutGrow": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingTop": {
+          "count": 28,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "4",
+            "12",
+            "10",
+            "9",
+            "5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "verticalPadding": {
+          "count": 28,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "4",
+            "12",
+            "10",
+            "9",
+            "5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 31,
+          "observedTypes": [
+            "integer",
+            "empty-string"
+          ],
+          "examples": [
+            "6",
+            "5",
+            "",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingLeft": {
+          "count": 41,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "10",
+            "15"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingRight": {
+          "count": 41,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "10",
+            "15"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingBottom": {
+          "count": 26,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "10",
+            "9",
+            "5",
+            "1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "horizontalPadding": {
+          "count": 41,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "10",
+            "15"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisAlignItems": {
+          "count": 56,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER",
+            "SPACE_BETWEEN"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "topLeftRadius": {
+          "count": 4,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "6",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "bottomLeftRadius": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "6",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "topRightRadius": {
+          "count": 4,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "6",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "bottomRightRadius": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "6",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeAlign": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "OUTSIDE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Text": {
+      "count": 196,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children",
+        "componentProperties"
+      ],
+      "childElements": [
+        "constraints",
+        "fills",
+        "fontName",
+        "letterSpacing",
+        "lineHeight"
+      ],
+      "attributes": {
+        "id": {
+          "count": 191,
+          "observedTypes": [
+            "figma-node-id",
+            "string"
+          ],
+          "examples": [
+            "16601:46205",
+            "I16601:46491;12:87",
+            "I16601:46491;12:88",
+            "I16601:46211;8231:12465",
+            "I16601:46211;8231:12466"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 191,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Tambah_mahasiswa_tarif",
+            "Belum_isi_data.",
+            "Title_field",
+            "_",
+            "Tuliskan_text_disini"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 187,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeAlign": {
+          "count": 171,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "OUTSIDE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 191,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "0",
+            "185",
+            "12",
+            "51",
+            "135.8000030517578"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 191,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "0",
+            "4",
+            "22",
+            "12",
+            "10.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 191,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1234",
+            "926",
+            "182",
+            "6",
+            "253"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 191,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "19",
+            "18",
+            "14",
+            "17",
+            "17.424999237060547"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "layoutAlign": {
+          "count": 4,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "STRETCH"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 59,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL",
+            "HUG"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "fontSize": {
+          "count": 187,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "16",
+            "14",
+            "12",
+            "15",
+            "13"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "fontName": {
+          "count": 76,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Symbol(figma.mixed)"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "fontWeight": {
+          "count": 187,
+          "observedTypes": [
+            "integer",
+            "empty-string"
+          ],
+          "examples": [
+            "500",
+            "700",
+            "",
+            "600",
+            "400"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "hyperlink": {
+          "count": 187,
+          "observedTypes": [
+            "empty-string"
+          ],
+          "examples": [
+            ""
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "characters": {
+          "count": 191,
+          "observedTypes": [
+            "string",
+            "integer"
+          ],
+          "examples": [
+            "Tambah mahasiswa tarif",
+            "Informasi",
+            "Tahun akademik semester masuk",
+            "*",
+            "2025/2026 ganjil"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 196,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "TEXT",
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "textAlignVertical": {
+          "count": 186,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "TOP"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "textAutoResize": {
+          "count": 185,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HEIGHT",
+            "WIDTH_AND_HEIGHT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "textAlignHorizontal": {
+          "count": 54,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "JUSTIFIED",
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeWeight": {
+          "count": 16,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutGrow": {
+          "count": 20,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "visible": {
+          "count": 2,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "opacity": {
+          "count": 2,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.4000000059604645"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 5,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "fills": {
+      "count": 316,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Frame",
+        "Icon_Font_Awesome_Free_Solid_C_caret-down",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Rectangle",
+        "Status_Beasiswa",
+        "Text",
+        "Vector",
+        "check",
+        "frame"
+      ],
+      "childElements": [
+        "fill"
+      ],
+      "attributes": {}
+    },
+    "fill": {
+      "count": 316,
+      "syntheticCount": 0,
+      "parentElements": [
+        "fills"
+      ],
+      "childElements": [],
+      "attributes": {
+        "blendMode": {
+          "count": 312,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "NORMAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "color": {
+          "count": 316,
+          "observedTypes": [
+            "hex-color-6"
+          ],
+          "examples": [
+            "#000000",
+            "#fdd835",
+            "#004c88",
+            "#ffffff",
+            "#e0f7fa"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "visible": {
+          "count": 40,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "constraints": {
+      "count": 388,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Frame",
+        "Icon_Font_Awesome_Free_Solid_C_caret-down",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Line",
+        "Rectangle",
+        "Status_Beasiswa",
+        "Text",
+        "Vector",
+        "check",
+        "frame",
+        "pressed",
+        "search_bar"
+      ],
+      "childElements": [],
+      "attributes": {
+        "horizontal": {
+          "count": 388,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "MIN",
+            "SCALE",
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "vertical": {
+          "count": 388,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "MIN",
+            "SCALE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "letterSpacing": {
+      "count": 187,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Text"
+      ],
+      "childElements": [],
+      "attributes": {
+        "value": {
+          "count": 187,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "unit": {
+          "count": 187,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "PERCENT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "lineHeight": {
+      "count": 187,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Text"
+      ],
+      "childElements": [],
+      "attributes": {
+        "unit": {
+          "count": 187,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "AUTO",
+            "PIXELS"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 4,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "18"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Rectangle": {
+      "count": 6,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "constraints",
+        "fills",
+        "strokes"
+      ],
+      "attributes": {
+        "id": {
+          "count": 6,
+          "observedTypes": [
+            "figma-node-id",
+            "string"
+          ],
+          "examples": [
+            "16601:46206",
+            "I16601:46290;581:112",
+            "I16601:46290;619:1",
+            "16601:45842",
+            "d1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 6,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Garis",
+            "Rectangle_2.6",
+            "Rectangle_3.2",
+            "Divider"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 4,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeWeight": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeAlign": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 6,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0",
+            "70",
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 6,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "39",
+            "0",
+            "60",
+            "52"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 6,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1234",
+            "245",
+            "35",
+            "400",
+            "1160"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 6,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1",
+            "37"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "layoutAlign": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "STRETCH"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 6,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "RECTANGLE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "strokes": {
+      "count": 64,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Frame",
+        "Information_box_detail",
+        "Line",
+        "Rectangle",
+        "Vector"
+      ],
+      "childElements": [
+        "stroke"
+      ],
+      "attributes": {}
+    },
+    "stroke": {
+      "count": 64,
+      "syntheticCount": 0,
+      "parentElements": [
+        "strokes"
+      ],
+      "childElements": [],
+      "attributes": {
+        "visible": {
+          "count": 2,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "blendMode": {
+          "count": 64,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "NORMAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "color": {
+          "count": 64,
+          "observedTypes": [
+            "hex-color-6"
+          ],
+          "examples": [
+            "#979797",
+            "#01579b",
+            "#b1bccc",
+            "#bdbdbd",
+            "#03337b"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Information_box_detail": {
+      "count": 2,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "overrides",
+        "strokes",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 2,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46491",
+            "16601:45844"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Information_box_detail"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "60",
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1234"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "64"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VERTICAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingLeft": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingRight": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingTop": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingBottom": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "horizontalPadding": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "verticalPadding": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisSizingMode": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FIXED"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "primaryAxisAlignItems": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutGrow": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Icon_Font_Awesome_Free_Solid_I_info-circle": {
+      "count": 2,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "overrides"
+      ],
+      "attributes": {
+        "id": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:46491;12:95",
+            "I16601:45844;12:95"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "24"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "24"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 2,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "variantProperties": {
+          "count": 2,
+          "observedTypes": [
+            "empty-string"
+          ],
+          "examples": [
+            ""
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Vector": {
+      "count": 25,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "constraints",
+        "fills",
+        "strokes"
+      ],
+      "attributes": {
+        "id": {
+          "count": 25,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:46491;12:95;4845:6491",
+            "I16601:46211;8231:12469;4845:7175",
+            "I16601:46212;8199:14171;4845:7175",
+            "I16601:46214;708:13980;7:5286",
+            "I16601:46243;828:664;7:9437"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 25,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Vector",
+            "Icon"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 25,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 25,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "2",
+            "1",
+            "1.1333333253860474",
+            "1.1666666269302368",
+            "1.75"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 25,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "2",
+            "3.163731336593628",
+            "1.1333333253860474",
+            "1.1666666269302368",
+            "2.625"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 25,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "20",
+            "10",
+            "11.333333969116211",
+            "11.666666030883789",
+            "7"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 25,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "20",
+            "5.672537326812744",
+            "11.333333969116211",
+            "11.666666030883789",
+            "4.8125"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 25,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VECTOR"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeWeight": {
+          "count": 6,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.800000011920929",
+            "1.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeJoin": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ROUND"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "strokeAlign": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "strokeCap": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ROUND"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "mainComponent": {
+      "count": 64,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Icon_Font_Awesome_Free_Solid_C_caret-down",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Status_Beasiswa",
+        "check",
+        "pressed",
+        "search_bar"
+      ],
+      "childElements": [],
+      "attributes": {
+        "id": {
+          "count": 64,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "10095:20674",
+            "10095:20650",
+            "8199:14105",
+            "8231:12463",
+            "8199:14167"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "overrides": {
+      "count": 15,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Icon_Font_Awesome_Free_Solid_I_info-circle",
+        "Icon_primary",
+        "Information_box_detail",
+        "pressed"
+      ],
+      "childElements": [
+        "override"
+      ],
+      "attributes": {}
+    },
+    "override": {
+      "count": 38,
+      "syntheticCount": 0,
+      "parentElements": [
+        "overrides"
+      ],
+      "childElements": [
+        "overriddenFields"
+      ],
+      "attributes": {
+        "id": {
+          "count": 38,
+          "observedTypes": [
+            "string",
+            "figma-node-id"
+          ],
+          "examples": [
+            "I16601:46491;12:95;4845:6491",
+            "16601:46491",
+            "I16601:46491;12:100",
+            "I16601:46491;12:101",
+            "I16601:46491;12:87"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "overriddenFields": {
+      "count": 38,
+      "syntheticCount": 0,
+      "parentElements": [
+        "override"
+      ],
+      "childElements": [
+        "overriddenField"
+      ],
+      "attributes": {}
+    },
+    "overriddenField": {
+      "count": 115,
+      "syntheticCount": 0,
+      "parentElements": [
+        "overriddenFields"
+      ],
+      "childElements": [],
+      "attributes": {
+        "value": {
+          "count": 115,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "fillStyleId",
+            "fills",
+            "strokeStyleId",
+            "strokes",
+            "height"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "index": {
+          "count": 115,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "fontName": {
+      "count": 111,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Text"
+      ],
+      "childElements": [],
+      "attributes": {
+        "family": {
+          "count": 111,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Roboto"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "style": {
+          "count": 111,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Bold",
+            "SemiBold",
+            "Regular"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "variantProperties": {
+      "count": 54,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Status_Beasiswa",
+        "search_bar"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "belum isi data",
+            "Default",
+            "Aktif"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "icon": {
+          "count": 7,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true",
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "Type": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "dropdown",
+            "Active",
+            "primary",
+            "secondary",
+            "Checkbox"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "required": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true",
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "Alphabet": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "S",
+            "C"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "Name": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "sync",
+            "check-circle"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "State": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "normal",
+            "Default"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "Text": {
+          "count": 5,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "Text_Only": {
+          "count": 15,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "True"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "Checked": {
+          "count": 11,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "False",
+            "True"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "Indeterminate": {
+          "count": 11,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "False"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "componentProperties": {
+      "count": 55,
+      "syntheticCount": 0,
+      "parentElements": [
+        "Aksi",
+        "Button_FNC",
+        "Checkbox_FNC",
+        "Field",
+        "Icon_primary",
+        "Icon_white",
+        "Information_box_detail",
+        "Status_Beasiswa",
+        "search_bar"
+      ],
+      "childElements": [
+        "Alphabet",
+        "Checked",
+        "Indeterminate",
+        "Name",
+        "Show_Icon_4863_15",
+        "Show_Icon_Font_Awesome_Free_Solid_C_caret-down_4863_10",
+        "Show_Title_4863_30",
+        "State",
+        "Text",
+        "Text_4863_20",
+        "Text_Only",
+        "Title_4863_25",
+        "Type",
+        "delete_5037_1",
+        "detail_4879_3",
+        "edit_4879_2",
+        "error_message_4863_35",
+        "icon",
+        "icon_4863_5",
+        "required",
+        "show_error_4863_40",
+        "type"
+      ],
+      "attributes": {}
+    },
+    "type": {
+      "count": 19,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "belum isi data",
+            "Default",
+            "Aktif"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "icon": {
+      "count": 7,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 7,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 7,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true",
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Field": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "mainComponent",
+        "overrides",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 3,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46211",
+            "16601:46212",
+            "16601:46213"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Field"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "x": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0",
+            "311",
+            "622"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "301"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "63"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutAlign": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "STRETCH"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutGrow": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutSizingVertical": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VERTICAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "primaryAxisSizingMode": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FIXED"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "itemSpacing": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "8"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Icon_Font_Awesome_Free_Solid_C_caret-down": {
+      "count": 2,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "constraints",
+        "fills",
+        "mainComponent"
+      ],
+      "attributes": {
+        "id": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:46211;8231:12469",
+            "I16601:46212;8199:14171"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "x": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "277"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 2,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "14.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 2,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 2,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "variantProperties": {
+          "count": 2,
+          "observedTypes": [
+            "empty-string"
+          ],
+          "examples": [
+            ""
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "show_error_4863_40": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Show_Icon_Font_Awesome_Free_Solid_C_caret-down_4863_10": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Title_4863_25": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "TEXT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Tahun akademik semester masuk",
+            "Program studi",
+            "NIM"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Show_Title_4863_30": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "icon_4863_5": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE_SWAP"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "8199:14105"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "error_message_4863_35": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "TEXT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "This is error message"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Text_4863_20": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "TEXT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "2025/2026 ganjil",
+            "Pilih program studi",
+            "Pilih nim"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Show_Icon_4863_15": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Type": {
+      "count": 19,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 19,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "dropdown",
+            "Active",
+            "primary",
+            "secondary",
+            "Checkbox"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "required": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 3,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true",
+            "false"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Button_FNC": {
+      "count": 5,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "overrides",
+        "strokes",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 5,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46214",
+            "16601:46292",
+            "16601:46293",
+            "16601:45987",
+            "16601:45988"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Button_FNC"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "expanded": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "6"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 5,
+          "observedTypes": [
+            "integer",
+            "decimal"
+          ],
+          "examples": [
+            "933",
+            "485.5",
+            "588.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "22",
+            "100",
+            "60"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "301",
+            "83",
+            "160"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "41",
+            "40"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutGrow": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FILL",
+            "HUG"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HORIZONTAL",
+            "VERTICAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingLeft": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "25"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingRight": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "25"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingTop": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "paddingBottom": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "horizontalPadding": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12",
+            "25"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "verticalPadding": {
+          "count": 5,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "12"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisSizingMode": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "FIXED"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisSizingMode": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "AUTO"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "primaryAxisAlignItems": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisAlignItems": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "itemSpacing": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "10"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Icon_primary": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "overrides",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:46214;708:13980"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Icon_primary"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "expanded": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "x": {
+          "count": 1,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "112.19999694824219"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 1,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "13.699999809265137"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 1,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "13.600000381469727"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 1,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "13.600000381469727"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "scaleFactor": {
+          "count": 1,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.800000011920929"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Alphabet": {
+      "count": 16,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "S",
+            "C"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Name": {
+      "count": 16,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "sync",
+            "check-circle"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "State": {
+      "count": 16,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 16,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "normal",
+            "Default"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "search_bar": {
+      "count": 3,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "mainComponent",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 3,
+          "observedTypes": [
+            "figma-node-id",
+            "string"
+          ],
+          "examples": [
+            "16601:46223",
+            "16601:45853",
+            "s1"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "search_bar",
+            "Search"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "933",
+            "20"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0",
+            "70"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "301",
+            "300"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 3,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "41",
+            "40"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HUG"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HORIZONTAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisSizingMode": {
+          "count": 2,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "AUTO"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 3,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "Line": {
+      "count": 15,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "constraints",
+        "strokes"
+      ],
+      "attributes": {
+        "id": {
+          "count": 15,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46234",
+            "16601:46254",
+            "16601:46265",
+            "16601:46276",
+            "16601:46287"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Line_5",
+            "Line_6"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "strokeAlign": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "CENTER"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "60",
+            "0",
+            "100"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1234"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "LINE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutPositioning": {
+          "count": 12,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ABSOLUTE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Status_Beasiswa": {
+      "count": 15,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 15,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46243",
+            "16601:46253",
+            "16601:46264",
+            "16601:46275",
+            "16601:46286"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Status_Beasiswa"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "1155"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 15,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "7.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "64"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "25"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutSizingHorizontal": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HUG"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "layoutMode": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "HORIZONTAL"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "counterAxisSizingMode": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "AUTO"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Icon_white": {
+      "count": 15,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:46243;828:664",
+            "I16601:46253;828:664",
+            "I16601:46264;828:664",
+            "I16601:46275;828:664",
+            "I16601:46286;828:664"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Icon_white"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 15,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.5"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "14"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 15,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "14"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 15,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Text_Only": {
+      "count": 15,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 15,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 15,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "True"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml",
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "pressed": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "constraints",
+        "mainComponent",
+        "overrides"
+      ],
+      "attributes": {
+        "id": {
+          "count": 1,
+          "observedTypes": [
+            "figma-node-id"
+          ],
+          "examples": [
+            "16601:46290"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "pressed"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "maskType": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "x": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "989"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "245"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "37"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "variantProperties": {
+          "count": 1,
+          "observedTypes": [
+            "empty-string"
+          ],
+          "examples": [
+            ""
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "mahasiswa-tarif/raw.xml"
+          ]
+        }
+      }
+    },
+    "Checkbox_FNC": {
+      "count": 12,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "componentProperties",
+        "constraints",
+        "fills",
+        "mainComponent",
+        "overrides",
+        "strokes",
+        "variantProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 12,
+          "observedTypes": [
+            "figma-node-id",
+            "string"
+          ],
+          "examples": [
+            "16601:45856",
+            "16601:45867",
+            "16601:45878",
+            "16601:45889",
+            "16601:45901"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 12,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Checkbox_FNC",
+            "Checkbox"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "strokeWeight": {
+          "count": 11,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.75"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "cornerRadius": {
+          "count": 11,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "2"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "opacity": {
+          "count": 1,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "0"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 11,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 12,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "15",
+            "0"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "y": {
+          "count": 12,
+          "observedTypes": [
+            "decimal",
+            "integer"
+          ],
+          "examples": [
+            "22.5",
+            "12.5",
+            "0"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "width": {
+          "count": 12,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "15",
+            "20"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "height": {
+          "count": 12,
+          "observedTypes": [
+            "integer"
+          ],
+          "examples": [
+            "15",
+            "20"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 11,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 12,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "tester.xml",
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "Checked": {
+      "count": 11,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 11,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 11,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "False",
+            "True"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Indeterminate": {
+      "count": 11,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 11,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "VARIANT"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "value": {
+          "count": 11,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "False"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "check": {
+      "count": 5,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "children",
+        "constraints",
+        "fills",
+        "mainComponent"
+      ],
+      "attributes": {
+        "id": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "I16601:45867;52:17910",
+            "I16601:45901;52:17910",
+            "I16601:45913;52:17910",
+            "I16601:45949;52:17910",
+            "I16601:45973;52:17910"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "name": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "check"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "strokeWeight": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.375"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "maskType": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "ALPHA"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "x": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "2.25"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "y": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "2.25"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "width": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "10.5"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "height": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "10.5"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "clipsContent": {
+          "count": 5,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "variantProperties": {
+          "count": 5,
+          "observedTypes": [
+            "empty-string"
+          ],
+          "examples": [
+            ""
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "type": {
+          "count": 5,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        },
+        "scaleFactor": {
+          "count": 5,
+          "observedTypes": [
+            "decimal"
+          ],
+          "examples": [
+            "0.375"
+          ],
+          "files": [
+            "tester.xml"
+          ]
+        }
+      }
+    },
+    "Aksi": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "children"
+      ],
+      "childElements": [
+        "componentProperties"
+      ],
+      "attributes": {
+        "id": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "x:1"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        },
+        "name": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "Aksi"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        },
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "INSTANCE"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "edit_4879_2": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "detail_4879_3": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "true"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    },
+    "delete_5037_1": {
+      "count": 1,
+      "syntheticCount": 0,
+      "parentElements": [
+        "componentProperties"
+      ],
+      "childElements": [],
+      "attributes": {
+        "type": {
+          "count": 1,
+          "observedTypes": [
+            "string"
+          ],
+          "examples": [
+            "BOOLEAN"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        },
+        "value": {
+          "count": 1,
+          "observedTypes": [
+            "boolean"
+          ],
+          "examples": [
+            "false"
+          ],
+          "files": [
+            "ground-truth/raw.xml"
+          ]
+        }
+      }
+    }
+  },
+  "totals": {
+    "totalElements": 2733,
+    "totalAttributes": 8939,
+    "totalTextChars": 0,
+    "maxDepth": 24,
+    "files": 4
+  },
+  "fileStats": [
+    {
+      "path": "test/fixtures/mahasiswa-tarif/raw.xml",
+      "synthetic": false,
+      "bytes": 120257,
+      "elements": 1132,
+      "textNodes": 2,
+      "maxDepth": 24,
+      "hasXmlDecl": true,
+      "hasFigmlPI": true,
+      "hasDoctype": false,
+      "hasEntity": false,
+      "textChars": 0
+    },
+    {
+      "path": "tester.xml",
+      "synthetic": false,
+      "bytes": 169793,
+      "elements": 1576,
+      "textNodes": 2,
+      "maxDepth": 24,
+      "hasXmlDecl": true,
+      "hasFigmlPI": true,
+      "hasDoctype": false,
+      "hasEntity": false,
+      "textChars": 0
+    },
+    {
+      "path": "test/fixtures/eval-hope/ground-truth/raw.xml",
+      "synthetic": false,
+      "bytes": 388,
+      "elements": 8,
+      "textNodes": 0,
+      "maxDepth": 6,
+      "hasXmlDecl": false,
+      "hasFigmlPI": false,
+      "hasDoctype": false,
+      "hasEntity": false,
+      "textChars": 0
+    },
+    {
+      "path": "test/fixtures/pilar-golden/ground-truth/raw.xml",
+      "synthetic": false,
+      "bytes": 1081,
+      "elements": 17,
+      "textNodes": 0,
+      "maxDepth": 6,
+      "hasXmlDecl": false,
+      "hasFigmlPI": false,
+      "hasDoctype": false,
+      "hasEntity": false,
+      "textChars": 0
+    }
+  ],
+  "diagnostics": []
+}

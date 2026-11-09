@@ -32,6 +32,7 @@ const CLASSIFICATION = {
   declaredInModule: "framework",
   noHashedSelectors: "framework",
   deadCode: "framework",
+  typeCheck: "framework",
   // project — this team's idiom, from project evidence/configuration
   classVocabulary: "project",
   inventedUtility: "project",

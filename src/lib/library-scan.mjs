@@ -7,7 +7,7 @@
 
 import fg from "fast-glob";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname, relative } from "node:path";
 import { CATEGORIES, registryEntries, withUiiEntries } from "./library-registry.mjs";
 import { loadPilar } from "./pilar-loader.mjs";
 import { importSources } from "./ts-ast.mjs";
@@ -56,7 +56,7 @@ export async function scanLibraryUsage(root, deps = {}, { includeUii = true, pre
 
   const capabilities = {};
   for (const cat of CATEGORIES) {
-    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, { includeUii, uiiRegistry, preferRegistrySamples });
+    capabilities[cat] = buildCapability(cat, combined, allTs, allHtml, allScss, deps, root, { includeUii, uiiRegistry, preferRegistrySamples });
   }
 
   return { capabilities, libraries: { inUse } };
@@ -69,7 +69,7 @@ export async function scanLibraryUsage(root, deps = {}, { includeUii = true, pre
  *    2. installed — first entry whose npm `package` appears in deps (registry order = priority).
  *    3. null — fall back to plain HTML with a note.
  */
-function buildCapability(category, combined, allTs, allHtml, allScss, deps, { includeUii = true, uiiRegistry = {}, preferRegistrySamples = false } = {}) {
+function buildCapability(category, combined, allTs, allHtml, allScss, deps, root, { includeUii = true, uiiRegistry = {}, preferRegistrySamples = false } = {}) {
   const libs = includeUii
     ? withUiiEntries(category, uiiRegistry[category])
     : registryEntries(category);
@@ -86,9 +86,9 @@ function buildCapability(category, combined, allTs, allHtml, allScss, deps, { in
     // field session leaked `.margin-top-20` and `[pagination]` into a fresh slice this way).
     // The curated sample lives in uii-profile.mjs and is regenerated from the pilar catalogs.
     if (!preferRegistrySamples) {
-      const local = findLocalSample(entry, allTs, allHtml, allScss);
+      const local = findLocalSample(entry, allTs, allHtml, allScss, root);
       if (local.sampleHtml || local.sampleTs) {
-        return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, sampleScss: local.sampleScss, sampleScssPath: local.sampleScssPath, source: "local" };
+        return { library: entry.name, sampleHtml: local.sampleHtml, sampleTs: local.sampleTs, sampleScss: local.sampleScss, sampleScssPath: local.sampleScssPath, samplePath: local.samplePath, sampleHtmlPath: local.sampleHtmlPath, source: "local" };
       }
     }
     return { library: entry.name, sampleHtml: entry.sampleHtml, sampleTs: entry.sampleTs, source: "registry" };
@@ -110,7 +110,7 @@ function buildCapability(category, combined, allTs, allHtml, allScss, deps, { in
  *  decorator detection is unreliable across TS versions); importSources is still used
  *  to confirm the package is genuinely imported (not just commented/re-exported).
  */
-function findLocalSample(entry, allTs, allHtml, allScss) {
+function findLocalSample(entry, allTs, allHtml, allScss, root) {
   const pkgName = entry.package || entry.name;
   const tagTest = entry.tagTest || tagTestFor(entry.name);
   // A tag-only entry (no `package`/`testImport`) is matched by its template tag, not by an
@@ -189,7 +189,15 @@ function findLocalSample(entry, allTs, allHtml, allScss) {
   // block verbatim instead of reconstructing (and dropping) library-internal selectors.
   const { sampleScss, sampleScssPath } = readStylesheet(chosenTs, allScss);
 
-  return { sampleHtml, sampleTs, sampleScss, sampleScssPath };
+  // Surface the chosen component's source paths (project-relative) so the context can name the
+  // exact files to read — the agent needs the .ts/.html (the API wiring), not just the SCSS.
+  const samplePath = chosenTs?.path && root ? relative(root, chosenTs.path) : null;
+  const templateUrl = chosenTs?.src ? /templateUrl:\s*['"]([^'"]+)['"]/.exec(chosenTs.src)?.[1] : null;
+  const sampleHtmlPath = samplePath && templateUrl
+    ? join(dirname(samplePath), templateUrl.replace(/^\.\//, "")).replace(/\\/g, "/")
+    : null;
+
+  return { sampleHtml, sampleTs, sampleScss, sampleScssPath, samplePath, sampleHtmlPath };
 }
 
 /** Form/detail/add components are poor exemplars for a list slice — deprioritize them. */

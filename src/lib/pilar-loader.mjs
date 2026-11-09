@@ -13,11 +13,12 @@
 
 export async function loadPilar() {
   try {
-    const [catalog, policy, profile, version] = await Promise.all([
+    const [catalog, policy, profile, version, typecheck] = await Promise.all([
       import("../framework/angular/pilar-catalog.mjs"),
       import("../framework/angular/uii-slice-policy.mjs"),
       import("../framework/angular/uii-profile.mjs"),
       import("./pilar-version.mjs"),
+      import("../framework/angular/pilar-typecheck.mjs"),
     ]);
     return {
       pilarComponents: catalog.PILAR_COMPONENTS,
@@ -33,6 +34,7 @@ export async function loadPilar() {
       renderPilarShowcaseMd: profile.renderPilarShowcaseMd,
       pilarVersionStatus: version.pilarVersionStatus,
       pilarDoctorCheck: version.pilarDoctorCheck,
+      typeCheckSlice: typecheck.typeCheckSlice,
     };
   } catch {
     return null; // pilar stripped from this install → generic mode

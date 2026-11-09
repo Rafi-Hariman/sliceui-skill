@@ -40,7 +40,7 @@ export function parseFigml(xml, filename) {
 
   const width = rootDim(xml, "width");
   const height = rootDim(xml, "height");
-  const layout = walkNodes(rootChildren, 0, 0);
+  const layout = walkNodes(rootChildren, 0, 0, makeIdSeq());
   markTables(layout);
   // The root frame's OWN box facts were dropped entirely — only its children were walked, so a
   // page frame carrying `paddingTop="20" paddingBottom="20"` never reached the transcript and the
@@ -128,7 +128,7 @@ const SKIP_TAGS = new Set([
 const TRANSPARENT_TAGS = new Set(["children"]);
 
 /** Walk childNode[] — each is { Tag: [children], ":@": attrs }. */
-function walkNodes(nodes, ox, oy) {
+function walkNodes(nodes, ox, oy, ids) {
   const out = [];
   for (const node of nodes) {
     if (!node || typeof node !== "object") continue;
@@ -136,7 +136,7 @@ function walkNodes(nodes, ox, oy) {
     if (SKIP_TAGS.has(tag)) continue;
     if (TRANSPARENT_TAGS.has(tag)) {
       const kids = Array.isArray(node[tag]) ? node[tag] : [];
-      out.push(...walkNodes(kids, ox, oy));
+      out.push(...walkNodes(kids, ox, oy, ids));
       continue;
     }
     const attrs = node[":@"] || {};
@@ -178,13 +178,13 @@ function walkNodes(nodes, ox, oy) {
     const effectiveAttrs4 = overrideHidesNode(kids)
       ? { ...effectiveAttrs3, visible: "false" }
       : effectiveAttrs3;
-    const mapped = mapNode(tag, effectiveAttrs4, visualKids3, ox, oy);
+    const mapped = mapNode(tag, effectiveAttrs4, visualKids3, ox, oy, ids);
     if (mapped) out.push(mapped);
   }
   return out;
 }
 
-function mapNode(tag, attrs, kids, ox, oy) {
+function mapNode(tag, attrs, kids, ox, oy, ids) {
   let type = attrs.type || classifyByTag(tag);
   if (["BOOLEAN", "VARIANT", "INSTANCE_SWAP"].includes(type)) return null;
   // FIGML exports a bare group container as `type="GROUP"` (e.g. a `<Group>` wrapping a nested
@@ -207,7 +207,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
   const justify = justifyContentOf(attrs);             // "space-between" | null
 
   const base = {
-    id: idOf(attrs.id, name),
+    id: ids(attrs.id, name),
     x: Math.round(x),
     y: Math.round(y),
     w: Math.round(w),
@@ -278,7 +278,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...(border ? { border } : {}),
         ...sizingFields(attrs),
       };
-      const childNodes = walkNodes(kids, x, y);
+      const childNodes = walkNodes(kids, x, y, ids);
       if (childNodes.length) node.children = childNodes;
       return node;
     }
@@ -298,7 +298,7 @@ function mapNode(tag, attrs, kids, ox, oy) {
         ...(border ? { border } : {}),
         ...sizingFields(attrs),
       };
-      const childNodes = walkNodes(kids, x, y);
+      const childNodes = walkNodes(kids, x, y, ids);
       const label = childNodes.length ? firstText(childNodes) : "";
       if (cls.type === "button" && label) node.text = label;
       if (cls.type === "input") node.label = label;
@@ -626,9 +626,14 @@ function num(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-let _idSeq = 0;
-function idOf(id, name) {
-  if (id) return String(id).replace(/[^a-zA-Z0-9_-]/g, "_");
-  const base = String(name).replace(/[^a-zA-Z0-9_-]/g, "_") || "node";
-  return `${base}_${++_idSeq}`;
+// Deterministic per-parse id factory (was a module-global `_idSeq` — the audit found it makes
+// id-less nodes non-deterministic across repeated parseFigml calls in the same process; see
+// research/figml-audit/determinism-report.md). Each parse starts its counter at 1.
+function makeIdSeq() {
+  let n = 0;
+  return (id, name) => {
+    if (id) return String(id).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const base = String(name).replace(/[^a-zA-Z0-9_-]/g, "_") || "node";
+    return `${base}_${++n}`;
+  };
 }
